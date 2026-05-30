@@ -341,7 +341,15 @@ function longueurVisible(mot) {
 // Mot se terminant par un signe de ponctuation (coupe le groupe après lui)
 const PONCT_COUPE = /[.,;:!?…]["»”'’)\]]*$/;
 
+// Titres / civilités toujours suivis d'un nom propre (à ne jamais séparer du nom).
+// Le point de l'abréviation ne doit pas couper le groupe.
+const HONORIFIQUE = /^(MM?|Mr|Mrs|Ms|Mme|Mmes|Mlle|Mlles|Dr|Pr|Me|Mgr|St|Ste|Sts|Stes)\.?$/;
+function estHonorifique(mot) {
+  return HONORIFIQUE.test((mot || "").replace(/^[^\p{L}]+/u, ""));
+}
+
 // Construit le groupe de mots à afficher à partir de `start`, en respectant :
+//  - un titre (M., Mme, Mlle, Mrs…) reste collé au nom propre qui suit ;
 //  - une suite de mots à Majuscule (prénom + nom) est groupée même si un seul
 //    mot est demandé ;
 //  - le maximum demandé (etat.nbMots) sinon ;
@@ -349,12 +357,16 @@ const PONCT_COUPE = /[.,;:!?…]["»”'’)\]]*$/;
 //  - on coupe le groupe après tout signe de ponctuation (. , ; : ! ? …),
 //    donc on n'enchaîne jamais par-dessus une ponctuation.
 function construireChunkDepuis(start) {
-  // Nom propre : 2 mots (ou plus) à majuscule consécutifs -> groupés ensemble
-  if (estMotMajuscule(etat.mots[start]) && estMotMajuscule(etat.mots[start + 1])) {
+  // Nom propre : titre + nom, ou 2 mots (ou plus) à majuscule consécutifs
+  const m0 = etat.mots[start];
+  if (estMotMajuscule(m0) && (estHonorifique(m0) || estMotMajuscule(etat.mots[start + 1]))) {
     const parts = [];
-    for (let i = start; i < etat.mots.length && estMotMajuscule(etat.mots[i]); i++) {
-      parts.push(etat.mots[i]);
-      if (PONCT_COUPE.test(etat.mots[i])) break; // s'arrête à une ponctuation
+    for (let i = start; i < etat.mots.length; i++) {
+      const mot = etat.mots[i];
+      parts.push(mot);
+      if (estHonorifique(mot)) continue;              // un titre ne coupe jamais
+      if (PONCT_COUPE.test(mot)) break;               // ponctuation finale -> fin du nom
+      if (!estMotMajuscule(etat.mots[i + 1])) break;  // mot suivant pas en majuscule -> fin
     }
     return { texte: parts.join(" "), nb: parts.length };
   }
@@ -661,7 +673,9 @@ function deplacer(pas, continuer) {
 // Un mot commence une phrase si le mot précédent terminait la précédente.
 function estDebutPhrase(i) {
   if (i <= 0) return true;
-  return FIN_PHRASE.test(etat.mots[i - 1] || "");
+  const prec = etat.mots[i - 1] || "";
+  // Le point d'un titre (M., Mme…) n'est pas une fin de phrase.
+  return FIN_PHRASE.test(prec) && !estHonorifique(prec);
 }
 // Début de la phrase contenant (ou précédant) l'index i
 function debutPhraseAvant(i) {
