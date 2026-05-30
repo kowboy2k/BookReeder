@@ -7,7 +7,7 @@
   <title>BookReeder</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="style.css?v=57">
+  <link rel="stylesheet" href="style.css?v=58">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -99,7 +99,7 @@
     <div class="panneau-contenu">
       <h2>Réglages</h2>
 
-      <div class="reglage">
+      <div class="reglage reglage-inline">
         <label for="reglage-modele">Modèle de lecture</label>
         <select id="reglage-modele"></select>
       </div>
@@ -114,17 +114,17 @@
         <input type="checkbox" id="reglage-continuer" checked>
       </div>
 
-      <div class="reglage">
+      <div class="reglage reglage-inline">
         <label for="reglage-police">Police</label>
         <select id="reglage-police"></select>
       </div>
 
-      <div class="reglage">
+      <div class="reglage reglage-inline">
         <label for="reglage-variante">Variante</label>
         <select id="reglage-variante"></select>
       </div>
 
-      <div class="reglage" id="bloc-bionic-couleur" style="display:none">
+      <div class="reglage reglage-inline" id="bloc-bionic-couleur" style="display:none">
         <label for="reglage-bionic-couleur">Couleur du début bionic</label>
         <select id="reglage-bionic-couleur">
           <option value="uniforme" selected>Uniforme (couleur du texte)</option>
@@ -157,11 +157,11 @@
       </div>
 
       <div class="reglage reglage-duo">
-        <label class="case-inline"><input type="checkbox" id="reglage-cadre" checked> Cartouche ORP</label>
-        <label class="case-inline"><input type="checkbox" id="reglage-orp" checked> Repère central</label>
+        <label class="case-inline">Cartouche ORP <input type="checkbox" id="reglage-cadre" checked></label>
+        <label class="case-inline">Repère central <input type="checkbox" id="reglage-orp" checked></label>
       </div>
 
-      <div class="reglage">
+      <div class="reglage reglage-inline">
         <label for="reglage-orp-couleur">Couleur du repère</label>
         <select id="reglage-orp-couleur">
           <option value="#f25c54" selected>Rouge</option>
@@ -193,6 +193,6 @@
 
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
-  <script src="app.js?v=57"></script>
+  <script src="app.js?v=58"></script>
 </body>
 </html>

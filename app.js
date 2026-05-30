@@ -343,7 +343,7 @@ const PONCT_COUPE = /[.,;:!?…]["»”'’)\]]*$/;
 
 // Titres / civilités toujours suivis d'un nom propre (à ne jamais séparer du nom).
 // Le point de l'abréviation ne doit pas couper le groupe.
-const HONORIFIQUE = /^(MM?|Mr|Mrs|Ms|Mme|Mmes|Mlle|Mlles|Dr|Pr|Me|Mgr|St|Ste|Sts|Stes)\.?$/;
+const HONORIFIQUE = /^(MM?|Mr|Mrs|Ms|Mme|Mmes|Mlle|Mlles|Dr|Pr|Prof|Me|Mgr|St|Ste|Sts|Stes|Cie|Cap|Cdt|Col|Gal|Gén|Lt|Sgt|Adj|Rev|Hon|Vve)\.?$/;
 function estHonorifique(mot) {
   return HONORIFIQUE.test((mot || "").replace(/^[^\p{L}]+/u, ""));
 }
@@ -1042,7 +1042,7 @@ function appliquerPolice() {
   document.documentElement.style.setProperty("--graisse", graisse);
   etat.bionic = bionic;
   // La couleur du début bionic ne s'affiche que si le bionic est choisi
-  $("bloc-bionic-couleur").style.display = bionic ? "block" : "none";
+  $("bloc-bionic-couleur").style.display = bionic ? "flex" : "none";
   $("bloc-bionic-perso").style.display =
     (bionic && $("reglage-bionic-couleur").value === "perso") ? "flex" : "none";
 }

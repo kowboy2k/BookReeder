@@ -495,9 +495,14 @@ html, body {
 .reglage-case { display: flex; align-items: center; justify-content: space-between; }
 .reglage-case input { width: 1.3rem; height: 1.3rem; accent-color: var(--accent); }
 /* Deux cases côte à côte sur une même ligne */
+/* Libellé + menu déroulant sur la même ligne (gain de place) */
+.reglage-inline { display: flex; align-items: center; gap: 0.8rem; }
+.reglage-inline label { margin-bottom: 0; flex: none; }
+.reglage-inline select { flex: 1; min-width: 0; }
 .reglage-duo { display: flex; gap: 1rem; }
 .case-inline {
-  flex: 1; display: flex; align-items: center; gap: 0.5rem; cursor: pointer;
+  flex: 1; display: flex; align-items: center; justify-content: space-between;
+  gap: 0.5rem; cursor: pointer;
 }
 .case-inline input { width: 1.3rem; height: 1.3rem; accent-color: var(--accent); flex: none; }
 .reglage-case input[type="color"] {
