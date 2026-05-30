@@ -7,7 +7,7 @@
   <title>BookReeder</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="style.css?v=65">
+  <link rel="stylesheet" href="style.css?v=66">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -109,14 +109,14 @@
         <input type="range" id="reglage-nb-mots" min="1" max="3" step="1" value="1">
       </div>
 
-      <div class="reglage reglage-case">
-        <label for="reglage-continuer">Continuer la lecture après avance/retour</label>
-        <input type="checkbox" id="reglage-continuer" checked>
-      </div>
-
       <div class="reglage">
         <label for="reglage-pauses">Longueur des pauses : <span id="valeur-pauses">1,0</span>×</label>
         <input type="range" id="reglage-pauses" min="0.5" max="4" step="0.1" value="1">
+      </div>
+
+      <div class="reglage reglage-case">
+        <label for="reglage-continuer">Continuer la lecture après avance/retour</label>
+        <input type="checkbox" id="reglage-continuer" checked>
       </div>
 
       <div class="reglage reglage-inline">
@@ -198,6 +198,6 @@
 
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
-  <script src="app.js?v=65"></script>
+  <script src="app.js?v=66"></script>
 </body>
 </html>
