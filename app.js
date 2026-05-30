@@ -25,10 +25,15 @@ const zoneMot = $("zone-mot");
 $("input-fichier").addEventListener("change", async (e) => {
   const fichier = e.target.files[0];
   if (!fichier) return;
+  const buffer = await fichier.arrayBuffer();
+  await chargerEpub(buffer);
+});
+
+// Charge un EPUB (ArrayBuffer), extrait le texte et démarre la lecture
+async function chargerEpub(buffer) {
   const msg = $("message-chargement");
   msg.textContent = "Lecture du fichier…";
   try {
-    const buffer = await fichier.arrayBuffer();
     const livre = ePub(buffer);
     await livre.ready;
     const texte = await extraireTexte(livre);
@@ -40,7 +45,7 @@ $("input-fichier").addEventListener("change", async (e) => {
     console.error(err);
     msg.textContent = "Impossible de lire ce fichier : " + err.message;
   }
-});
+}
 
 // Texte de démo (pour tester sans EPUB)
 const TEXTE_DEMO = `La réception avait eu lieu dans la demeure de Lucinda Joffrey. Sir Richard était absent. Un diplomate de sa stature n’aurait jamais toléré un amusement aussi frivole. Les soirées d’anguille électrique faisaient fureur à Londres depuis peu. Cependant, en raison de la rareté de ces créatures, les fêtes privées étaient rares. En général, elles se tenaient dans des théâtres où quelques heureux élus étaient sélectionnés pour monter sur scène et rencontrer l’anguille, être électrocutés et se convulser comme des pantins articulés pour le plus grand plaisir du public.
@@ -58,16 +63,40 @@ $("btn-demo").addEventListener("click", () => {
   demarrerLecture();
 });
 
-// Parcourt tous les chapitres et concatène le texte brut
+// Parcourt tous les chapitres et concatène le texte brut.
+// section.load() peut renvoyer un Document OU l'élément <html> selon
+// la version d'epub.js : on gère les deux cas.
 async function extraireTexte(livre) {
   const morceaux = [];
-  const sections = livre.spine.spineItems;
-  for (const section of sections) {
-    const doc = await section.load(livre.load.bind(livre));
-    morceaux.push(doc.body ? doc.body.textContent : "");
-    section.unload();
+  for (const section of livre.spine.spineItems) {
+    try {
+      const contenu = await section.load(livre.load.bind(livre));
+      let corps = null;
+      if (contenu) {
+        if (contenu.body) corps = contenu.body;                                   // Document
+        else if (contenu.querySelector) corps = contenu.querySelector("body") || contenu; // <html>
+      }
+      const txt = corps ? texteAvecSeparateurs(corps)
+                        : (contenu ? contenu.textContent : "");
+      if (txt && txt.trim()) morceaux.push(txt.trim());
+    } catch (e) {
+      console.warn("Section illisible ignorée", e);
+    } finally {
+      section.unload();
+    }
   }
   return morceaux.join("\n\n");
+}
+
+// Extrait le texte d'un élément en insérant des espaces entre les blocs,
+// sinon "titre" et "paragraphe" se collent ("premierLa").
+function texteAvecSeparateurs(el) {
+  const clone = el.cloneNode(true);
+  clone.querySelectorAll("br").forEach((b) => b.replaceWith(" "));
+  clone.querySelectorAll(
+    "p, div, h1, h2, h3, h4, h5, h6, li, blockquote, tr, section, article, figcaption"
+  ).forEach((b) => b.append("\n"));
+  return clone.textContent;
 }
 
 // =========================================================
