@@ -106,15 +106,18 @@ async function chargerEpub(buffer, nom, taille) {
     const { mots, chapitres } = await extraireLivre(livre);
     if (mots.length === 0) throw new Error("Aucun texte trouvé");
 
+    // Titre et auteur depuis les métadonnées de l'EPUB (sinon nom de fichier)
     let titre = nom.replace(/\.epub$/i, "");
+    let auteur = "";
     try {
       const meta = await livre.loaded.metadata;
       if (meta && meta.title) titre = meta.title.trim();
+      if (meta && meta.creator) auteur = meta.creator.trim();
     } catch (e) { /* pas de métadonnées : on garde le nom de fichier */ }
 
     const id = nom + "|" + taille;
     const fiche = {
-      id, nom, titre, dateAjout: Date.now(),
+      id, nom, titre, auteur, dateAjout: Date.now(),
       mots, chapitres, index: 0, total: mots.length,
     };
     await sauverLivre(fiche);
@@ -871,10 +874,15 @@ async function afficherBibliotheque() {
     item.innerHTML =
       `<div class="item-infos">` +
         `<span class="item-nom"></span>` +
+        `<span class="item-auteur"></span>` +
         `<span class="item-meta">Ajouté le ${formatDate(livre.dateAjout)} · ${pct}%</span>` +
       `</div>` +
       `<button class="item-suppr" title="Retirer">×</button>`;
-    item.querySelector(".item-nom").textContent = livre.nom;
+    // Titre du livre (métadonnées) si dispo, sinon nom de fichier
+    item.querySelector(".item-nom").textContent = livre.titre || livre.nom;
+    const elAuteur = item.querySelector(".item-auteur");
+    if (livre.auteur) elAuteur.textContent = livre.auteur;
+    else elAuteur.remove();
     item.querySelector(".item-infos").addEventListener("click", async () => {
       const frais = await lireLivre(livre.id); // position à jour
       ouvrirFiche(frais || livre);
