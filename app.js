@@ -406,17 +406,38 @@ function construireHtml(chunk, idxOrp) {
       html += (i === idxOrp) ? '<span class="orp"> </span>' : " ";
       i++;
     }
-    const grasJusqu = etat.bionic ? Math.max(1, Math.ceil(mot.length * 0.4)) : 0;
+    // Bionic : on met en gras le DÉBUT du mot (point de fixation), à partir
+    // de sa première lettre et sur une fraction des lettres selon sa longueur.
+    const gras = etat.bionic ? bornesGras(mot) : null;
     for (let j = 0; j < mot.length; j++, i++) {
       let c = echappe(mot[j]);
       // ORP en interne pour que sa couleur rouge reste prioritaire,
       // bionic en externe pour la graisse + couleur du début de mot
       if (i === idxOrp) c = '<span class="orp">' + c + "</span>";
-      if (j < grasJusqu) c = '<span class="bio">' + c + "</span>";
+      if (gras && j >= gras.debut && j < gras.fin) c = '<span class="bio">' + c + "</span>";
       html += c;
     }
   });
   return html;
+}
+
+// Bornes (caractères) du début de mot à mettre en gras pour le bionic.
+// Le gras commence à la 1re LETTRE (jamais sur un tiret/guillemet de tête)
+// et couvre les premières lettres selon la longueur (catégories court/moyen/long).
+function bornesGras(mot) {
+  const lettres = [];
+  for (let k = 0; k < mot.length; k++) {
+    if (/[\p{L}\p{N}]/u.test(mot[k])) lettres.push(k);
+  }
+  const n = lettres.length;
+  if (n === 0) return null;            // jeton sans lettre : pas de gras
+  let nb;                              // nombre de lettres en gras
+  if (n <= 3) nb = 1;
+  else if (n <= 6) nb = 2;
+  else if (n <= 9) nb = 3;
+  else nb = Math.ceil(n * 0.4);
+  nb = Math.min(nb, n);
+  return { debut: lettres[0], fin: lettres[nb - 1] + 1 };
 }
 
 // Rang de la lettre pivot selon le nombre de lettres (table Spritz/OpenSpritz).
@@ -649,8 +670,6 @@ $("btn-lecture").addEventListener("click", basculerLecture);
 function reglerVitesse(v) {
   etat.vitesse = Math.min(800, Math.max(200, v));
   $("vitesse-actuelle").textContent = etat.vitesse;
-  $("valeur-vitesse").textContent = etat.vitesse;
-  $("reglage-vitesse").value = etat.vitesse;
 }
 $("btn-moins").addEventListener("click", () => reglerVitesse(etat.vitesse - 50));
 $("btn-plus").addEventListener("click", () => reglerVitesse(etat.vitesse + 50));
@@ -799,7 +818,6 @@ afficherBibliotheque();
 $("btn-reglages").addEventListener("click", () => $("panneau-reglages").classList.remove("cache"));
 $("btn-fermer-reglages").addEventListener("click", () => $("panneau-reglages").classList.add("cache"));
 
-$("reglage-vitesse").addEventListener("input", (e) => reglerVitesse(+e.target.value));
 $("reglage-nb-mots").addEventListener("input", (e) => {
   etat.nbMots = +e.target.value;
   $("valeur-nb-mots").textContent = etat.nbMots;

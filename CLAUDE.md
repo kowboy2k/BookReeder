@@ -17,6 +17,9 @@ Cible : PC (Windows 11), Mac, iPhone (iOS) et liseuse Vivlio (Android).
 - `lib/epub.min.js`, `lib/jszip.min.js` — lecture des EPUB
 
 ## Décisions / points subtils
+- **Bionic reading** (`bornesGras`) : met en gras le **début du mot** (point de fixation),
+  à partir de la 1re lettre (jamais sur un tiret/guillemet de tête), sur une fraction des
+  lettres selon la longueur (court ≤3→1, ≤6→2, ≤9→3, sinon ~40 %). Le cerveau complète la fin.
 - **Choix de la lettre ORP** (`calculerOrp` + `rangPivot`) : suit la table Spritz/OpenSpritz —
   le pivot est légèrement à gauche du centre, et son rang dépend du nombre de **lettres** :
   1→1ʳᵉ, 2–5→2ᵉ, 6–9→3ᵉ, 10–13→4ᵉ, 14+→5ᵉ. On ne compte QUE lettres/chiffres (`\p{L}\p{N}`)
