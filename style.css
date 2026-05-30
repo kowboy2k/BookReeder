@@ -110,6 +110,8 @@ html, body {
   transform: translate(calc(-1 * var(--decalage-orp, 0px)), -50%);
 }
 
+#mot-affiche.majuscules { text-transform: uppercase; }
+
 /* Gras + couleur du début de mot (bionic) */
 #mot-affiche .bio { font-weight: 900; color: var(--bio-couleur, inherit); }
 /* Le pivot ORP reste prioritaire en couleur, même dans un début gras */

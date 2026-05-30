@@ -532,7 +532,7 @@ function majProgression() {
   $("position-actuelle").textContent = etat.index;
   $("total-mots").textContent = etat.mots.length;
   $("position-pct").textContent = pctLivre.toFixed(2).replace(".", ",");
-  $("chapitre-actuel").textContent = chapitreActuel().titre;
+  $("chapitre-actuel").textContent = tronquerTitre(chapitreActuel().titre);
 
   if (!$("panneau-navigation").classList.contains("cache")) majBarreLivre();
 }
@@ -542,6 +542,12 @@ function majBarreLivre() {
   const pct = etat.mots.length ? (etat.index / etat.mots.length) * 100 : 0;
   $("remplissage-livre").style.width = pct + "%";
   $("curseur-livre").style.left = pct + "%";
+}
+
+// Tronque un titre de chapitre trop long pour la ligne d'info
+function tronquerTitre(t) {
+  t = t || "";
+  return t.length > 20 ? t.slice(0, 20).trimEnd() + " [...]" : t;
 }
 
 // Chapitre contenant la position de lecture courante
@@ -807,6 +813,10 @@ $("reglage-police").addEventListener("change", (e) => {
 $("reglage-graisse").addEventListener("change", (e) => {
   document.documentElement.style.setProperty("--graisse", e.target.value);
   afficherChunk();
+});
+$("reglage-majuscules").addEventListener("change", (e) => {
+  motAffiche.classList.toggle("majuscules", e.target.checked);
+  afficherChunk(); // recalcule le centrage ORP (largeurs modifiées)
 });
 $("reglage-espace-lettres").addEventListener("input", (e) => {
   document.documentElement.style.setProperty("--espace-lettres", e.target.value + "px");
