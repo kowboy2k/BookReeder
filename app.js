@@ -13,6 +13,7 @@ const etat = {
   nbMots: 1,         // mots affichés simultanément (max souhaité)
   nbCourant: 1,      // mots réellement affichés dans le chunk courant
   continuerApresSaut: true, // garder la lecture en marche après avance/retour
+  coefPause: 1,      // coefficient multiplicateur des temps de pause (0,5–4)
   elan: 1,           // « momentum » : <1 juste après une pause, remonte vers 1
   orpActif: true,
   bionic: false,     // lecture bionic (début des mots en gras)
@@ -560,9 +561,10 @@ function delaiChunk() {
   else if (pause > 0 || majuscule) etat.elan = 0.7;        // pause moyenne
   else etat.elan = Math.min(1, etat.elan + 0.18);          // accélération progressive
 
+  // Le temps de pause est modulé par le coefficient réglable (0,5–4).
   // Plancher absolu : aucun mot ne s'affiche moins de ~90 ms, même à haute
   // vitesse, pour éviter les « télescopages » illisibles.
-  return Math.max(mot + pause, 90);
+  return Math.max(mot + pause * etat.coefPause, 90);
 }
 
 // Le mot commence-t-il par une lettre MAJUSCULE (en ignorant tiret/guillemet) ?
@@ -1002,6 +1004,20 @@ function ajusterCadre() {
 $("reglage-continuer").addEventListener("change", (e) => {
   etat.continuerApresSaut = e.target.checked;
 });
+
+// --- Longueur des pauses (coefficient multiplicateur) ---
+function appliquerCoefPause(v) {
+  etat.coefPause = v;
+  $("reglage-pauses").value = v;
+  $("valeur-pauses").textContent = v.toFixed(1).replace(".", ",");
+  try { localStorage.setItem("bookreeder-coef-pause", v); } catch (e) {}
+}
+$("reglage-pauses").addEventListener("input", (e) => appliquerCoefPause(+e.target.value));
+(function initCoefPause() {
+  let v = 1;
+  try { const s = localStorage.getItem("bookreeder-coef-pause"); if (s) v = +s; } catch (e) {}
+  appliquerCoefPause(v);
+})();
 $("reglage-orp").addEventListener("change", (e) => {
   etat.orpActif = e.target.checked;
   majVisibiliteOrpCouleur();
