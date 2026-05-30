@@ -407,13 +407,27 @@ function construireHtml(chunk, idxOrp) {
   return html;
 }
 
-// Position de la lettre pivot selon la longueur (heuristique Spritz)
-function calculerOrp(mot) {
-  let i = Math.floor(mot.length / 2) - 1;
-  if (i < 0) i = 0;
-  // Évite de tomber sur une espace
-  if (mot[i] === " ") i = Math.max(0, i - 1);
-  return i;
+// Rang de la lettre pivot selon le nombre de lettres (table Spritz/OpenSpritz).
+// Le point de reconnaissance est légèrement à GAUCHE du centre ; plus le mot
+// est long, plus il se décale à gauche.
+function rangPivot(n) {
+  if (n <= 1) return 0;
+  if (n <= 5) return 1;
+  if (n <= 9) return 2;
+  if (n <= 13) return 3;
+  return 4;
+}
+
+// Position (index caractère) de la lettre pivot ORP dans le chunk.
+// On ne considère QUE les lettres et chiffres : les apostrophes, tirets,
+// guillemets, espaces et ponctuation ne peuvent jamais être le repère.
+function calculerOrp(chunk) {
+  const lettres = [];
+  for (let i = 0; i < chunk.length; i++) {
+    if (/[\p{L}\p{N}]/u.test(chunk[i])) lettres.push(i);
+  }
+  if (lettres.length === 0) return -1;
+  return lettres[rangPivot(lettres.length)];
 }
 
 // =========================================================
