@@ -1096,6 +1096,34 @@ $("reglage-bionic-couleur").addEventListener("change", (e) => {
   appliquerBioCouleur();
 });
 $("reglage-bio-teinte").addEventListener("input", appliquerBioCouleur);
+
+// --- Couleur du repère central (lettre ORP) ---
+function appliquerOrpCouleur() {
+  const choix = $("reglage-orp-couleur").value;
+  let couleur;
+  if (choix === "aucune") couleur = "currentColor";     // même couleur que le texte
+  else if (choix === "perso") couleur = $("reglage-orp-teinte").value;
+  else couleur = choix;                                 // préréglage (rouge/vert/jaune)
+  document.documentElement.style.setProperty("--orp-couleur", couleur);
+  $("bloc-orp-perso").style.display = choix === "perso" ? "flex" : "none";
+  try {
+    localStorage.setItem("bookreeder-orp-couleur", choix);
+    localStorage.setItem("bookreeder-orp-teinte", $("reglage-orp-teinte").value);
+  } catch (e) {}
+}
+$("reglage-orp-couleur").addEventListener("change", appliquerOrpCouleur);
+$("reglage-orp-teinte").addEventListener("input", appliquerOrpCouleur);
+function initialiserOrpCouleur() {
+  try {
+    const c = localStorage.getItem("bookreeder-orp-couleur");
+    const t = localStorage.getItem("bookreeder-orp-teinte");
+    if (t) $("reglage-orp-teinte").value = t;
+    if (c) $("reglage-orp-couleur").value = c;
+  } catch (e) {}
+  appliquerOrpCouleur();
+}
+initialiserOrpCouleur();
+
 $("reglage-majuscules").addEventListener("change", (e) => {
   motAffiche.classList.toggle("majuscules", e.target.checked);
   afficherChunk(); // recalcule le centrage ORP (largeurs modifiées)

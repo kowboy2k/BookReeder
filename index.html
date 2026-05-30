@@ -7,7 +7,7 @@
   <title>BookReeder</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="style.css?v=55">
+  <link rel="stylesheet" href="style.css?v=57">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -156,14 +156,25 @@
         <input type="range" id="reglage-espace-mots" min="0" max="24" step="1" value="0">
       </div>
 
-      <div class="reglage reglage-case">
-        <label for="reglage-cadre">Cartouche ORP</label>
-        <input type="checkbox" id="reglage-cadre" checked>
+      <div class="reglage reglage-duo">
+        <label class="case-inline"><input type="checkbox" id="reglage-cadre" checked> Cartouche ORP</label>
+        <label class="case-inline"><input type="checkbox" id="reglage-orp" checked> Repère central</label>
       </div>
 
-      <div class="reglage reglage-case">
-        <label for="reglage-orp">Repère central</label>
-        <input type="checkbox" id="reglage-orp" checked>
+      <div class="reglage">
+        <label for="reglage-orp-couleur">Couleur du repère</label>
+        <select id="reglage-orp-couleur">
+          <option value="#f25c54" selected>Rouge</option>
+          <option value="#399d31">Vert</option>
+          <option value="#ffd359">Jaune</option>
+          <option value="aucune">Aucune (couleur du texte)</option>
+          <option value="perso">Personnalisé…</option>
+        </select>
+      </div>
+
+      <div class="reglage reglage-case" id="bloc-orp-perso" style="display:none">
+        <label for="reglage-orp-teinte">Couleur personnalisée</label>
+        <input type="color" id="reglage-orp-teinte" value="#f25c54">
       </div>
 
       <div class="reglage" id="bloc-ecart-reperes">
@@ -182,6 +193,6 @@
 
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
-  <script src="app.js?v=55"></script>
+  <script src="app.js?v=57"></script>
 </body>
 </html>
