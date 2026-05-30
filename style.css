@@ -528,12 +528,10 @@ html, body {
 .reglage-inline { display: flex; align-items: center; gap: 0.8rem; }
 .reglage-inline label { margin-bottom: 0; flex: none; }
 .reglage-inline select { flex: 1; min-width: 0; }
-.reglage-duo { display: flex; gap: 1rem; }
-.case-inline {
-  flex: 1; display: flex; align-items: center; justify-content: space-between;
-  gap: 0.5rem; cursor: pointer;
-}
-.case-inline input { width: 1.3rem; height: 1.3rem; accent-color: var(--accent); flex: none; }
+.reglage-duo { display: flex; justify-content: space-between; gap: 1rem; }
+/* Libellé + case collés ensemble, alignés sur la même ligne */
+.case-inline { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
+.case-inline input { width: 1.3rem; height: 1.3rem; accent-color: var(--accent); flex: none; margin: 0; }
 .reglage-case input[type="color"] {
   width: 2.6rem; height: 2rem; padding: 0; border: 1px solid #444;
   border-radius: 0.4rem; background: none; cursor: pointer;
