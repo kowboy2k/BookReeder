@@ -1004,9 +1004,17 @@ $("reglage-continuer").addEventListener("change", (e) => {
 });
 $("reglage-orp").addEventListener("change", (e) => {
   etat.orpActif = e.target.checked;
+  majVisibiliteOrpCouleur();
   appliquerOrp();
   afficherChunk();
 });
+// La couleur du repère ne s'affiche que si « Repère central » est coché
+function majVisibiliteOrpCouleur() {
+  const actif = etat.orpActif;
+  $("bloc-orp-couleur").style.display = actif ? "flex" : "none";
+  $("bloc-orp-perso").style.display =
+    (actif && $("reglage-orp-couleur").value === "perso") ? "flex" : "none";
+}
 
 // --- Police : 2 menus (famille + variante) ---
 // CSS de chaque famille « normale »
@@ -1116,7 +1124,8 @@ function appliquerOrpCouleur() {
   else if (choix === "perso") couleur = $("reglage-orp-teinte").value;
   else couleur = choix;                                 // préréglage (rouge/vert/jaune)
   document.documentElement.style.setProperty("--orp-couleur", couleur);
-  $("bloc-orp-perso").style.display = choix === "perso" ? "flex" : "none";
+  $("bloc-orp-perso").style.display =
+    (etat.orpActif && choix === "perso") ? "flex" : "none";
   try {
     localStorage.setItem("bookreeder-orp-couleur", choix);
     localStorage.setItem("bookreeder-orp-teinte", $("reglage-orp-teinte").value);
@@ -1132,6 +1141,7 @@ function initialiserOrpCouleur() {
     if (c) $("reglage-orp-couleur").value = c;
   } catch (e) {}
   appliquerOrpCouleur();
+  majVisibiliteOrpCouleur();
 }
 initialiserOrpCouleur();
 
