@@ -95,9 +95,15 @@ async function chargerEpub(buffer, nom, taille) {
     const { mots, chapitres } = await extraireLivre(livre);
     if (mots.length === 0) throw new Error("Aucun texte trouvé");
 
+    let titre = nom.replace(/\.epub$/i, "");
+    try {
+      const meta = await livre.loaded.metadata;
+      if (meta && meta.title) titre = meta.title.trim();
+    } catch (e) { /* pas de métadonnées : on garde le nom de fichier */ }
+
     const id = nom + "|" + taille;
     const fiche = {
-      id, nom, dateAjout: Date.now(),
+      id, nom, titre, dateAjout: Date.now(),
       mots, chapitres, index: 0, total: mots.length,
     };
     await sauverLivre(fiche);
@@ -115,6 +121,7 @@ function ouvrirFiche(fiche) {
     ? fiche.chapitres : [{ titre: "Début", debut: 0 }];
   etat.idLivre = fiche.id;
   etat.nomLivre = fiche.nom;
+  etat.titreLivre = fiche.titre || fiche.nom;
   etat.index = Math.min(fiche.index || 0, fiche.mots.length - 1);
   remplirSelectChapitres();
   placerMarqueursChapitres();
@@ -136,6 +143,7 @@ $("btn-demo").addEventListener("click", () => {
   etat.chapitres = [{ titre: "Texte de démo", debut: 0 }];
   etat.idLivre = null;
   etat.nomLivre = "Démo";
+  etat.titreLivre = "Texte de démo";
   etat.index = 0;
   remplirSelectChapitres();
   placerMarqueursChapitres();
@@ -366,7 +374,7 @@ function majProgression() {
   $("curseur").style.left = pct + "%";
   $("position-actuelle").textContent = etat.index;
   $("total-mots").textContent = etat.mots.length;
-  $("position-pct").textContent = Math.round(pct);
+  $("position-pct").textContent = pct.toFixed(2).replace(".", ",");
   $("chapitre-actuel").textContent = chapitreActuel().titre;
 }
 
@@ -408,6 +416,7 @@ function placerMarqueursChapitres() {
 function demarrerLecture() {
   ecranAccueil.classList.add("cache");
   ecranLecture.classList.remove("cache");
+  $("titre-livre").textContent = etat.titreLivre || etat.nomLivre || "";
   reglerVitesse(etat.vitesse);
   appliquerOrp();
   afficherChunk();

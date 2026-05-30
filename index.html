@@ -27,6 +27,8 @@
 
   <!-- Écran de lecture RSVP -->
   <div id="ecran-lecture" class="ecran cache">
+    <button id="btn-fermer" title="Changer de livre">✖</button>
+
     <div id="zone-mot" class="avec-cadre">
       <div id="cadre"></div>
       <div id="reticule-haut"></div>
@@ -39,22 +41,30 @@
       <div id="marqueurs-chapitres"></div>
       <div id="curseur"></div>
     </div>
+    <div id="titre-livre">—</div>
     <button id="info-progression" title="Aller à un chapitre / une position">
-      <span id="chapitre-actuel">—</span> · <span id="position-pct">0</span>% ·
-      <span id="position-actuelle">0</span> / <span id="total-mots">0</span> mots
+      <span id="position-pct">0,00</span>%
+      &nbsp;•&nbsp; <span id="chapitre-actuel">—</span>
+      &nbsp;•&nbsp; <span id="position-actuelle">0</span> / <span id="total-mots">0</span> mots
     </button>
 
-    <div id="controles">
+    <!-- Avance / retour rapide -->
+    <div id="nav-rapide">
       <button id="btn-recul" title="Retour rapide">⏮</button>
-      <button id="btn-moins" title="Ralentir (−50 mots/min)">−</button>
-      <button id="btn-lecture" title="Lecture / Pause">▶</button>
-      <button id="btn-plus" title="Accélérer (+50 mots/min)">+</button>
       <button id="btn-avance" title="Avance rapide">⏭</button>
-      <button id="btn-liste" title="Chapitres / aller à une position">☰</button>
-      <button id="btn-reglages" title="Réglages">⚙</button>
-      <button id="btn-fermer" title="Changer de livre">✖</button>
     </div>
-    <div id="info-vitesse"><span id="vitesse-actuelle">300</span> mots/min</div>
+
+    <!-- Barre principale : liste · vitesse · réglages -->
+    <div id="controles">
+      <button id="btn-liste" title="Chapitres / aller à une position">☰</button>
+      <div id="groupe-vitesse">
+        <button id="btn-moins" title="Ralentir (−50 mots/min)">−</button>
+        <button id="btn-lecture" title="Lecture / Pause">▶</button>
+        <button id="btn-plus" title="Accélérer (+50 mots/min)">+</button>
+      </div>
+      <button id="btn-reglages" title="Réglages">⚙</button>
+    </div>
+    <div id="info-vitesse">Vitesse : <span id="vitesse-actuelle">300</span> mots/min</div>
   </div>
 
   <!-- Panneau de navigation : chapitre + position manuelle -->

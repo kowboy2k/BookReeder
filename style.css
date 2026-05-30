@@ -144,14 +144,33 @@ html, body {
 }
 #zone-mot.avec-cadre #cadre { display: block; }
 
+/* Croix de fermeture en haut à droite */
+#btn-fermer {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  width: 3.2rem;
+  height: 3.2rem;
+  border-radius: 50%;
+  background: #2a2a3a;
+  color: var(--texte);
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  z-index: 5;
+}
+#btn-fermer:active { transform: scale(0.92); }
+
 #barre-progression {
   position: fixed;
-  bottom: 5.5rem;
-  left: 10%;
-  width: 80%;
+  bottom: 13.9rem;
+  left: 8%;
+  width: 84%;
   height: 4px;
   background: #3a3a4a;
   border-radius: 2px;
+  touch-action: none;
+  cursor: pointer;
 }
 #progression-remplissage {
   height: 100%;
@@ -170,73 +189,109 @@ html, body {
   opacity: 0.4;
   transform: translateX(-50%);
 }
-/* Pastille ronde déplaçable */
+/* Pastille ronde (contour) déplaçable */
 #curseur {
   position: absolute;
   top: 50%;
   left: 0;
-  width: 1.1rem;
-  height: 1.1rem;
-  background: var(--accent);
-  border: 2px solid #fff;
+  width: 1.8rem;
+  height: 1.8rem;
+  background: transparent;
+  border: 2px solid #555;
   border-radius: 50%;
   transform: translate(-50%, -50%);
   cursor: grab;
 }
 /* Zone tactile élargie autour de la barre pour saisir la pastille */
-#barre-progression { touch-action: none; cursor: pointer; }
 #barre-progression::before {
   content: "";
   position: absolute;
-  inset: -14px 0;
+  inset: -16px 0;
 }
-#info-progression {
+#titre-livre {
   position: fixed;
-  bottom: 4.1rem;
+  bottom: 12.6rem;
   left: 0;
   width: 100%;
   text-align: center;
   font-family: sans-serif;
-  font-size: 0.8rem;
+  font-size: 0.95rem;
+  color: var(--gris);
+  padding: 0 1.5rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#info-progression {
+  position: fixed;
+  bottom: 11.3rem;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-family: sans-serif;
+  font-size: 0.85rem;
   color: var(--gris);
   background: none;
   border: none;
   cursor: pointer;
 }
 #info-progression:hover { color: var(--texte); }
-#info-vitesse {
-  position: fixed;
-  bottom: 0.2rem;
-  width: 100%;
-  text-align: center;
-  font-family: sans-serif;
-  font-size: 0.7rem;
-  color: var(--gris);
-}
 
+/* Avance / retour rapide : deux gros boutons */
+#nav-rapide {
+  position: fixed;
+  bottom: 6rem;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 2.5rem;
+}
+#nav-rapide button {
+  background: #2a2a3a;
+  color: var(--texte);
+  border: none;
+  width: 5rem;
+  height: 5rem;
+  border-radius: 50%;
+  font-size: 1.7rem;
+  cursor: pointer;
+}
+#nav-rapide button:active { transform: scale(0.93); }
+
+/* Barre principale : liste · vitesse · réglages */
 #controles {
   position: fixed;
-  bottom: 1rem;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.5rem;
+  bottom: 2.6rem;
+  left: 0;
   width: 100%;
-  max-width: 30rem;
-  padding: 0 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
 }
+#groupe-vitesse { display: flex; gap: 0.7rem; }
 #controles button {
   background: #2a2a3a;
   color: var(--texte);
   border: none;
-  width: 2.9rem;
-  height: 2.9rem;
+  width: 3.6rem;
+  height: 3.6rem;
   border-radius: 50%;
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   cursor: pointer;
 }
 #controles button:active { transform: scale(0.92); }
-#btn-lecture { background: var(--accent); color: #fff; }
+#info-vitesse {
+  position: fixed;
+  bottom: 0.6rem;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-family: sans-serif;
+  font-size: 0.85rem;
+  color: var(--gris);
+}
 
 /* --- Bibliothèque (écran d'accueil) --- */
 #bibliotheque {
