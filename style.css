@@ -211,36 +211,27 @@ html, body {
   position: absolute;
   inset: -16px 0;
 }
-#titre-livre {
+/* Zone cliquable regroupant le titre + la ligne d'info */
+#zone-navigation {
   position: fixed;
-  bottom: 15.15rem;
+  bottom: 13.4rem;
   left: 0;
   width: 100%;
+  padding: 0.7rem 1.5rem;
   text-align: center;
   font-family: sans-serif;
-  font-size: 0.95rem;
   color: var(--gris);
-  padding: 0 1.5rem;
+  cursor: pointer;
+}
+#zone-navigation:hover { color: var(--texte); }
+#titre-livre {
+  font-size: 0.95rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  cursor: pointer;
+  margin-bottom: 0.35rem;
 }
-#titre-livre:hover { color: var(--texte); }
-#info-progression {
-  position: fixed;
-  bottom: 13.85rem;
-  left: 0;
-  width: 100%;
-  text-align: center;
-  font-family: sans-serif;
-  font-size: 0.85rem;
-  color: var(--gris);
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-#info-progression:hover { color: var(--texte); }
+#info-progression { font-size: 0.85rem; }
 
 /* Avance / retour rapide : deux gros boutons */
 #nav-rapide {

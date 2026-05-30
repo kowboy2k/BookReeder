@@ -41,12 +41,15 @@
       <div id="marqueurs-chapitres"></div>
       <div id="curseur"></div>
     </div>
-    <div id="titre-livre">—</div>
-    <button id="info-progression" title="Aller à un chapitre / une position">
-      <span id="position-pct">0,00</span>%
-      &nbsp;•&nbsp; <span id="chapitre-actuel">—</span>
-      &nbsp;•&nbsp; <span id="position-actuelle">0</span> / <span id="total-mots">0</span> mots
-    </button>
+    <!-- Zone cliquable (titre + info) qui ouvre la navigation -->
+    <div id="zone-navigation" title="Aller à un chapitre / une position">
+      <div id="titre-livre">—</div>
+      <div id="info-progression">
+        <span id="position-pct">0,00</span>%
+        &nbsp;•&nbsp; <span id="chapitre-actuel">—</span>
+        &nbsp;•&nbsp; <span id="position-actuelle">0</span> / <span id="total-mots">0</span> mots
+      </div>
+    </div>
 
     <!-- Chapitre précédent · retour rapide · avance rapide · chapitre suivant -->
     <div id="nav-rapide">
