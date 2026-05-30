@@ -32,8 +32,27 @@ Cible : PC (Windows 11), Mac, iPhone (iOS) et liseuse Vivlio (Android).
 Serveur local (config preview centralisée `C:\Claude Code\.claude\launch.json`, nom `bookreeder`) :
 `python -m http.server 8765 --directory "Projets/BookReeder"`
 
+## Navigation & bibliothèque
+- **Boutons** : `⏮` / `−` / `▶` / `+` / `⏭` / `☰` / `⚙` / `✖`. `−` et `+` ajustent la vitesse par
+  paliers de 50 mots/min (bornes 200–800). `⏮`/`⏭` = retour/avance rapide par `etat.pasNav`
+  (défaut 10, slider 5–50 dans les réglages). `☰` ouvre le panneau de navigation. `✖` revient
+  à l'accueil. Vitesse affichée sous les boutons.
+- **Curseur** : pastille ronde déplaçable sur la barre (`pointerdown/move/up`, souris + tactile).
+- **Repères de chapitres** : petits traits sur la barre au début de chaque chapitre. La ligne
+  d'info affiche `chapitre · % · index / total`. Cliquer dessus (ou le bouton `☰`) ouvre le
+  **panneau de navigation** (menu déroulant des chapitres + slider de position en %).
+- **Chapitres** : extraits au chargement depuis la TOC (`livre.loaded.navigation`), repérés par
+  href de section. Sans TOC → « Section N ». Si ≤ 1 chapitre et > 1500 mots → « Passage N »
+  tous les 1500 mots. Position exprimée en chapitre + % (pas de pages dans un EPUB).
+- **Bibliothèque (IndexedDB, base `bookreeder`, store `livres`)** : chaque livre chargé est
+  stocké découpé (mots + chapitres + position), repris instantanément au clic depuis l'accueil
+  sans relire l'EPUB. Affiche nom, date d'ajout (JJ/MM/AAAA HH:MM:SS) et % de progression ;
+  petit `×` pour retirer. La position est sauvée à la pause, à la fermeture et au glissé.
+
 ## Jalons
 - **Jalon 1 (FAIT)** : charger un EPUB, RSVP 1–8 mots, vitesse 200–800 mpm, ORP activable,
   découpe intelligente, contrôles clavier + tactile, base PWA hors-ligne.
-- **Jalon 2 (à venir)** : couleurs fond/texte personnalisables, bionic reading, polices,
-  réglage fin des pauses par ponctuation, mode allégé Vivlio, support PDF (best effort).
+- **Jalon 2 (FAIT)** : bionic reading + couleurs, polices/graisse/espacements, boutons −/+ vitesse,
+  curseur déplaçable, bibliothèque persistante, extraction des chapitres + navigation.
+- **Jalon 3 (à venir)** : couleurs fond/texte personnalisables, réglage fin des pauses par
+  ponctuation, mode allégé Vivlio, support PDF (best effort).

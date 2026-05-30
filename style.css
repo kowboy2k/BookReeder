@@ -159,13 +159,58 @@ html, body {
   background: var(--accent);
   border-radius: 2px;
 }
+/* Repères de début de chapitre sur la barre */
+#marqueurs-chapitres { position: absolute; inset: 0; pointer-events: none; }
+.marqueur {
+  position: absolute;
+  top: -2px;
+  width: 2px;
+  height: 8px;
+  background: var(--texte);
+  opacity: 0.4;
+  transform: translateX(-50%);
+}
+/* Pastille ronde déplaçable */
+#curseur {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 1.1rem;
+  height: 1.1rem;
+  background: var(--accent);
+  border: 2px solid #fff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  cursor: grab;
+}
+/* Zone tactile élargie autour de la barre pour saisir la pastille */
+#barre-progression { touch-action: none; cursor: pointer; }
+#barre-progression::before {
+  content: "";
+  position: absolute;
+  inset: -14px 0;
+}
 #info-progression {
   position: fixed;
-  bottom: 4.3rem;
+  bottom: 4.1rem;
+  left: 0;
   width: 100%;
   text-align: center;
   font-family: sans-serif;
   font-size: 0.8rem;
+  color: var(--gris);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+#info-progression:hover { color: var(--texte); }
+#info-vitesse {
+  position: fixed;
+  bottom: 0.2rem;
+  width: 100%;
+  text-align: center;
+  font-family: sans-serif;
+  font-size: 0.7rem;
   color: var(--gris);
 }
 
@@ -173,23 +218,72 @@ html, body {
   position: fixed;
   bottom: 1rem;
   display: flex;
-  gap: 0.8rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 30rem;
+  padding: 0 0.5rem;
 }
 #controles button {
   background: #2a2a3a;
   color: var(--texte);
   border: none;
-  width: 3.2rem;
-  height: 3.2rem;
+  width: 2.9rem;
+  height: 2.9rem;
   border-radius: 50%;
-  font-size: 1.3rem;
+  font-size: 1.2rem;
   cursor: pointer;
 }
 #controles button:active { transform: scale(0.92); }
 #btn-lecture { background: var(--accent); color: #fff; }
 
-/* --- Réglages --- */
-#panneau-reglages {
+/* --- Bibliothèque (écran d'accueil) --- */
+#bibliotheque {
+  width: min(90%, 460px);
+  margin-top: 2rem;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+.titre-biblio {
+  font-family: sans-serif;
+  font-size: 1rem;
+  color: var(--gris);
+  margin-bottom: 0.8rem;
+  font-weight: normal;
+}
+.item-livre {
+  display: flex;
+  align-items: center;
+  background: #2a2a3a;
+  border-radius: 0.5rem;
+  padding: 0.7rem 0.9rem;
+  margin-bottom: 0.6rem;
+  font-family: sans-serif;
+}
+.item-infos { flex: 1; display: flex; flex-direction: column; cursor: pointer; min-width: 0; }
+.item-nom {
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.item-meta { font-size: 0.75rem; color: var(--gris); margin-top: 0.2rem; }
+.item-suppr {
+  background: none;
+  border: none;
+  color: var(--gris);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0.3rem;
+  margin-left: 0.5rem;
+}
+.item-suppr:hover { color: var(--accent); }
+
+/* --- Réglages + Navigation (mêmes panneaux glissants) --- */
+#panneau-reglages,
+#panneau-navigation {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.6);
@@ -197,6 +291,16 @@ html, body {
   align-items: flex-end;
   justify-content: center;
   z-index: 10;
+}
+#btn-fermer-navigation {
+  width: 100%;
+  padding: 0.9rem;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 0.6rem;
+  font-size: 1rem;
+  cursor: pointer;
 }
 .panneau-contenu {
   background: #2a2a3a;

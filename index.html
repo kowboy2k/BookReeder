@@ -20,6 +20,9 @@
     </label>
     <button id="btn-demo" class="lien-demo">Essayer avec un texte de démo</button>
     <p id="message-chargement" class="message"></p>
+
+    <!-- Bibliothèque : fichiers déjà chargés, repris au clic -->
+    <div id="bibliotheque"></div>
   </div>
 
   <!-- Écran de lecture RSVP -->
@@ -31,15 +34,45 @@
       <div id="reticule-bas"></div>
     </div>
 
-    <div id="barre-progression"><div id="progression-remplissage"></div></div>
-    <div id="info-progression"><span id="position-actuelle">0</span> / <span id="total-mots">0</span> mots</div>
+    <div id="barre-progression">
+      <div id="progression-remplissage"></div>
+      <div id="marqueurs-chapitres"></div>
+      <div id="curseur"></div>
+    </div>
+    <button id="info-progression" title="Aller à un chapitre / une position">
+      <span id="chapitre-actuel">—</span> · <span id="position-pct">0</span>% ·
+      <span id="position-actuelle">0</span> / <span id="total-mots">0</span> mots
+    </button>
 
     <div id="controles">
-      <button id="btn-recul" title="Reculer">⏮</button>
+      <button id="btn-recul" title="Retour rapide">⏮</button>
+      <button id="btn-moins" title="Ralentir (−50 mots/min)">−</button>
       <button id="btn-lecture" title="Lecture / Pause">▶</button>
-      <button id="btn-avance" title="Avancer">⏭</button>
+      <button id="btn-plus" title="Accélérer (+50 mots/min)">+</button>
+      <button id="btn-avance" title="Avance rapide">⏭</button>
+      <button id="btn-liste" title="Chapitres / aller à une position">☰</button>
       <button id="btn-reglages" title="Réglages">⚙</button>
       <button id="btn-fermer" title="Changer de livre">✖</button>
+    </div>
+    <div id="info-vitesse"><span id="vitesse-actuelle">300</span> mots/min</div>
+  </div>
+
+  <!-- Panneau de navigation : chapitre + position manuelle -->
+  <div id="panneau-navigation" class="cache">
+    <div class="panneau-contenu">
+      <h2>Navigation</h2>
+
+      <div class="reglage">
+        <label for="nav-chapitre">Aller au chapitre</label>
+        <select id="nav-chapitre"></select>
+      </div>
+
+      <div class="reglage">
+        <label for="nav-position">Position dans le livre : <span id="nav-position-valeur">0</span> %</label>
+        <input type="range" id="nav-position" min="0" max="100" step="1" value="0">
+      </div>
+
+      <button id="btn-fermer-navigation">Fermer</button>
     </div>
   </div>
 
@@ -56,6 +89,11 @@
       <div class="reglage">
         <label for="reglage-nb-mots">Mots affichés : <span id="valeur-nb-mots">1</span></label>
         <input type="range" id="reglage-nb-mots" min="1" max="8" step="1" value="1">
+      </div>
+
+      <div class="reglage">
+        <label for="reglage-pas-nav">Saut avance/retour rapide : <span id="valeur-pas-nav">10</span> mots</label>
+        <input type="range" id="reglage-pas-nav" min="5" max="50" step="1" value="10">
       </div>
 
       <div class="reglage">

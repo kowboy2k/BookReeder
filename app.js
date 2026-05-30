@@ -3,11 +3,15 @@
 // --- État global ---
 const etat = {
   mots: [],          // liste des mots du livre
+  chapitres: [],     // [{ titre, debut }] debut = index du mot de départ
+  idLivre: null,     // identifiant du livre courant (clé bibliothèque)
+  nomLivre: "",      // nom de fichier affiché
   index: 0,          // position de lecture actuelle
   enLecture: false,
   minuteur: null,
   vitesse: 300,      // mots/min
   nbMots: 1,         // mots affichés simultanément
+  pasNav: 10,        // mots sautés par avance/retour rapide
   orpActif: true,
   bionic: false,     // lecture bionic (début des mots en gras)
 };
@@ -19,6 +23,57 @@ const ecranLecture = $("ecran-lecture");
 const motAffiche = $("mot-affiche");
 const zoneMot = $("zone-mot");
 
+// Date au format français JJ/MM/AAAA HH:MM:SS
+function formatDate(ms) {
+  const d = new Date(ms);
+  const p = (n) => String(n).padStart(2, "0");
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ` +
+         `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+
+// =========================================================
+//  Bibliothèque persistante (IndexedDB)
+//  On stocke le texte déjà découpé + les chapitres pour
+//  reprendre instantanément sans relire l'EPUB.
+// =========================================================
+let baseDonnees = null;
+function ouvrirBase() {
+  if (baseDonnees) return Promise.resolve(baseDonnees);
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open("bookreeder", 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains("livres"))
+        db.createObjectStore("livres", { keyPath: "id" });
+    };
+    req.onsuccess = () => { baseDonnees = req.result; resolve(baseDonnees); };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function transaction(mode, action) {
+  const db = await ouvrirBase();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("livres", mode);
+    const store = tx.objectStore("livres");
+    const req = action(store);
+    tx.oncomplete = () => resolve(req ? req.result : undefined);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+const sauverLivre = (livre) => transaction("readwrite", (s) => s.put(livre));
+const listerLivres = () => transaction("readonly", (s) => s.getAll());
+const lireLivre = (id) => transaction("readonly", (s) => s.get(id));
+const supprimerLivre = (id) => transaction("readwrite", (s) => s.delete(id));
+
+// Enregistre la position de lecture actuelle dans la bibliothèque
+async function sauverPosition() {
+  if (!etat.idLivre) return;
+  const livre = await lireLivre(etat.idLivre);
+  if (livre) { livre.index = etat.index; await sauverLivre(livre); }
+}
+
 // =========================================================
 //  Chargement du fichier EPUB
 // =========================================================
@@ -26,25 +81,44 @@ $("input-fichier").addEventListener("change", async (e) => {
   const fichier = e.target.files[0];
   if (!fichier) return;
   const buffer = await fichier.arrayBuffer();
-  await chargerEpub(buffer);
+  await chargerEpub(buffer, fichier.name, fichier.size);
 });
 
-// Charge un EPUB (ArrayBuffer), extrait le texte et démarre la lecture
-async function chargerEpub(buffer) {
+// Charge un EPUB (ArrayBuffer), extrait le texte + les chapitres,
+// l'enregistre dans la bibliothèque et démarre la lecture
+async function chargerEpub(buffer, nom, taille) {
   const msg = $("message-chargement");
   msg.textContent = "Lecture du fichier…";
   try {
     const livre = ePub(buffer);
     await livre.ready;
-    const texte = await extraireTexte(livre);
-    etat.mots = decouperEnMots(texte);
-    if (etat.mots.length === 0) throw new Error("Aucun texte trouvé");
-    etat.index = 0;
-    demarrerLecture();
+    const { mots, chapitres } = await extraireLivre(livre);
+    if (mots.length === 0) throw new Error("Aucun texte trouvé");
+
+    const id = nom + "|" + taille;
+    const fiche = {
+      id, nom, dateAjout: Date.now(),
+      mots, chapitres, index: 0, total: mots.length,
+    };
+    await sauverLivre(fiche);
+    ouvrirFiche(fiche);
   } catch (err) {
     console.error(err);
     msg.textContent = "Impossible de lire ce fichier : " + err.message;
   }
+}
+
+// Charge en mémoire une fiche de la bibliothèque et démarre la lecture
+function ouvrirFiche(fiche) {
+  etat.mots = fiche.mots;
+  etat.chapitres = fiche.chapitres && fiche.chapitres.length
+    ? fiche.chapitres : [{ titre: "Début", debut: 0 }];
+  etat.idLivre = fiche.id;
+  etat.nomLivre = fiche.nom;
+  etat.index = Math.min(fiche.index || 0, fiche.mots.length - 1);
+  remplirSelectChapitres();
+  placerMarqueursChapitres();
+  demarrerLecture();
 }
 
 // Texte de démo (pour tester sans EPUB)
@@ -59,15 +133,36 @@ Lord John se retourna en réprimant une grimace et en affichant un sourire court
 
 $("btn-demo").addEventListener("click", () => {
   etat.mots = decouperEnMots(TEXTE_DEMO);
+  etat.chapitres = [{ titre: "Texte de démo", debut: 0 }];
+  etat.idLivre = null;
+  etat.nomLivre = "Démo";
   etat.index = 0;
+  remplirSelectChapitres();
+  placerMarqueursChapitres();
   demarrerLecture();
 });
 
-// Parcourt tous les chapitres et concatène le texte brut.
+// Parcourt toutes les sections, concatène le texte ET repère où commence
+// chaque chapitre (index du mot). Les titres viennent de la table des
+// matières (TOC) quand elle existe, sinon du nom de section. En dernier
+// recours, on pose des repères « Passage N » tous les 1500 mots.
 // section.load() peut renvoyer un Document OU l'élément <html> selon
 // la version d'epub.js : on gère les deux cas.
-async function extraireTexte(livre) {
-  const morceaux = [];
+async function extraireLivre(livre) {
+  // Titres de la TOC indexés par href de section (sans ancre)
+  const titres = {};
+  try {
+    const nav = await livre.loaded.navigation;
+    const parcourir = (liste) => liste.forEach((item) => {
+      const href = (item.href || "").split("#")[0];
+      if (href && !titres[href]) titres[href] = item.label.trim();
+      if (item.subitems) parcourir(item.subitems);
+    });
+    if (nav && nav.toc) parcourir(nav.toc);
+  } catch (e) { /* pas de TOC : on continuera sans */ }
+
+  const motsTotal = [];
+  const chapitres = [];
   for (const section of livre.spine.spineItems) {
     try {
       const contenu = await section.load(livre.load.bind(livre));
@@ -78,14 +173,29 @@ async function extraireTexte(livre) {
       }
       const txt = corps ? texteAvecSeparateurs(corps)
                         : (contenu ? contenu.textContent : "");
-      if (txt && txt.trim()) morceaux.push(txt.trim());
+      const motsSection = txt && txt.trim() ? decouperEnMots(txt.trim()) : [];
+      if (motsSection.length) {
+        const href = (section.href || "").split("#")[0];
+        const titre = titres[href] || ("Section " + (chapitres.length + 1));
+        chapitres.push({ titre, debut: motsTotal.length });
+        motsTotal.push(...motsSection);
+      }
     } catch (e) {
       console.warn("Section illisible ignorée", e);
     } finally {
       section.unload();
     }
   }
-  return morceaux.join("\n\n");
+
+  // Aucun chapitre exploitable : repères réguliers tous les 1500 mots
+  if (chapitres.length <= 1 && motsTotal.length > 1500) {
+    chapitres.length = 0;
+    for (let d = 0, n = 1; d < motsTotal.length; d += 1500, n++)
+      chapitres.push({ titre: "Passage " + n, debut: d });
+  }
+  if (chapitres.length === 0) chapitres.push({ titre: "Début", debut: 0 });
+
+  return { mots: motsTotal, chapitres };
 }
 
 // Extrait le texte d'un élément en insérant des espaces entre les blocs,
@@ -234,6 +344,7 @@ function pause() {
   etat.enLecture = false;
   clearTimeout(etat.minuteur);
   $("btn-lecture").textContent = "▶";
+  sauverPosition();
 }
 
 function basculerLecture() {
@@ -250,15 +361,54 @@ function deplacer(pas) {
 }
 
 function majProgression() {
-  const pct = (etat.index / etat.mots.length) * 100;
+  const pct = etat.mots.length ? (etat.index / etat.mots.length) * 100 : 0;
   $("progression-remplissage").style.width = pct + "%";
+  $("curseur").style.left = pct + "%";
   $("position-actuelle").textContent = etat.index;
   $("total-mots").textContent = etat.mots.length;
+  $("position-pct").textContent = Math.round(pct);
+  $("chapitre-actuel").textContent = chapitreActuel().titre;
+}
+
+// Chapitre contenant la position de lecture courante
+function chapitreActuel() {
+  let courant = etat.chapitres[0] || { titre: "—", debut: 0 };
+  for (const ch of etat.chapitres) {
+    if (ch.debut <= etat.index) courant = ch; else break;
+  }
+  return courant;
+}
+
+// Remplit le menu déroulant des chapitres
+function remplirSelectChapitres() {
+  const sel = $("nav-chapitre");
+  sel.innerHTML = "";
+  etat.chapitres.forEach((ch, i) => {
+    const opt = document.createElement("option");
+    opt.value = i;
+    opt.textContent = ch.titre;
+    sel.appendChild(opt);
+  });
+}
+
+// Place un petit trait sur la barre à chaque début de chapitre
+function placerMarqueursChapitres() {
+  const conteneur = $("marqueurs-chapitres");
+  conteneur.innerHTML = "";
+  if (!etat.mots.length) return;
+  etat.chapitres.forEach((ch) => {
+    if (ch.debut === 0) return;
+    const trait = document.createElement("div");
+    trait.className = "marqueur";
+    trait.style.left = (ch.debut / etat.mots.length) * 100 + "%";
+    conteneur.appendChild(trait);
+  });
 }
 
 function demarrerLecture() {
   ecranAccueil.classList.add("cache");
   ecranLecture.classList.remove("cache");
+  reglerVitesse(etat.vitesse);
   appliquerOrp();
   afficherChunk();
 }
@@ -267,28 +417,143 @@ function demarrerLecture() {
 //  Contrôles UI
 // =========================================================
 $("btn-lecture").addEventListener("click", basculerLecture);
-$("btn-recul").addEventListener("click", () => deplacer(-etat.nbMots * 5));
-$("btn-avance").addEventListener("click", () => deplacer(etat.nbMots * 5));
-$("btn-fermer").addEventListener("click", () => {
+
+// Vitesse : − et + par paliers de 50 mots/min (bornes 200–800)
+function reglerVitesse(v) {
+  etat.vitesse = Math.min(800, Math.max(200, v));
+  $("vitesse-actuelle").textContent = etat.vitesse;
+  $("valeur-vitesse").textContent = etat.vitesse;
+  $("reglage-vitesse").value = etat.vitesse;
+}
+$("btn-moins").addEventListener("click", () => reglerVitesse(etat.vitesse - 50));
+$("btn-plus").addEventListener("click", () => reglerVitesse(etat.vitesse + 50));
+
+// Avance / retour rapide (pas réglable, 5–50 mots)
+$("btn-recul").addEventListener("click", () => deplacer(-etat.pasNav));
+$("btn-avance").addEventListener("click", () => deplacer(etat.pasNav));
+
+$("btn-fermer").addEventListener("click", async () => {
   pause();
+  await sauverPosition();
   ecranLecture.classList.add("cache");
   ecranAccueil.classList.remove("cache");
   $("input-fichier").value = "";
   $("message-chargement").textContent = "";
+  afficherBibliotheque();
 });
+
+// =========================================================
+//  Curseur déplaçable sur la barre (souris + tactile)
+// =========================================================
+const barre = $("barre-progression");
+function positionDepuisEvenement(e) {
+  const r = barre.getBoundingClientRect();
+  let ratio = (e.clientX - r.left) / r.width;
+  ratio = Math.min(1, Math.max(0, ratio));
+  return Math.round(ratio * (etat.mots.length - 1));
+}
+let glisse = false;
+barre.addEventListener("pointerdown", (e) => {
+  if (!etat.mots.length) return;
+  glisse = true;
+  pause();
+  barre.setPointerCapture(e.pointerId);
+  etat.index = positionDepuisEvenement(e);
+  afficherChunk();
+});
+barre.addEventListener("pointermove", (e) => {
+  if (!glisse) return;
+  etat.index = positionDepuisEvenement(e);
+  afficherChunk();
+});
+barre.addEventListener("pointerup", (e) => {
+  if (!glisse) return;
+  glisse = false;
+  barre.releasePointerCapture(e.pointerId);
+  sauverPosition();
+});
+
+// =========================================================
+//  Panneau de navigation (chapitre + position %)
+// =========================================================
+function ouvrirNavigation() {
+  $("nav-chapitre").value = etat.chapitres.indexOf(chapitreActuel());
+  const pct = etat.mots.length ? Math.round(etat.index / etat.mots.length * 100) : 0;
+  $("nav-position").value = pct;
+  $("nav-position-valeur").textContent = pct;
+  $("panneau-navigation").classList.remove("cache");
+}
+$("info-progression").addEventListener("click", ouvrirNavigation);
+$("btn-liste").addEventListener("click", ouvrirNavigation);
+$("btn-fermer-navigation").addEventListener("click", () => {
+  $("panneau-navigation").classList.add("cache");
+  sauverPosition();
+});
+$("nav-chapitre").addEventListener("change", (e) => {
+  const ch = etat.chapitres[+e.target.value];
+  if (!ch) return;
+  deplacer(ch.debut - etat.index);
+});
+$("nav-position").addEventListener("input", (e) => {
+  $("nav-position-valeur").textContent = e.target.value;
+  const cible = Math.round(+e.target.value / 100 * (etat.mots.length - 1));
+  deplacer(cible - etat.index);
+});
+
+// =========================================================
+//  Bibliothèque sur l'écran d'accueil
+// =========================================================
+async function afficherBibliotheque() {
+  const conteneur = $("bibliotheque");
+  conteneur.innerHTML = "";
+  let livres = [];
+  try { livres = (await listerLivres()) || []; } catch (e) { return; }
+  livres.sort((a, b) => b.dateAjout - a.dateAjout);
+  if (!livres.length) return;
+
+  const titre = document.createElement("h2");
+  titre.textContent = "Mes livres";
+  titre.className = "titre-biblio";
+  conteneur.appendChild(titre);
+
+  livres.forEach((livre) => {
+    const pct = livre.total ? Math.round(livre.index / livre.total * 100) : 0;
+    const item = document.createElement("div");
+    item.className = "item-livre";
+    item.innerHTML =
+      `<div class="item-infos">` +
+        `<span class="item-nom"></span>` +
+        `<span class="item-meta">Ajouté le ${formatDate(livre.dateAjout)} · ${pct}%</span>` +
+      `</div>` +
+      `<button class="item-suppr" title="Retirer">×</button>`;
+    item.querySelector(".item-nom").textContent = livre.nom;
+    item.querySelector(".item-infos").addEventListener("click", async () => {
+      const frais = await lireLivre(livre.id); // position à jour
+      ouvrirFiche(frais || livre);
+    });
+    item.querySelector(".item-suppr").addEventListener("click", async (e) => {
+      e.stopPropagation();
+      await supprimerLivre(livre.id);
+      afficherBibliotheque();
+    });
+    conteneur.appendChild(item);
+  });
+}
+afficherBibliotheque();
 
 // Réglages
 $("btn-reglages").addEventListener("click", () => $("panneau-reglages").classList.remove("cache"));
 $("btn-fermer-reglages").addEventListener("click", () => $("panneau-reglages").classList.add("cache"));
 
-$("reglage-vitesse").addEventListener("input", (e) => {
-  etat.vitesse = +e.target.value;
-  $("valeur-vitesse").textContent = etat.vitesse;
-});
+$("reglage-vitesse").addEventListener("input", (e) => reglerVitesse(+e.target.value));
 $("reglage-nb-mots").addEventListener("input", (e) => {
   etat.nbMots = +e.target.value;
   $("valeur-nb-mots").textContent = etat.nbMots;
   afficherChunk();
+});
+$("reglage-pas-nav").addEventListener("input", (e) => {
+  etat.pasNav = +e.target.value;
+  $("valeur-pas-nav").textContent = etat.pasNav;
 });
 $("reglage-orp").addEventListener("change", (e) => {
   etat.orpActif = e.target.checked;
@@ -354,8 +619,8 @@ function appliquerOrp() {
 document.addEventListener("keydown", (e) => {
   if (ecranLecture.classList.contains("cache")) return;
   if (e.code === "Space") { e.preventDefault(); basculerLecture(); }
-  else if (e.code === "ArrowLeft") deplacer(-etat.nbMots * 5);
-  else if (e.code === "ArrowRight") deplacer(etat.nbMots * 5);
+  else if (e.code === "ArrowLeft") deplacer(-etat.pasNav);
+  else if (e.code === "ArrowRight") deplacer(etat.pasNav);
 });
 
 // Toucher l'écran central = lecture/pause (mobile / Vivlio)
