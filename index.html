@@ -7,7 +7,7 @@
   <title>BookReeder</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=53">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -63,9 +63,9 @@
     <!-- Barre principale : vitesse (− lecture +) -->
     <div id="controles">
       <div id="groupe-vitesse">
-        <button id="btn-moins" title="Ralentir (−50 mots/min)">−</button>
+        <button id="btn-moins" title="Ralentir (−20 mots/min)">−</button>
         <button id="btn-lecture" title="Lecture / Pause">▶</button>
-        <button id="btn-plus" title="Accélérer (+50 mots/min)">+</button>
+        <button id="btn-plus" title="Accélérer (+20 mots/min)">+</button>
       </div>
     </div>
     <div id="info-vitesse">Vitesse : <span id="vitesse-actuelle">300</span> mots/min</div>
@@ -182,6 +182,6 @@
 
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
-  <script src="app.js"></script>
+  <script src="app.js?v=53"></script>
 </body>
 </html>

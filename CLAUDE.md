@@ -48,8 +48,10 @@ Cible : PC (Windows 11), Mac, iPhone (iOS) et liseuse Vivlio (Android).
   (» " ' ) ] . , ; : ! ? …) au mot précédent — important pour la typo française (espace
   avant ; : ! ?) afin de ne jamais afficher un signe seul.
 - **Service worker** : **réseau d'abord** (network-first) — en ligne il charge toujours la
-  dernière version et rafraîchit le cache ; hors-ligne il retombe sur le cache. Évite les
-  vieilles versions resservies. Bumper quand même `CACHE = "bookreeder-vN"` à chaque modif.
+  dernière version et rafraîchit le cache ; hors-ligne il retombe sur le cache
+  (`caches.match(req, {ignoreSearch:true})` pour ignorer les `?v=`). À chaque modif, bumper
+  `CACHE = "bookreeder-vN"` **ET** le `?v=N` sur `app.js`/`style.css` dans `index.html` (le
+  paramètre de version casse le cache HTTP du navigateur, qui sinon ressert l'ancien JS/CSS).
 
 ## Lancement / test
 Serveur local (config preview centralisée `C:\Claude Code\.claude\launch.json`, nom `bookreeder`) :

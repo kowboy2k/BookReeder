@@ -13,6 +13,7 @@ const etat = {
   nbMots: 1,         // mots affichés simultanément (max souhaité)
   nbCourant: 1,      // mots réellement affichés dans le chunk courant
   continuerApresSaut: true, // garder la lecture en marche après avance/retour
+  elan: 1,           // « momentum » : <1 juste après une pause, remonte vers 1
   orpActif: true,
   bionic: false,     // lecture bionic (début des mots en gras)
   modeleId: "default", // modèle de lecture actif (groupement + rythme + ORP + bionic)
@@ -337,20 +338,41 @@ function longueurVisible(mot) {
   return mot.replace(/\s+/g, "").length;
 }
 
+// Mot se terminant par un signe de ponctuation (coupe le groupe après lui)
+const PONCT_COUPE = /[.,;:!?…]["»”'’)\]]*$/;
+
 // Construit le groupe de mots à afficher à partir de `start`, en respectant :
-//  - le maximum demandé (etat.nbMots) ;
+//  - une suite de mots à Majuscule (prénom + nom) est groupée même si un seul
+//    mot est demandé ;
+//  - le maximum demandé (etat.nbMots) sinon ;
 //  - un mot très long (> 12 caractères) s'affiche seul ;
-//  - on n'enchaîne jamais après une fin de phrase (« fin. Début » évité).
+//  - on coupe le groupe après tout signe de ponctuation (. , ; : ! ? …),
+//    donc on n'enchaîne jamais par-dessus une ponctuation.
 function construireChunkDepuis(start) {
+  // Nom propre : 2 mots (ou plus) à majuscule consécutifs -> groupés ensemble
+  if (estMotMajuscule(etat.mots[start]) && estMotMajuscule(etat.mots[start + 1])) {
+    const parts = [];
+    for (let i = start; i < etat.mots.length && estMotMajuscule(etat.mots[i]); i++) {
+      parts.push(etat.mots[i]);
+      if (PONCT_COUPE.test(etat.mots[i])) break; // s'arrête à une ponctuation
+    }
+    return { texte: parts.join(" "), nb: parts.length };
+  }
+  // Groupement normal
   const parts = [];
   for (let i = start; i < start + etat.nbMots && i < etat.mots.length; i++) {
     const mot = etat.mots[i];
     const longMot = longueurVisible(mot) > 12;
-    if (parts.length > 0 && longMot) break;     // un mot long démarre un nouveau groupe
+    if (parts.length > 0 && longMot) break;        // un mot long démarre un nouveau groupe
     parts.push(mot);
-    if (longMot || FIN_PHRASE.test(mot)) break; // mot long seul, ou fin de phrase
+    if (longMot || PONCT_COUPE.test(mot)) break;   // mot long seul, ou coupe après ponctuation
   }
   return { texte: parts.join(" "), nb: parts.length || 1 };
+}
+
+// Mot commençant par une majuscule (prénom/nom), tiret/guillemet de tête ignorés
+function estMotMajuscule(mot) {
+  return commenceMajuscule(mot);
 }
 
 // Réduit la police si le groupe dépasse le cadre. Le texte étant centré sur
@@ -494,37 +516,39 @@ function delaiChunk() {
   const debut = etat.index, fin = etat.index + etat.nbCourant;
   const groupe = etat.mots.slice(debut, fin);
 
-  // 1) Durée proportionnelle à la longueur réelle des mots affichés :
-  //    les mots longs s'attardent, les courts défilent vite (rythme naturel).
+  // 1) Durée du mot proportionnelle à sa longueur réelle, modulée par l'« élan »
+  //    (reprise progressive après une pause : elan<1 ralentit, remonte vers 1).
   const chars = groupe.join(" ").replace(/\s+/g, "").length;
-  let delai = base * Math.max(0.6 * etat.nbCourant, chars / 5.5);
+  let mot = base * Math.max(0.6 * etat.nbCourant, chars / 5.5) / etat.elan;
 
-  // 2) Respirations selon la ponctuation de fin de groupe
-  const dernier = groupe[groupe.length - 1] || "";
-  if (/[.!?…]["»”'’)\]]*$/.test(dernier)) delai += base * 2;       // fin de phrase
-  else if (/[,;:]["»”'’)\]]*$/.test(dernier)) delai += base;       // virgule, etc.
-
-  // 3) Pause marquée entre les échanges : le prochain groupe ouvre une réplique
-  const suivant = etat.mots[fin];
-  if (suivant && DEBUT_REPLIQUE.test(suivant)) delai += base * 3;
-
-  // 4) Pendant les dialogues, on empêche les mots courts de défiler trop vite :
-  //    plancher d'affichage relevé (pas d'accélération indue).
+  // 2) Planchers (mot lui-même) : dialogue, et majuscule en milieu de phrase
   let enDialogue = false;
   for (let k = 0; k < groupe.length; k++) {
     if (dansDialogue(debut + k)) { enDialogue = true; break; }
   }
-  if (enDialogue) delai = Math.max(delai, base * 1.6);
+  if (enDialogue) mot = Math.max(mot, base * 1.6);
 
-  // 5) Mots à Majuscule en milieu de phrase (noms propres) : temps
-  //    d'imprégnation d'au moins 3× un mot normal (≈ 600 ms à 300 mots/min).
   let majuscule = false;
   for (let k = 0; k < groupe.length; k++) {
     if (!estDebutPhrase(debut + k) && commenceMajuscule(groupe[k])) { majuscule = true; break; }
   }
-  if (majuscule) delai = Math.max(delai, base * 3);
+  if (majuscule) mot = Math.max(mot, base * 3); // ≈ 600 ms à 300 mots/min
 
-  return delai;
+  // 3) Respirations ajoutées : ponctuation de fin de groupe + ouverture de réplique
+  const dernier = groupe[groupe.length - 1] || "";
+  let pause = 0;
+  if (/[.!?…]["»”'’)\]]*$/.test(dernier)) pause += base * 2;      // fin de phrase
+  else if (/[,;:]["»”'’)\]]*$/.test(dernier)) pause += base;      // virgule, etc.
+  const suivant = etat.mots[fin];
+  if (suivant && DEBUT_REPLIQUE.test(suivant)) pause += base * 3; // entre échanges
+
+  // 4) Mise à jour de l'élan pour le PROCHAIN groupe : après une vraie pause on
+  //    repart doucement, sinon on accélère par paliers (pas d'à-coup).
+  if (pause >= base * 2) etat.elan = 0.45;                 // grosse pause -> reprise lente
+  else if (pause > 0 || majuscule) etat.elan = 0.7;        // pause moyenne
+  else etat.elan = Math.min(1, etat.elan + 0.18);          // accélération progressive
+
+  return mot + pause;
 }
 
 // Le mot commence-t-il par une lettre MAJUSCULE (en ignorant tiret/guillemet) ?
@@ -591,6 +615,7 @@ function lecture() {
   if (etat.enLecture) return;
   if (etat.index >= etat.mots.length) etat.index = 0;
   etat.enLecture = true;
+  etat.elan = 1;            // repart à pleine cadence
   $("btn-lecture").textContent = "⏸";
   tick();
 }
@@ -615,6 +640,7 @@ function basculerLecture() {
 function deplacer(pas, continuer) {
   const reprendre = continuer && etat.continuerApresSaut && etat.enLecture;
   clearTimeout(etat.minuteur);
+  etat.elan = 1;            // nouvelle position : on repart à pleine cadence
   etat.index = Math.min(Math.max(0, etat.index + pas), etat.mots.length - 1);
   afficherChunk();
   if (reprendre) {
@@ -771,8 +797,8 @@ function reglerVitesse(v) {
   etat.vitesse = Math.min(800, Math.max(200, v));
   $("vitesse-actuelle").textContent = etat.vitesse;
 }
-$("btn-moins").addEventListener("click", () => reglerVitesse(etat.vitesse - 50));
-$("btn-plus").addEventListener("click", () => reglerVitesse(etat.vitesse + 50));
+$("btn-moins").addEventListener("click", () => reglerVitesse(etat.vitesse - 20));
+$("btn-plus").addEventListener("click", () => reglerVitesse(etat.vitesse + 20));
 
 // Retour / avance à la phrase précédente / suivante
 $("btn-recul").addEventListener("click", () => deplacer(phrasePrecedente() - etat.index, true));
