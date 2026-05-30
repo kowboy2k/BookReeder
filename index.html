@@ -24,7 +24,7 @@
 
   <!-- Écran de lecture RSVP -->
   <div id="ecran-lecture" class="ecran cache">
-    <div id="zone-mot">
+    <div id="zone-mot" class="avec-cadre">
       <div id="cadre"></div>
       <div id="reticule-haut"></div>
       <div id="mot-affiche"></div>
@@ -70,8 +70,8 @@
         <label for="reglage-graisse">Graisse</label>
         <select id="reglage-graisse">
           <option value="300">Fin</option>
-          <option value="400">Normal</option>
-          <option value="600" selected>Moyen</option>
+          <option value="400" selected>Normal</option>
+          <option value="600">Moyen</option>
           <option value="700">Gras</option>
         </select>
       </div>
@@ -84,6 +84,11 @@
       <div class="reglage">
         <label for="reglage-espace-mots">Espacement des mots : <span id="valeur-espace-mots">0</span> px</label>
         <input type="range" id="reglage-espace-mots" min="0" max="24" step="1" value="0">
+      </div>
+
+      <div class="reglage reglage-case">
+        <label for="reglage-cadre">Cadre (contour autour du mot)</label>
+        <input type="checkbox" id="reglage-cadre" checked>
       </div>
 
       <div class="reglage reglage-case">
@@ -126,11 +131,6 @@
       <div class="reglage">
         <label for="reglage-long-reperes">Longueur des repères : <span id="valeur-long-reperes">14</span> px</label>
         <input type="range" id="reglage-long-reperes" min="4" max="40" step="2" value="14">
-      </div>
-
-      <div class="reglage reglage-case">
-        <label for="reglage-cadre">Cadre (contour autour du mot)</label>
-        <input type="checkbox" id="reglage-cadre">
       </div>
 
       <button id="btn-fermer-reglages">Fermer</button>
