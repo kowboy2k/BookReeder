@@ -174,11 +174,10 @@ html, body {
 }
 #zone-mot.avec-cadre #cadre { display: block; }
 
-/* Croix de fermeture en haut à droite */
-#btn-fermer {
+/* Boutons du haut : Fermer (✖) à gauche, Réglages (⚙) à droite */
+#btn-fermer, #btn-reglages {
   position: fixed;
   top: 1rem;
-  right: 1rem;
   width: 3.2rem;
   height: 3.2rem;
   border-radius: 50%;
@@ -189,7 +188,8 @@ html, body {
   cursor: pointer;
   z-index: 5;
 }
-#btn-fermer:active { transform: scale(0.92); }
+#btn-fermer { left: 1rem; }
+#btn-reglages { right: 1rem; }
 
 #barre-progression {
   position: relative;
@@ -280,18 +280,34 @@ html, body {
 #nav-rapide .btn-chapitre { width: 3.6rem; height: 3.6rem; font-size: 1.3rem; }
 #nav-rapide button:active { transform: scale(0.93); }
 
-/* Barre principale : liste · vitesse · réglages */
+/* Barre principale : groupe vitesse (− lecture +) centré */
 #controles {
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   padding: 0 1.5rem;
   margin-bottom: 1.6rem; /* place pour le décalage de − / + */
 }
 #groupe-vitesse { display: flex; gap: 0.7rem; }
-/* Espaceur invisible (même largeur qu'un bouton) pour garder le groupe centré */
-.ctrl-espaceur { width: 3.6rem; }
+
+/* Effets communs de survol et de clic sur tous les boutons ronds */
+#btn-fermer, #btn-reglages,
+#nav-rapide button,
+#controles button {
+  transition: background-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+}
+@media (hover: hover) {
+  #btn-fermer:hover, #btn-reglages:hover,
+  #nav-rapide button:hover,
+  #controles button:hover {
+    background: #3a3a4d;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08);
+  }
+}
+#btn-fermer:active, #btn-reglages:active,
+#nav-rapide button:active,
+#controles button:active { transform: scale(0.9); }
 #controles button {
   background: #2a2a3a;
   color: var(--texte);
