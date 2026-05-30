@@ -24,6 +24,7 @@
   <!-- Écran de lecture RSVP -->
   <div id="ecran-lecture" class="ecran cache">
     <div id="zone-mot">
+      <div id="cadre"></div>
       <div id="reticule-haut"></div>
       <div id="mot-affiche"></div>
       <div id="reticule-bas"></div>
@@ -92,6 +93,21 @@
       <div class="reglage reglage-case">
         <label for="reglage-bionic">Lecture bionic (début des mots en gras)</label>
         <input type="checkbox" id="reglage-bionic">
+      </div>
+
+      <div class="reglage" id="bloc-ecart-reperes">
+        <label for="reglage-ecart-reperes">Écartement des repères : <span id="valeur-ecart-reperes">40</span> px</label>
+        <input type="range" id="reglage-ecart-reperes" min="10" max="120" step="2" value="40">
+      </div>
+
+      <div class="reglage">
+        <label for="reglage-long-reperes">Longueur des repères : <span id="valeur-long-reperes">14</span> px</label>
+        <input type="range" id="reglage-long-reperes" min="4" max="40" step="2" value="14">
+      </div>
+
+      <div class="reglage reglage-case">
+        <label for="reglage-cadre">Cadre (contour autour du mot)</label>
+        <input type="checkbox" id="reglage-cadre">
       </div>
 
       <button id="btn-fermer-reglages">Fermer</button>

@@ -26,6 +26,9 @@
   --graisse: 600;
   --espace-lettres: 0px;
   --espace-mots: 0px;
+  /* Repères ORP : écart (centre → repère) et longueur du trait */
+  --ret-ecart: 40px;
+  --ret-longueur: 14px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -98,19 +101,35 @@ html, body {
 /* Gras de la lecture bionic (début de chaque mot) */
 #mot-affiche .bio { font-weight: 900; }
 
-/* Réticules verticaux qui encadrent l'ORP, façon Spritz */
+/* Réticules verticaux qui encadrent l'ORP, façon Spritz.
+   Positionnés par rapport au centre vertical de la zone (= le mot). */
 #reticule-haut, #reticule-bas {
   position: absolute;
   left: 50%;
   width: 2px;
-  height: 0.8rem;
+  height: var(--ret-longueur);
   background: var(--gris);
   transform: translateX(-50%);
 }
-#reticule-haut { top: -1.4rem; }
-#reticule-bas { bottom: -1.4rem; }
+#reticule-haut { top: calc(50% - var(--ret-ecart) - var(--ret-longueur)); }
+#reticule-bas  { top: calc(50% + var(--ret-ecart)); }
 #zone-mot.sans-orp #reticule-haut,
 #zone-mot.sans-orp #reticule-bas { display: none; }
+
+/* Cadre (contour) optionnel autour du mot, aligné sur les repères */
+#cadre {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(90%, 600px);
+  height: calc((var(--ret-ecart) + var(--ret-longueur)) * 2);
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--gris);
+  border-radius: 0.5rem;
+  pointer-events: none;
+  display: none;
+}
+#zone-mot.avec-cadre #cadre { display: block; }
 
 #barre-progression {
   position: fixed;

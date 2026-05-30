@@ -270,6 +270,17 @@ $("reglage-espace-mots").addEventListener("input", (e) => {
   $("valeur-espace-mots").textContent = e.target.value;
   afficherChunk();
 });
+$("reglage-ecart-reperes").addEventListener("input", (e) => {
+  document.documentElement.style.setProperty("--ret-ecart", e.target.value + "px");
+  $("valeur-ecart-reperes").textContent = e.target.value;
+});
+$("reglage-long-reperes").addEventListener("input", (e) => {
+  document.documentElement.style.setProperty("--ret-longueur", e.target.value + "px");
+  $("valeur-long-reperes").textContent = e.target.value;
+});
+$("reglage-cadre").addEventListener("change", (e) => {
+  zoneMot.classList.toggle("avec-cadre", e.target.checked);
+});
 
 function appliquerOrp() {
   zoneMot.classList.toggle("sans-orp", !etat.orpActif);
