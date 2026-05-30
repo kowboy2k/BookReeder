@@ -21,7 +21,9 @@ Cible : PC (Windows 11), Mac, iPhone (iOS) et liseuse Vivlio (Android).
   **longueur réelle** des mots (≈ caractères/5,5 × base) → mots longs s'attardent, courts
   défilent vite. + respirations : fin de phrase (+2×base), virgule/`;`/`:` (+1×base), et
   **pause d'échange** (+3×base) quand le groupe suivant ouvre une réplique de dialogue
-  (commence par un tiret ou un guillemet ouvrant). Donne un rythme dialogue vs descriptif.
+  (commence par un tiret ou un guillemet ouvrant). + **ralentissement** (+0,9×base, plafonné)
+  pour les mots à majuscule en milieu de phrase (noms propres → temps d'imprégnation ;
+  les débuts de phrase sont exclus). Donne un rythme dialogue vs descriptif.
 - **Bionic reading** (`bornesGras`) : met en gras le **début du mot** (point de fixation),
   à partir de la 1re lettre (jamais sur un tiret/guillemet de tête), sur une fraction des
   lettres selon la longueur (court ≤3→1, ≤6→2, ≤9→3, sinon ~40 %). Le cerveau complète la fin.

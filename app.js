@@ -488,7 +488,22 @@ function delaiChunk() {
   const suivant = etat.mots[fin];
   if (suivant && DEBUT_REPLIQUE.test(suivant)) delai += base * 3;
 
+  // 4) Ralentissement pour les mots à majuscule EN MILIEU de phrase (noms
+  //    propres, etc.) : le cerveau a besoin d'un temps d'imprégnation. On
+  //    exclut les débuts de phrase (déjà capitalisés et déjà précédés d'une pause).
+  let bonusMaj = 0;
+  for (let k = 0; k < groupe.length; k++) {
+    if (!estDebutPhrase(debut + k) && commenceMajuscule(groupe[k])) bonusMaj += base * 0.9;
+  }
+  delai += Math.min(bonusMaj, base * 2);
+
   return delai;
+}
+
+// Le mot commence-t-il par une lettre MAJUSCULE (en ignorant tiret/guillemet) ?
+function commenceMajuscule(mot) {
+  const m = (mot || "").match(/\p{L}/u);
+  return !!m && /\p{Lu}/u.test(m[0]);
 }
 
 function tick() {
