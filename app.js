@@ -42,6 +42,22 @@ $("input-fichier").addEventListener("change", async (e) => {
   }
 });
 
+// Texte de démo (pour tester sans EPUB)
+const TEXTE_DEMO = `La réception avait eu lieu dans la demeure de Lucinda Joffrey. Sir Richard était absent. Un diplomate de sa stature n’aurait jamais toléré un amusement aussi frivole. Les soirées d’anguille électrique faisaient fureur à Londres depuis peu. Cependant, en raison de la rareté de ces créatures, les fêtes privées étaient rares. En général, elles se tenaient dans des théâtres où quelques heureux élus étaient sélectionnés pour monter sur scène et rencontrer l’anguille, être électrocutés et se convulser comme des pantins articulés pour le plus grand plaisir du public.
+— Le record est de quarante-deux personnes d’un coup! l’assura Caroline.
+Les yeux écarquillés et brillants, elle observait la créature dans l’aquarium.
+— Vraiment?
+C’était l’animal le plus singulier qu’il avait jamais vu, sans pour autant être saisissant. Mesurant près de trois pieds de long, avec de petits yeux ronds ternes, un corps trapu et une tête plate, il semblait avoir été modelé dans l’argile par un sculpteur débutant. Il n’avait rien de commun avec les petites anguilles souples et rapides que l’on trouvait sur les marchés. Quoi qu’il en soit, il ne semblait pas capable d’assommer quarante-deux personnes à la fois.
+Il n’avait aucune grâce, à part une mince nageoire qui courait tout le long de son ventre et ondulait comme un rideau de mousseline sous la brise. Lord John fit part de son observation à l’honorable Caroline, qui l’accusa d’être un poète.
+— Un poète? dit une voix amusée derrière eux. Les talents de notre galant major ne connaissent-ils donc aucune limite?
+Lord John se retourna en réprimant une grimace et en affichant un sourire courtois. Il s’inclina devant Edwin Nicholls.`;
+
+$("btn-demo").addEventListener("click", () => {
+  etat.mots = decouperEnMots(TEXTE_DEMO);
+  etat.index = 0;
+  demarrerLecture();
+});
+
 // Parcourt tous les chapitres et concatène le texte brut
 async function extraireTexte(livre) {
   const morceaux = [];
