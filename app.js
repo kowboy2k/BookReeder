@@ -548,7 +548,9 @@ function delaiChunk() {
   else if (pause > 0 || majuscule) etat.elan = 0.7;        // pause moyenne
   else etat.elan = Math.min(1, etat.elan + 0.18);          // accélération progressive
 
-  return mot + pause;
+  // Plancher absolu : aucun mot ne s'affiche moins de ~90 ms, même à haute
+  // vitesse, pour éviter les « télescopages » illisibles.
+  return Math.max(mot + pause, 90);
 }
 
 // Le mot commence-t-il par une lettre MAJUSCULE (en ignorant tiret/guillemet) ?
@@ -601,6 +603,7 @@ function initialiserModeles() {
 }
 
 function tick() {
+  if (!etat.enLecture) return;   // garde-fou : pas de minuteur résiduel (anti-chevauchement)
   if (etat.index >= etat.mots.length) {
     pause();
     return;
@@ -616,6 +619,7 @@ function lecture() {
   if (etat.index >= etat.mots.length) etat.index = 0;
   etat.enLecture = true;
   etat.elan = 1;            // repart à pleine cadence
+  clearTimeout(etat.minuteur); // évite tout minuteur en double
   $("btn-lecture").textContent = "⏸";
   tick();
 }
