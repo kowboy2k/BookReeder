@@ -282,7 +282,9 @@ function decouperEnMots(texte) {
     .filter(Boolean);
 
   // Ponctuation qui ne doit jamais s'afficher seule.
-  const ouvrante = /^[«"“'(\[]+$/;          // se rattache au mot SUIVANT
+  // Inclut les tirets de dialogue isolés (cadratin —, demi-cadratin –, etc.)
+  // pour qu'ils soient toujours collés au moins au premier mot suivant.
+  const ouvrante = /^[«"“'(\[—–―‒\-]+$/;    // se rattache au mot SUIVANT
   const fermante = /^[»"”')\].,;:!?…]+$/;   // se rattache au mot PRÉCÉDENT
 
   const mots = [];
