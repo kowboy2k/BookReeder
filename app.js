@@ -106,13 +106,21 @@ async function chargerEpub(buffer, nom, taille) {
     const { mots, chapitres } = await extraireLivre(livre);
     if (mots.length === 0) throw new Error("Aucun texte trouvé");
 
-    // Titre et auteur depuis les métadonnées de l'EPUB (sinon nom de fichier)
+    // Titre et auteur depuis les métadonnées de l'EPUB (sinon nom de fichier).
+    // Le champ peut être une chaîne ou un objet ({ name } / { value }) selon l'EPUB.
+    const texteMeta = (v) => {
+      if (!v) return "";
+      if (typeof v === "string") return v.trim();
+      return String(v.name || v.value || v["#text"] || "").trim();
+    };
     let titre = nom.replace(/\.epub$/i, "");
     let auteur = "";
     try {
-      const meta = await livre.loaded.metadata;
-      if (meta && meta.title) titre = meta.title.trim();
-      if (meta && meta.creator) auteur = meta.creator.trim();
+      const meta = (await livre.loaded.metadata) || {};
+      const pkg = (livre.packaging && livre.packaging.metadata) || {};
+      titre = texteMeta(meta.title) || texteMeta(pkg.title) || titre;
+      auteur = texteMeta(meta.creator) || texteMeta(pkg.creator) ||
+               texteMeta(meta.author) || texteMeta(pkg.author);
     } catch (e) { /* pas de métadonnées : on garde le nom de fichier */ }
 
     const id = nom + "|" + taille;
