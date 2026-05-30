@@ -840,7 +840,6 @@ function ouvrirNavigation() {
   majBarreLivre();
 }
 $("zone-navigation").addEventListener("click", ouvrirNavigation);
-$("btn-liste").addEventListener("click", ouvrirNavigation);
 $("btn-fermer-navigation").addEventListener("click", () => {
   $("panneau-navigation").classList.add("cache");
   sauverPosition();

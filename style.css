@@ -290,6 +290,8 @@ html, body {
   margin-bottom: 1.6rem; /* place pour le décalage de − / + */
 }
 #groupe-vitesse { display: flex; gap: 0.7rem; }
+/* Espaceur invisible (même largeur qu'un bouton) pour garder le groupe centré */
+.ctrl-espaceur { width: 3.6rem; }
 #controles button {
   background: #2a2a3a;
   color: var(--texte);
