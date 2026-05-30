@@ -220,7 +220,7 @@ html, body {
   z-index: 5;
 }
 #btn-fermer { left: 1rem; }
-#btn-reglages { right: 1rem; }
+#btn-reglages { right: 1rem; font-size: 1.7rem; } /* roue dentée plus grande */
 
 #barre-progression {
   position: relative;
@@ -428,7 +428,19 @@ html, body {
 }
 /* Réglages : feuille du bas (≈ 2/3) laissant voir l'aperçu de lecture en haut */
 #panneau-reglages { background: transparent; align-items: flex-end; }
-#panneau-reglages .panneau-contenu { max-height: 67vh; overflow-y: auto; }
+#panneau-reglages .panneau-contenu {
+  max-height: 67vh;
+  overflow-y: auto;
+  scrollbar-width: thin;                       /* Firefox : barre fine */
+  scrollbar-color: rgba(255,255,255,0.18) transparent;
+}
+/* Barre de défilement fine et discrète (Chromium / WebView) */
+#panneau-reglages .panneau-contenu::-webkit-scrollbar { width: 5px; }
+#panneau-reglages .panneau-contenu::-webkit-scrollbar-track { background: transparent; }
+#panneau-reglages .panneau-contenu::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.18);
+  border-radius: 3px;
+}
 /* Pendant les réglages, la zone de lecture monte dans le tiers haut (aperçu live) */
 #ecran-lecture.apercu #zone-mot {
   position: fixed;
