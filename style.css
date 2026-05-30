@@ -426,6 +426,23 @@ html, body {
   justify-content: center;
   z-index: 10;
 }
+/* Réglages : feuille du bas (≈ 2/3) laissant voir l'aperçu de lecture en haut */
+#panneau-reglages { background: transparent; align-items: flex-end; }
+#panneau-reglages .panneau-contenu { max-height: 67vh; overflow-y: auto; }
+/* Pendant les réglages, la zone de lecture monte dans le tiers haut (aperçu live) */
+#ecran-lecture.apercu #zone-mot {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 33vh;
+}
+#ecran-lecture.apercu #barre-progression,
+#ecran-lecture.apercu #zone-navigation,
+#ecran-lecture.apercu #nav-rapide,
+#ecran-lecture.apercu #controles,
+#ecran-lecture.apercu #info-vitesse,
+#ecran-lecture.apercu #btn-fermer,
+#ecran-lecture.apercu #btn-reglages { visibility: hidden; }
+
 #btn-fermer-navigation {
   width: 100%;
   padding: 0.9rem;

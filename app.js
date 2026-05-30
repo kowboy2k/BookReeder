@@ -963,9 +963,20 @@ async function afficherBibliotheque() {
 afficherBibliotheque();
 initialiserModeles();
 
-// Réglages
-$("btn-reglages").addEventListener("click", () => $("panneau-reglages").classList.remove("cache"));
-$("btn-fermer-reglages").addEventListener("click", () => $("panneau-reglages").classList.add("cache"));
+// Réglages : on met en pause et on fait monter la zone de lecture en aperçu (1/3
+// haut) pendant que le panneau occupe les 2/3 du bas ; à la fermeture, on
+// ré-affiche le chunk pour appliquer proprement tous les réglages.
+$("btn-reglages").addEventListener("click", () => {
+  pause();
+  ecranLecture.classList.add("apercu");
+  $("panneau-reglages").classList.remove("cache");
+  afficherChunk();
+});
+$("btn-fermer-reglages").addEventListener("click", () => {
+  $("panneau-reglages").classList.add("cache");
+  ecranLecture.classList.remove("apercu");
+  afficherChunk(); // re-rendu complet avec les réglages finaux
+});
 
 $("reglage-modele").addEventListener("change", (e) => {
   activerModele(e.target.value);
