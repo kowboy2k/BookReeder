@@ -479,8 +479,15 @@ function calculerOrp(chunk) {
 // =========================================================
 //  Lecture (avance automatique)
 // =========================================================
-// Début de réplique de dialogue : tiret ou guillemet ouvrant en tête de mot.
-const DEBUT_REPLIQUE = /^[—–―‒\-«]/;
+// Début de réplique / de dialogue : tiret ou guillemet ouvrant en tête de mot.
+const DEBUT_REPLIQUE = /^[—–―‒\-«"“]/;
+
+// Le mot est-il dans une ligne de dialogue ? (sa phrase commence par un
+// tiret ou un guillemet ouvrant)
+function dansDialogue(i) {
+  const debut = debutPhraseAvant(i);
+  return DEBUT_REPLIQUE.test((etat.mots[debut] || "").trimStart());
+}
 
 function delaiChunk() {
   const base = 60000 / etat.vitesse;            // ms pour un mot « moyen »
@@ -501,14 +508,21 @@ function delaiChunk() {
   const suivant = etat.mots[fin];
   if (suivant && DEBUT_REPLIQUE.test(suivant)) delai += base * 3;
 
-  // 4) Ralentissement pour les mots à majuscule EN MILIEU de phrase (noms
-  //    propres, etc.) : le cerveau a besoin d'un temps d'imprégnation. On
-  //    exclut les débuts de phrase (déjà capitalisés et déjà précédés d'une pause).
-  let bonusMaj = 0;
+  // 4) Pendant les dialogues, on empêche les mots courts de défiler trop vite :
+  //    plancher d'affichage relevé (pas d'accélération indue).
+  let enDialogue = false;
   for (let k = 0; k < groupe.length; k++) {
-    if (!estDebutPhrase(debut + k) && commenceMajuscule(groupe[k])) bonusMaj += base * 0.9;
+    if (dansDialogue(debut + k)) { enDialogue = true; break; }
   }
-  delai += Math.min(bonusMaj, base * 2);
+  if (enDialogue) delai = Math.max(delai, base * 1.6);
+
+  // 5) Mots à Majuscule en milieu de phrase (noms propres) : temps
+  //    d'imprégnation d'au moins 3× un mot normal (≈ 600 ms à 300 mots/min).
+  let majuscule = false;
+  for (let k = 0; k < groupe.length; k++) {
+    if (!estDebutPhrase(debut + k) && commenceMajuscule(groupe[k])) { majuscule = true; break; }
+  }
+  if (majuscule) delai = Math.max(delai, base * 3);
 
   return delai;
 }
