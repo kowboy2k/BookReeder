@@ -163,7 +163,7 @@ html, body {
 
 #barre-progression {
   position: fixed;
-  bottom: 16.8rem;
+  bottom: 18.05rem;
   left: 8%;
   width: 84%;
   height: 4px;
@@ -210,7 +210,7 @@ html, body {
 }
 #titre-livre {
   position: fixed;
-  bottom: 13.9rem;
+  bottom: 15.15rem;
   left: 0;
   width: 100%;
   text-align: center;
@@ -224,7 +224,7 @@ html, body {
 }
 #info-progression {
   position: fixed;
-  bottom: 12.6rem;
+  bottom: 13.85rem;
   left: 0;
   width: 100%;
   text-align: center;
@@ -282,6 +282,11 @@ html, body {
   cursor: pointer;
 }
 #controles button:active { transform: scale(0.92); }
+/* Play/pause aussi grand que les boutons avance/retour rapide */
+#controles #btn-lecture { width: 5rem; height: 5rem; font-size: 1.7rem; }
+/* − et + descendus de 20px par rapport au play */
+#groupe-vitesse #btn-moins,
+#groupe-vitesse #btn-plus { position: relative; top: 20px; }
 #info-vitesse {
   position: fixed;
   bottom: 0.6rem;
