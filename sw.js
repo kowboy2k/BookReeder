@@ -1,5 +1,5 @@
 // Service worker : met l'app en cache pour fonctionner hors-ligne
-const CACHE = "bookreeder-v1";
+const CACHE = "bookreeder-v2";
 const FICHIERS = [
   "./",
   "./index.html",
@@ -8,6 +8,8 @@ const FICHIERS = [
   "./manifest.webmanifest",
   "./lib/jszip.min.js",
   "./lib/epub.min.js",
+  "./fonts/merriweather-latin.woff2",
+  "./fonts/merriweather-latin-ext.woff2",
 ];
 
 self.addEventListener("install", (e) => {

@@ -25,7 +25,7 @@
   <div id="ecran-lecture" class="ecran cache">
     <div id="zone-mot">
       <div id="reticule-haut"></div>
-      <div id="mot-affiche"><span class="avant"></span><span class="orp"></span><span class="apres"></span></div>
+      <div id="mot-affiche"></div>
       <div id="reticule-bas"></div>
     </div>
 
@@ -56,9 +56,42 @@
         <input type="range" id="reglage-nb-mots" min="1" max="8" step="1" value="1">
       </div>
 
+      <div class="reglage">
+        <label for="reglage-police">Police</label>
+        <select id="reglage-police">
+          <option value='Georgia, "Times New Roman", serif'>Georgia</option>
+          <option value='"Merriweather", Georgia, serif'>Merriweather</option>
+        </select>
+      </div>
+
+      <div class="reglage">
+        <label for="reglage-graisse">Graisse</label>
+        <select id="reglage-graisse">
+          <option value="300">Fin</option>
+          <option value="400">Normal</option>
+          <option value="600" selected>Moyen</option>
+          <option value="700">Gras</option>
+        </select>
+      </div>
+
+      <div class="reglage">
+        <label for="reglage-espace-lettres">Espacement des lettres : <span id="valeur-espace-lettres">0</span> px</label>
+        <input type="range" id="reglage-espace-lettres" min="-1" max="8" step="0.5" value="0">
+      </div>
+
+      <div class="reglage">
+        <label for="reglage-espace-mots">Espacement des mots : <span id="valeur-espace-mots">0</span> px</label>
+        <input type="range" id="reglage-espace-mots" min="0" max="24" step="1" value="0">
+      </div>
+
       <div class="reglage reglage-case">
         <label for="reglage-orp">Cartouche ORP (repère central)</label>
         <input type="checkbox" id="reglage-orp" checked>
+      </div>
+
+      <div class="reglage reglage-case">
+        <label for="reglage-bionic">Lecture bionic (début des mots en gras)</label>
+        <input type="checkbox" id="reglage-bionic">
       </div>
 
       <button id="btn-fermer-reglages">Fermer</button>

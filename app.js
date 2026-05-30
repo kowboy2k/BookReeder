@@ -9,6 +9,7 @@ const etat = {
   vitesse: 300,      // mots/min
   nbMots: 1,         // mots affichés simultanément
   orpActif: true,
+  bionic: false,     // lecture bionic (début des mots en gras)
 };
 
 // --- Références DOM ---
@@ -97,28 +98,48 @@ function afficherChunk() {
   if (!chunk) return;
 
   const idxOrp = etat.orpActif ? calculerOrp(chunk) : -1;
-
-  const avant = motAffiche.querySelector(".avant");
-  const orp = motAffiche.querySelector(".orp");
-  const apres = motAffiche.querySelector(".apres");
+  motAffiche.innerHTML = construireHtml(chunk, idxOrp);
 
   if (idxOrp < 0) {
-    avant.textContent = "";
-    orp.textContent = chunk;
-    apres.textContent = "";
-    // Centre simplement tout le chunk
+    // Pas d'ORP : on centre tout le chunk
     motAffiche.style.setProperty("--decalage-orp",
       (motAffiche.getBoundingClientRect().width / 2) + "px");
   } else {
-    avant.textContent = chunk.slice(0, idxOrp);
-    orp.textContent = chunk[idxOrp];
-    apres.textContent = chunk.slice(idxOrp + 1);
-    // Décalage = bord gauche du mot → centre de la lettre ORP
-    const decalage = avant.getBoundingClientRect().width
-                   + orp.getBoundingClientRect().width / 2;
-    motAffiche.style.setProperty("--decalage-orp", decalage + "px");
+    // Aligne la lettre pivot (span .orp) pile au centre, quel que soit
+    // le reste du contenu (gras bionic compris)
+    const orp = motAffiche.querySelector(".orp");
+    const boite = motAffiche.getBoundingClientRect();
+    const r = orp.getBoundingClientRect();
+    motAffiche.style.setProperty("--decalage-orp",
+      (r.left - boite.left + r.width / 2) + "px");
   }
   majProgression();
+}
+
+// Construit le HTML du chunk : gras bionic optionnel + lettre pivot ORP.
+// On échappe chaque caractère (le texte vient de l'EPUB).
+function construireHtml(chunk, idxOrp) {
+  const echappe = (c) =>
+    c === "&" ? "&amp;" : c === "<" ? "&lt;" : c === ">" ? "&gt;" : c;
+
+  const mots = chunk.split(" ");
+  let html = "";
+  let i = 0; // index global du caractère dans le chunk
+
+  mots.forEach((mot, m) => {
+    if (m > 0) { // espace entre les mots
+      html += (i === idxOrp) ? '<span class="orp"> </span>' : " ";
+      i++;
+    }
+    const grasJusqu = etat.bionic ? Math.max(1, Math.ceil(mot.length * 0.4)) : 0;
+    for (let j = 0; j < mot.length; j++, i++) {
+      let c = echappe(mot[j]);
+      if (j < grasJusqu) c = '<span class="bio">' + c + "</span>";
+      if (i === idxOrp) c = '<span class="orp">' + c + "</span>";
+      html += c;
+    }
+  });
+  return html;
 }
 
 // Position de la lettre pivot selon la longueur (heuristique Spritz)
@@ -225,6 +246,28 @@ $("reglage-nb-mots").addEventListener("input", (e) => {
 $("reglage-orp").addEventListener("change", (e) => {
   etat.orpActif = e.target.checked;
   appliquerOrp();
+  afficherChunk();
+});
+$("reglage-bionic").addEventListener("change", (e) => {
+  etat.bionic = e.target.checked;
+  afficherChunk();
+});
+$("reglage-police").addEventListener("change", (e) => {
+  document.documentElement.style.setProperty("--police", e.target.value);
+  afficherChunk();
+});
+$("reglage-graisse").addEventListener("change", (e) => {
+  document.documentElement.style.setProperty("--graisse", e.target.value);
+  afficherChunk();
+});
+$("reglage-espace-lettres").addEventListener("input", (e) => {
+  document.documentElement.style.setProperty("--espace-lettres", e.target.value + "px");
+  $("valeur-espace-lettres").textContent = e.target.value;
+  afficherChunk();
+});
+$("reglage-espace-mots").addEventListener("input", (e) => {
+  document.documentElement.style.setProperty("--espace-mots", e.target.value + "px");
+  $("valeur-espace-mots").textContent = e.target.value;
   afficherChunk();
 });
 

@@ -1,8 +1,31 @@
+/* Merriweather (police variable : une seule source pour toutes les graisses) */
+@font-face {
+  font-family: "Merriweather";
+  font-style: normal;
+  font-weight: 300 900;
+  font-display: swap;
+  src: url(fonts/merriweather-latin.woff2) format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2212;
+}
+@font-face {
+  font-family: "Merriweather";
+  font-style: normal;
+  font-weight: 300 900;
+  font-display: swap;
+  src: url(fonts/merriweather-latin-ext.woff2) format("woff2");
+  unicode-range: U+0100-024F, U+1E00-1EFF, U+2C60-2C7F, U+A720-A7FF;
+}
+
 :root {
   --fond: #1e1e2e;
   --texte: #e8e8e8;
   --accent: #f25c54;
   --gris: #888;
+  /* Réglages de lecture (modifiés en JS) */
+  --police: Georgia, "Times New Roman", serif;
+  --graisse: 600;
+  --espace-lettres: 0px;
+  --espace-mots: 0px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -56,7 +79,10 @@ html, body {
 
 #mot-affiche {
   font-size: clamp(2rem, 9vw, 5rem);
-  font-weight: 600;
+  font-family: var(--police);
+  font-weight: var(--graisse);
+  letter-spacing: var(--espace-lettres);
+  word-spacing: var(--espace-mots);
   white-space: pre;
   line-height: 1.2;
   /* Positionné pour que la lettre ORP tombe pile au centre de l'écran.
@@ -69,7 +95,8 @@ html, body {
 }
 
 #mot-affiche .orp { color: var(--accent); }
-#mot-affiche.sans-orp .orp { color: inherit; }
+/* Gras de la lecture bionic (début de chaque mot) */
+#mot-affiche .bio { font-weight: 900; }
 
 /* Réticules verticaux qui encadrent l'ORP, façon Spritz */
 #reticule-haut, #reticule-bas {
@@ -151,6 +178,15 @@ html, body {
 .reglage { margin-bottom: 1.3rem; }
 .reglage label { display: block; margin-bottom: 0.5rem; }
 .reglage input[type="range"] { width: 100%; accent-color: var(--accent); }
+.reglage select {
+  width: 100%;
+  padding: 0.5rem;
+  background: #1e1e2e;
+  color: var(--texte);
+  border: 1px solid #444;
+  border-radius: 0.4rem;
+  font-size: 1rem;
+}
 .reglage-case { display: flex; align-items: center; justify-content: space-between; }
 .reglage-case input { width: 1.3rem; height: 1.3rem; accent-color: var(--accent); }
 #btn-fermer-reglages {
