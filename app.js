@@ -372,10 +372,11 @@ function construireChunkDepuis(start) {
     return { texte: parts.join(" "), nb: parts.length };
   }
   // Groupement normal
+  const motLongMax = etat.modele.params.motLongMax;
   const parts = [];
   for (let i = start; i < start + etat.nbMots && i < etat.mots.length; i++) {
     const mot = etat.mots[i];
-    const longMot = longueurVisible(mot) > 12;
+    const longMot = longueurVisible(mot) > motLongMax;
     if (parts.length > 0 && longMot) break;        // un mot long démarre un nouveau groupe
     parts.push(mot);
     if (longMot || PONCT_COUPE.test(mot)) break;   // mot long seul, ou coupe après ponctuation
@@ -525,6 +526,7 @@ function dansDialogue(i) {
 }
 
 function delaiChunk() {
+  const P = etat.modele.params;                 // recette de rythme du modèle actif
   const base = 60000 / etat.vitesse;            // ms pour un mot « moyen »
   const debut = etat.index, fin = etat.index + etat.nbCourant;
   const groupe = etat.mots.slice(debut, fin);
@@ -532,39 +534,38 @@ function delaiChunk() {
   // 1) Durée du mot proportionnelle à sa longueur réelle, modulée par l'« élan »
   //    (reprise progressive après une pause : elan<1 ralentit, remonte vers 1).
   const chars = groupe.join(" ").replace(/\s+/g, "").length;
-  let mot = base * Math.max(0.6 * etat.nbCourant, chars / 5.5) / etat.elan;
+  let mot = base * Math.max(P.motMin * etat.nbCourant, chars / P.charsParMot) / etat.elan;
 
   // 2) Planchers (mot lui-même) : dialogue, et majuscule en milieu de phrase
   let enDialogue = false;
   for (let k = 0; k < groupe.length; k++) {
     if (dansDialogue(debut + k)) { enDialogue = true; break; }
   }
-  if (enDialogue) mot = Math.max(mot, base * 1.6);
+  if (enDialogue) mot = Math.max(mot, base * P.plancherDialogue);
 
   let majuscule = false;
   for (let k = 0; k < groupe.length; k++) {
     if (!estDebutPhrase(debut + k) && commenceMajuscule(groupe[k])) { majuscule = true; break; }
   }
-  if (majuscule) mot = Math.max(mot, base * 3); // ≈ 600 ms à 300 mots/min
+  if (majuscule) mot = Math.max(mot, base * P.plancherMajuscule);
 
   // 3) Respirations ajoutées : ponctuation de fin de groupe + ouverture de réplique
   const dernier = groupe[groupe.length - 1] || "";
   let pause = 0;
-  if (/[.!?…]["»”'’)\]]*$/.test(dernier)) pause += base * 2;      // fin de phrase
-  else if (/[,;:]["»”'’)\]]*$/.test(dernier)) pause += base;      // virgule, etc.
+  if (/[.!?…]["»”'’)\]]*$/.test(dernier)) pause += base * P.pauseFinPhrase;  // fin de phrase
+  else if (/[,;:]["»”'’)\]]*$/.test(dernier)) pause += base * P.pauseVirgule; // virgule, etc.
   const suivant = etat.mots[fin];
-  if (suivant && DEBUT_REPLIQUE.test(suivant)) pause += base * 3; // entre échanges
+  if (suivant && DEBUT_REPLIQUE.test(suivant)) pause += base * P.pauseReplique; // entre échanges
 
   // 4) Mise à jour de l'élan pour le PROCHAIN groupe : après une vraie pause on
   //    repart doucement, sinon on accélère par paliers (pas d'à-coup).
-  if (pause >= base * 2) etat.elan = 0.45;                 // grosse pause -> reprise lente
-  else if (pause > 0 || majuscule) etat.elan = 0.7;        // pause moyenne
-  else etat.elan = Math.min(1, etat.elan + 0.18);          // accélération progressive
+  if (pause >= base * P.pauseFinPhrase) etat.elan = P.elanGrossePause;  // grosse pause
+  else if (pause > 0 || majuscule) etat.elan = P.elanPauseMoyenne;      // pause moyenne
+  else etat.elan = Math.min(1, etat.elan + P.elanAccel);                // accélération
 
   // Le temps de pause est modulé par le coefficient réglable (0,5–4).
-  // Plancher absolu : aucun mot ne s'affiche moins de ~90 ms, même à haute
-  // vitesse, pour éviter les « télescopages » illisibles.
-  return Math.max(mot + pause * etat.coefPause, 90);
+  // Plancher absolu : aucun mot ne s'affiche moins de ~Nms (anti-télescopage).
+  return Math.max(mot + pause * etat.coefPause, P.affichageMin);
 }
 
 // Le mot commence-t-il par une lettre MAJUSCULE (en ignorant tiret/guillemet) ?
@@ -585,10 +586,27 @@ const MODELES = {
   default: {
     id: "default",
     nom: "BookReeder (default)",
+    // Fonctions = règles de découpe / rythme / ORP / bionic
     chunk: construireChunkDepuis,
     delai: delaiChunk,
     orp: calculerOrp,
     gras: bornesGras,
+    // Paramètres numériques de la recette (rythme, pauses, découpe).
+    // Tout est ici : pour un nouveau modèle, copier ce bloc et l'ajuster.
+    params: {
+      charsParMot: 5.5,        // longueur moyenne d'un mot (durée ∝ caractères)
+      motMin: 0.6,             // plancher de durée d'un mot (× base × nb mots)
+      pauseFinPhrase: 2,       // pause après . ! ? … (× base)
+      pauseVirgule: 1,         // pause après , ; : (× base)
+      pauseReplique: 3,        // pause avant une réplique de dialogue (× base)
+      plancherDialogue: 1.6,   // durée mini d'un mot en dialogue (× base)
+      plancherMajuscule: 3,    // durée mini d'un nom propre en milieu de phrase (× base)
+      elanGrossePause: 0.45,   // élan après une grosse pause (reprise lente)
+      elanPauseMoyenne: 0.7,   // élan après une pause moyenne
+      elanAccel: 0.18,         // accélération de l'élan par mot (vers 1)
+      affichageMin: 90,        // durée mini absolue d'affichage (ms)
+      motLongMax: 12,          // au-delà, un mot s'affiche seul
+    },
   },
 };
 
