@@ -36,6 +36,36 @@
   src: url(fonts/opendyslexic-700.woff2) format("woff2");
 }
 
+/* Literata (serif, conçue pour la lecture longue) */
+@font-face {
+  font-family: "Literata"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url(fonts/literata-400.woff2) format("woff2");
+}
+@font-face {
+  font-family: "Literata"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url(fonts/literata-700.woff2) format("woff2");
+}
+
+/* Noto Sans */
+@font-face {
+  font-family: "Noto Sans"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url(fonts/notosans-400.woff2) format("woff2");
+}
+@font-face {
+  font-family: "Noto Sans"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url(fonts/notosans-700.woff2) format("woff2");
+}
+
+/* DejaVu Sans */
+@font-face {
+  font-family: "DejaVu Sans"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url(fonts/dejavu-400.woff2) format("woff2");
+}
+@font-face {
+  font-family: "DejaVu Sans"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url(fonts/dejavu-700.woff2) format("woff2");
+}
+
 :root {
   --fond: #1e1e2e;
   --texte: #e8e8e8;
