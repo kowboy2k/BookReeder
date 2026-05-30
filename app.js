@@ -281,28 +281,34 @@ function decouperEnMots(texte) {
     .split(" ")
     .filter(Boolean);
 
-  // Ponctuation qui ne doit jamais s'afficher seule.
-  // Inclut les tirets de dialogue isolés (cadratin —, demi-cadratin –, etc.)
-  // pour qu'ils soient toujours collés au moins au premier mot suivant.
-  const ouvrante = /^[«"“'(\[—–―‒\-]+$/;    // se rattache au mot SUIVANT
-  const fermante = /^[»"”')\].,;:!?…]+$/;   // se rattache au mot PRÉCÉDENT
+  // Règle générale : un jeton qui ne contient AUCUNE lettre ni chiffre
+  // (tiret, guillemet, ponctuation, astérisque, etc.) ne doit jamais
+  // s'afficher seul. On le colle à un mot voisin :
+  //  - ponctuation « ouvrante » (guillemets/parenthèses/tirets ouvrants) → mot SUIVANT ;
+  //  - tout le reste (ponctuation fermante ou ambiguë) → mot PRÉCÉDENT.
+  const estMot = (s) => /[\p{L}\p{N}]/u.test(s);
+  const ouvrante = /^[«“‘"'(\[{¿¡—–―‒*\-]+$/; // jetons à coller au mot SUIVANT
 
   const mots = [];
   let enAttente = "";   // ponctuation ouvrante à coller au prochain mot
   for (const brut of bruts) {
-    if (ouvrante.test(brut)) {
-      enAttente = enAttente ? enAttente + " " + brut : brut;
-      continue;
-    }
-    if (fermante.test(brut) && mots.length > 0) {
-      mots[mots.length - 1] += " " + brut;
+    if (!estMot(brut)) {                 // jeton sans lettre ni chiffre
+      if (ouvrante.test(brut) || mots.length === 0) {
+        enAttente = enAttente ? enAttente + " " + brut : brut;  // → mot suivant
+      } else {
+        mots[mots.length - 1] += " " + brut;                    // → mot précédent
+      }
       continue;
     }
     const mot = enAttente ? enAttente + " " + brut : brut;
     enAttente = "";
     mots.push(mot);
   }
-  if (enAttente && mots.length > 0) mots[mots.length - 1] += " " + enAttente;
+  // Reliquat (texte finissant par de la ponctuation) : on le colle au dernier mot.
+  if (enAttente) {
+    if (mots.length > 0) mots[mots.length - 1] += " " + enAttente;
+    else mots.push(enAttente);
+  }
   return mots;
 }
 
