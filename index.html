@@ -96,6 +96,28 @@
         <input type="checkbox" id="reglage-bionic">
       </div>
 
+      <div class="reglage" id="bloc-bionic-couleur">
+        <label for="reglage-bionic-couleur">Couleur du début bionic</label>
+        <select id="reglage-bionic-couleur">
+          <option value="uniforme" selected>Uniforme (couleur du texte)</option>
+          <option value="#f4d03f">Jaune</option>
+          <option value="#9aa0a6">Grise</option>
+          <option value="#f39c12">Orange</option>
+          <option value="perso">Personnalisé…</option>
+        </select>
+      </div>
+
+      <div class="reglage" id="bloc-bionic-perso" style="display:none">
+        <div class="reglage-case" style="margin-bottom:0.8rem">
+          <label for="reglage-bio-teinte">Teinte</label>
+          <input type="color" id="reglage-bio-teinte" value="#f39c12">
+        </div>
+        <label for="reglage-bio-intensite">Intensité : <span id="valeur-bio-intensite">90</span> %</label>
+        <input type="range" id="reglage-bio-intensite" min="0" max="100" step="1" value="90">
+        <label for="reglage-bio-luminosite" style="margin-top:0.6rem">Luminosité : <span id="valeur-bio-luminosite">55</span> %</label>
+        <input type="range" id="reglage-bio-luminosite" min="0" max="100" step="1" value="55">
+      </div>
+
       <div class="reglage" id="bloc-ecart-reperes">
         <label for="reglage-ecart-reperes">Écartement des repères : <span id="valeur-ecart-reperes">40</span> px</label>
         <input type="range" id="reglage-ecart-reperes" min="10" max="120" step="2" value="40">
