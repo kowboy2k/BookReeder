@@ -15,6 +15,8 @@ const etat = {
   continuerApresSaut: true, // garder la lecture en marche après avance/retour
   orpActif: true,
   bionic: false,     // lecture bionic (début des mots en gras)
+  modeleId: "default", // modèle de lecture actif (groupement + rythme + ORP + bionic)
+  modele: null,        // objet modèle courant (défini au démarrage)
 };
 
 // Un mot qui termine une phrase : ponctuation forte éventuellement suivie
@@ -367,11 +369,11 @@ function ajusterTaillePolice() {
 }
 
 function afficherChunk() {
-  const { texte, nb } = construireChunkDepuis(etat.index);
+  const { texte, nb } = etat.modele.chunk(etat.index);
   etat.nbCourant = nb;
   if (!texte) return;
 
-  const idxOrp = etat.orpActif ? calculerOrp(texte) : -1;
+  const idxOrp = etat.orpActif ? etat.modele.orp(texte) : -1;
   motAffiche.innerHTML = construireHtml(texte, idxOrp);
   ajusterTaillePolice();
 
@@ -408,7 +410,7 @@ function construireHtml(chunk, idxOrp) {
     }
     // Bionic : on met en gras le DÉBUT du mot (point de fixation), à partir
     // de sa première lettre et sur une fraction des lettres selon sa longueur.
-    const gras = etat.bionic ? bornesGras(mot) : null;
+    const gras = etat.bionic ? etat.modele.gras(mot) : null;
     for (let j = 0; j < mot.length; j++, i++) {
       let c = echappe(mot[j]);
       // ORP en interne pour que sa couleur rouge reste prioritaire,
@@ -506,13 +508,56 @@ function commenceMajuscule(mot) {
   return !!m && /\p{Lu}/u.test(m[0]);
 }
 
+// =========================================================
+//  Modèles de lecture
+//  Un modèle regroupe les règles d'AFFICHAGE : groupement des mots (chunk),
+//  rythme (delai), placement du repère ORP (orp) et gras bionic (gras).
+//  « BookReeder (default) » fige le comportement actuel. Pour créer un autre
+//  modèle, ajouter une entrée ici avec ses propres fonctions — le défaut reste
+//  intact. (La tokenisation de base `decouperEnMots` est commune à tous.)
+// =========================================================
+const MODELES = {
+  default: {
+    id: "default",
+    nom: "BookReeder (default)",
+    chunk: construireChunkDepuis,
+    delai: delaiChunk,
+    orp: calculerOrp,
+    gras: bornesGras,
+  },
+};
+
+function activerModele(id) {
+  etat.modele = MODELES[id] || MODELES.default;
+  etat.modeleId = etat.modele.id;
+  try { localStorage.setItem("bookreeder-modele", etat.modeleId); } catch (e) {}
+}
+
+function initialiserModeles() {
+  let id = "default";
+  try { id = localStorage.getItem("bookreeder-modele") || "default"; } catch (e) {}
+  activerModele(id);
+  // Remplit le menu déroulant des réglages
+  const sel = $("reglage-modele");
+  if (sel) {
+    sel.innerHTML = "";
+    Object.values(MODELES).forEach((m) => {
+      const opt = document.createElement("option");
+      opt.value = m.id;
+      opt.textContent = m.nom;
+      sel.appendChild(opt);
+    });
+    sel.value = etat.modeleId;
+  }
+}
+
 function tick() {
   if (etat.index >= etat.mots.length) {
     pause();
     return;
   }
   afficherChunk();           // calcule etat.nbCourant
-  const d = delaiChunk();
+  const d = etat.modele.delai();
   etat.index += etat.nbCourant;
   etat.minuteur = setTimeout(tick, d);
 }
@@ -843,11 +888,16 @@ async function afficherBibliotheque() {
   });
 }
 afficherBibliotheque();
+initialiserModeles();
 
 // Réglages
 $("btn-reglages").addEventListener("click", () => $("panneau-reglages").classList.remove("cache"));
 $("btn-fermer-reglages").addEventListener("click", () => $("panneau-reglages").classList.add("cache"));
 
+$("reglage-modele").addEventListener("change", (e) => {
+  activerModele(e.target.value);
+  afficherChunk();
+});
 $("reglage-nb-mots").addEventListener("input", (e) => {
   etat.nbMots = +e.target.value;
   $("valeur-nb-mots").textContent = etat.nbMots;

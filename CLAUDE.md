@@ -17,6 +17,13 @@ Cible : PC (Windows 11), Mac, iPhone (iOS) et liseuse Vivlio (Android).
 - `lib/epub.min.js`, `lib/jszip.min.js` — lecture des EPUB
 
 ## Décisions / points subtils
+- **Modèles de lecture** (`MODELES`, `etat.modele`) : un modèle regroupe les règles d'AFFICHAGE
+  — groupement des mots (`chunk`), rythme (`delai`), repère ORP (`orp`), gras bionic (`gras`).
+  `BookReeder (default)` fige le comportement actuel. Pour en ajouter un, créer une entrée dans
+  `MODELES` avec ses propres fonctions : le défaut reste intact. Choisi dans les réglages,
+  mémorisé en `localStorage` (`bookreeder-modele`). La tokenisation `decouperEnMots` est
+  COMMUNE à tous (liée au stockage/chapitres) — ne pas la rendre spécifique à un modèle sans
+  gérer la re-découpe.
 - **Rythme de lecture** (`delaiChunk`) : la durée d'un groupe est proportionnelle à la
   **longueur réelle** des mots (≈ caractères/5,5 × base) → mots longs s'attardent, courts
   défilent vite. + respirations : fin de phrase (+2×base), virgule/`;`/`:` (+1×base), et
