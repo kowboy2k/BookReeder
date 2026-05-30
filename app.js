@@ -12,7 +12,6 @@ const etat = {
   vitesse: 300,      // mots/min
   nbMots: 1,         // mots affichés simultanément (max souhaité)
   nbCourant: 1,      // mots réellement affichés dans le chunk courant
-  pasNav: 10,        // mots sautés par avance/retour rapide
   continuerApresSaut: true, // garder la lecture en marche après avance/retour
   orpActif: true,
   bionic: false,     // lecture bionic (début des mots en gras)
@@ -243,12 +242,8 @@ async function extraireLivre(livre) {
       .sort((a, b) => debutSection[a] - debutSection[b])
       .forEach((h, i) => chapitres.push({ titre: "Section " + (i + 1), debut: debutSection[h] }));
   }
-  // Repli ultime : un seul (ou aucun) repère pour un long texte
-  if (chapitres.length <= 1 && motsTotal.length > 1500) {
-    chapitres = [];
-    for (let d = 0, n = 1; d < motsTotal.length; d += 1500, n++)
-      chapitres.push({ titre: "Passage " + n, debut: d });
-  }
+  // Aucun découpage exploitable : un seul repère. Les boutons « chapitre »
+  // basculeront alors sur un saut de 1000 mots (voir allerChapitre).
   if (chapitres.length === 0) chapitres.push({ titre: "Début", debut: 0 });
   // Garantit un repère au tout début (matière avant le 1er chapitre de la TOC)
   if (chapitres[0].debut > 0) chapitres.unshift({ titre: "Début", debut: 0 });
@@ -472,9 +467,42 @@ function deplacer(pas, continuer) {
   sauverPosition();
 }
 
-// Saute au chapitre voisin (dir = -1 précédent, +1 suivant). « Précédent »
-// revient d'abord au début du chapitre courant si on y est déjà engagé.
+// --- Navigation par phrase ---
+// Un mot commence une phrase si le mot précédent terminait la précédente.
+function estDebutPhrase(i) {
+  if (i <= 0) return true;
+  return FIN_PHRASE.test(etat.mots[i - 1] || "");
+}
+// Début de la phrase contenant (ou précédant) l'index i
+function debutPhraseAvant(i) {
+  let j = Math.min(Math.max(0, i), etat.mots.length - 1);
+  while (j > 0 && !estDebutPhrase(j)) j--;
+  return j;
+}
+// Cible du bouton « retour » : début de la phrase en cours, ou de la
+// précédente si on est déjà au tout début de la phrase courante.
+function phrasePrecedente() {
+  const debut = debutPhraseAvant(etat.index);
+  if (debut < etat.index) return debut;
+  return debutPhraseAvant(etat.index - 1);
+}
+// Cible du bouton « avance » : début de la phrase suivante.
+function phraseSuivante() {
+  let j = etat.index + 1;
+  while (j < etat.mots.length && !estDebutPhrase(j)) j++;
+  return Math.min(j, etat.mots.length - 1);
+}
+
+// Y a-t-il un vrai découpage en chapitres ? (sinon : saut de 1000 mots)
+function chapitragePresent() {
+  return etat.chapitres.length > 1;
+}
+
+// Saute au chapitre voisin (dir = -1 précédent, +1 suivant), toujours au
+// DÉBUT du chapitre. « Précédent » revient d'abord au début du chapitre
+// courant si on y est déjà engagé. Sans chapitrage : saut de 1000 mots.
 function allerChapitre(dir) {
+  if (!chapitragePresent()) { deplacer(dir * 1000, true); return; }
   const ci = etat.chapitres.indexOf(chapitreActuel());
   let cible = ci + dir;
   if (dir < 0 && etat.index > chapitreActuel().debut + 3) cible = ci;
@@ -578,9 +606,9 @@ function reglerVitesse(v) {
 $("btn-moins").addEventListener("click", () => reglerVitesse(etat.vitesse - 50));
 $("btn-plus").addEventListener("click", () => reglerVitesse(etat.vitesse + 50));
 
-// Avance / retour rapide (pas réglable, 5–50 mots)
-$("btn-recul").addEventListener("click", () => deplacer(-etat.pasNav, true));
-$("btn-avance").addEventListener("click", () => deplacer(etat.pasNav, true));
+// Retour / avance à la phrase précédente / suivante
+$("btn-recul").addEventListener("click", () => deplacer(phrasePrecedente() - etat.index, true));
+$("btn-avance").addEventListener("click", () => deplacer(phraseSuivante() - etat.index, true));
 // Chapitre précédent / suivant
 $("btn-chap-prec").addEventListener("click", () => allerChapitre(-1));
 $("btn-chap-suiv").addEventListener("click", () => allerChapitre(1));
@@ -728,10 +756,6 @@ $("reglage-nb-mots").addEventListener("input", (e) => {
   $("valeur-nb-mots").textContent = etat.nbMots;
   afficherChunk();
 });
-$("reglage-pas-nav").addEventListener("input", (e) => {
-  etat.pasNav = +e.target.value;
-  $("valeur-pas-nav").textContent = etat.pasNav;
-});
 $("reglage-continuer").addEventListener("change", (e) => {
   etat.continuerApresSaut = e.target.checked;
 });
@@ -815,8 +839,8 @@ function appliquerOrp() {
 document.addEventListener("keydown", (e) => {
   if (ecranLecture.classList.contains("cache")) return;
   if (e.code === "Space") { e.preventDefault(); basculerLecture(); }
-  else if (e.code === "ArrowLeft") deplacer(-etat.pasNav, true);
-  else if (e.code === "ArrowRight") deplacer(etat.pasNav, true);
+  else if (e.code === "ArrowLeft") deplacer(phrasePrecedente() - etat.index, true);
+  else if (e.code === "ArrowRight") deplacer(phraseSuivante() - etat.index, true);
 });
 
 // Toucher l'écran central = lecture/pause (mobile / Vivlio)

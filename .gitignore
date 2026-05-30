@@ -4,4 +4,4 @@ __pycache__/
 .DS_Store
 Thumbs.db
 # EPUB de test local
-test.epub
+test*.epub

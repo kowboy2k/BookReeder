@@ -46,9 +46,13 @@ Serveur local (config preview centralisée `C:\Claude Code\.claude\launch.json`,
   alors le nombre de mots avant cette ancre (Range `setEndBefore` + `decouperEnMots`) pour caler
   le chapitre au bon mot, même si plusieurs chapitres sont dans le même fichier. Replis : une
   entrée par section, puis « Passage N » tous les 1500 mots. Repère « Début » garanti à 0.
-- **Boutons chapitre** : `⏮`/`⏭` (avec sélecteur de variation `&#xFE0E;` pour rester monochrome)
-  vont au chapitre précédent/suivant ; `⏮` revient d'abord au début du chapitre courant si on y
-  est déjà engagé. `⏪`/`⏩` = retour/avance rapide par `etat.pasNav`.
+- **Boutons chapitre** : `⏮`/`⏭` (sélecteur de variation `&#xFE0E;` pour rester monochrome)
+  vont toujours au **début** du chapitre précédent/suivant ; `⏮` revient d'abord au début du
+  chapitre courant si on y est déjà engagé. **Sans chapitrage** (`chapitragePresent()` faux,
+  c.-à-d. un seul repère) : saut de **1000 mots**.
+- **Boutons phrase** : `⏪`/`⏩` = phrase précédente / suivante. `⏪` revient au début de la phrase
+  en cours, puis au début des phrases précédentes ; `⏩` va au début de la phrase suivante.
+  Début de phrase = mot dont le précédent valide `FIN_PHRASE`. (Remplace l'ancien saut en mots.)
 - **Barre principale = chapitre courant** ; la **barre du livre entier** (avec repères de
   chapitre) est dans le panneau de navigation. Le `%` du texte d'info reste celui du livre entier.
 - **Découpe d'affichage** : max **4 mots** ; un mot > 12 caractères s'affiche seul ; on ne
