@@ -301,48 +301,20 @@ $("reglage-bionic").addEventListener("change", (e) => {
 });
 
 // --- Couleur du début bionic ---
-function teinteVersHue(hex) {
-  const r = parseInt(hex.slice(1, 3), 16) / 255;
-  const g = parseInt(hex.slice(3, 5), 16) / 255;
-  const b = parseInt(hex.slice(5, 7), 16) / 255;
-  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
-  if (d === 0) return 0;
-  let h;
-  if (max === r) h = ((g - b) / d) % 6;
-  else if (max === g) h = (b - r) / d + 2;
-  else h = (r - g) / d + 4;
-  return Math.round(((h * 60) + 360) % 360);
-}
-
 function appliquerBioCouleur() {
   const choix = $("reglage-bionic-couleur").value;
   let couleur;
-  if (choix === "uniforme") {
-    couleur = "inherit";
-  } else if (choix === "perso") {
-    const hue = teinteVersHue($("reglage-bio-teinte").value);
-    const s = $("reglage-bio-intensite").value;
-    const l = $("reglage-bio-luminosite").value;
-    couleur = `hsl(${hue}, ${s}%, ${l}%)`;
-  } else {
-    couleur = choix; // valeur hex d'un préréglage
-  }
+  if (choix === "uniforme") couleur = "inherit";
+  else if (choix === "perso") couleur = $("reglage-bio-teinte").value;
+  else couleur = choix; // valeur hex d'un préréglage
   document.documentElement.style.setProperty("--bio-couleur", couleur);
 }
 
 $("reglage-bionic-couleur").addEventListener("change", (e) => {
-  $("bloc-bionic-perso").style.display = e.target.value === "perso" ? "block" : "none";
+  $("bloc-bionic-perso").style.display = e.target.value === "perso" ? "flex" : "none";
   appliquerBioCouleur();
 });
 $("reglage-bio-teinte").addEventListener("input", appliquerBioCouleur);
-$("reglage-bio-intensite").addEventListener("input", (e) => {
-  $("valeur-bio-intensite").textContent = e.target.value;
-  appliquerBioCouleur();
-});
-$("reglage-bio-luminosite").addEventListener("input", (e) => {
-  $("valeur-bio-luminosite").textContent = e.target.value;
-  appliquerBioCouleur();
-});
 $("reglage-police").addEventListener("change", (e) => {
   document.documentElement.style.setProperty("--police", e.target.value);
   afficherChunk();
