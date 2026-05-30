@@ -25,8 +25,9 @@ Cible : PC (Windows 11), Mac, iPhone (iOS) et liseuse Vivlio (Android).
   rattache la ponctuation **ouvrante** (« " ' ( [) au mot suivant et la **fermante**
   (» " ' ) ] . , ; : ! ? …) au mot précédent — important pour la typo française (espace
   avant ; : ! ?) afin de ne jamais afficher un signe seul.
-- **Service worker** : cache-first. En cas de modif non prise en compte pendant le dev,
-  vider le cache + désinscrire le SW, puis recharger (ou bumper `CACHE = "bookreeder-vN"`).
+- **Service worker** : **réseau d'abord** (network-first) — en ligne il charge toujours la
+  dernière version et rafraîchit le cache ; hors-ligne il retombe sur le cache. Évite les
+  vieilles versions resservies. Bumper quand même `CACHE = "bookreeder-vN"` à chaque modif.
 
 ## Lancement / test
 Serveur local (config preview centralisée `C:\Claude Code\.claude\launch.json`, nom `bookreeder`) :
@@ -53,8 +54,9 @@ Serveur local (config preview centralisée `C:\Claude Code\.claude\launch.json`,
 - **Boutons phrase** : `⏪`/`⏩` = phrase précédente / suivante. `⏪` revient au début de la phrase
   en cours, puis au début des phrases précédentes ; `⏩` va au début de la phrase suivante.
   Début de phrase = mot dont le précédent valide `FIN_PHRASE`. (Remplace l'ancien saut en mots.)
-- **Barre principale = chapitre courant** ; la **barre du livre entier** (avec repères de
-  chapitre) est dans le panneau de navigation. Le `%` du texte d'info reste celui du livre entier.
+- **Écran principal = tout relatif au chapitre courant** : barre, position et `%` portent sur le
+  chapitre (`60 / 123 mots`). La **position dans le livre entier** (barre + `%`) est dans le
+  panneau de navigation uniquement.
 - **Découpe d'affichage** : max **4 mots** ; un mot > 12 caractères s'affiche seul ; on ne
   regroupe jamais après une fin de phrase (`FIN_PHRASE`, évite « fin. Début ») ; la police est
   réduite automatiquement si le groupe dépasse le cadre (`ajusterTaillePolice`).

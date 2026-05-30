@@ -1,5 +1,6 @@
-// Service worker : met l'app en cache pour fonctionner hors-ligne
-const CACHE = "bookreeder-v27";
+// Service worker : « réseau d'abord » pour toujours charger la dernière
+// version quand on est en ligne, avec repli sur le cache hors-ligne.
+const CACHE = "bookreeder-v28";
 const FICHIERS = [
   "./",
   "./index.html",
@@ -26,8 +27,17 @@ self.addEventListener("activate", (e) => {
   self.clients.claim();
 });
 
+// Réseau d'abord : on tente toujours le réseau (et on rafraîchit le cache),
+// et on ne retombe sur le cache qu'en cas d'échec (hors-ligne).
 self.addEventListener("fetch", (e) => {
+  if (e.request.method !== "GET") return;
   e.respondWith(
-    caches.match(e.request).then((reponse) => reponse || fetch(e.request))
+    fetch(e.request)
+      .then((reponse) => {
+        const copie = reponse.clone();
+        caches.open(CACHE).then((c) => c.put(e.request, copie)).catch(() => {});
+        return reponse;
+      })
+      .catch(() => caches.match(e.request))
   );
 });

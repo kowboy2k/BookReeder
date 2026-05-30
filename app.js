@@ -520,18 +520,17 @@ function bornesChapitre() {
 }
 
 function majProgression() {
-  // Barre principale = progression DANS le chapitre courant
+  // Écran principal = tout est relatif au CHAPITRE courant
+  // (la position dans le livre entier est dans le panneau de navigation).
   const { debut, fin } = bornesChapitre();
   const lenChap = Math.max(1, fin - debut);
-  const pctChap = Math.min(1, Math.max(0, (etat.index - debut) / lenChap)) * 100;
+  const posChap = Math.min(lenChap, Math.max(0, etat.index - debut));
+  const pctChap = (posChap / lenChap) * 100;
   $("progression-remplissage").style.width = pctChap + "%";
   $("curseur").style.left = pctChap + "%";
-
-  // Texte d'info = pourcentage sur le LIVRE entier
-  const pctLivre = etat.mots.length ? (etat.index / etat.mots.length) * 100 : 0;
-  $("position-actuelle").textContent = etat.index;
-  $("total-mots").textContent = etat.mots.length;
-  $("position-pct").textContent = pctLivre.toFixed(2).replace(".", ",");
+  $("position-actuelle").textContent = posChap;
+  $("total-mots").textContent = lenChap;
+  $("position-pct").textContent = pctChap.toFixed(2).replace(".", ",");
   $("chapitre-actuel").textContent = tronquerTitre(chapitreActuel().titre);
 
   if (!$("panneau-navigation").classList.contains("cache")) majBarreLivre();
