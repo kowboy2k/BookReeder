@@ -466,13 +466,28 @@ function calculerOrp(chunk) {
 // =========================================================
 //  Lecture (avance automatique)
 // =========================================================
+// Début de réplique de dialogue : tiret ou guillemet ouvrant en tête de mot.
+const DEBUT_REPLIQUE = /^[—–―‒\-«]/;
+
 function delaiChunk() {
-  const base = 60000 / etat.vitesse;          // ms par mot
-  let delai = base * etat.nbCourant;
-  // Pause supplémentaire en fin de phrase / après une virgule
-  const dernier = etat.mots[etat.index + etat.nbCourant - 1] || "";
-  if (/[.!?…]["»”'’)\]]*$/.test(dernier)) delai += base * 2;
-  else if (/[,;:]["»”'’)\]]*$/.test(dernier)) delai += base;
+  const base = 60000 / etat.vitesse;            // ms pour un mot « moyen »
+  const debut = etat.index, fin = etat.index + etat.nbCourant;
+  const groupe = etat.mots.slice(debut, fin);
+
+  // 1) Durée proportionnelle à la longueur réelle des mots affichés :
+  //    les mots longs s'attardent, les courts défilent vite (rythme naturel).
+  const chars = groupe.join(" ").replace(/\s+/g, "").length;
+  let delai = base * Math.max(0.6 * etat.nbCourant, chars / 5.5);
+
+  // 2) Respirations selon la ponctuation de fin de groupe
+  const dernier = groupe[groupe.length - 1] || "";
+  if (/[.!?…]["»”'’)\]]*$/.test(dernier)) delai += base * 2;       // fin de phrase
+  else if (/[,;:]["»”'’)\]]*$/.test(dernier)) delai += base;       // virgule, etc.
+
+  // 3) Pause marquée entre les échanges : le prochain groupe ouvre une réplique
+  const suivant = etat.mots[fin];
+  if (suivant && DEBUT_REPLIQUE.test(suivant)) delai += base * 3;
+
   return delai;
 }
 
