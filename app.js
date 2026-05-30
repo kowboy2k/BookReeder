@@ -923,8 +923,36 @@ $("reglage-orp").addEventListener("change", (e) => {
   appliquerOrp();
   afficherChunk();
 });
-$("reglage-bionic").addEventListener("change", (e) => {
-  etat.bionic = e.target.checked;
+
+// --- Police (police + graisse + bionic combinés dans un seul menu) ---
+const POLICES = {
+  "georgia-400": { police: 'Georgia, "Times New Roman", serif', graisse: 400, bionic: false },
+  "georgia-700": { police: 'Georgia, "Times New Roman", serif', graisse: 700, bionic: false },
+  "merri-300":   { police: '"Merriweather", Georgia, serif', graisse: 300, bionic: false },
+  "merri-400":   { police: '"Merriweather", Georgia, serif', graisse: 400, bionic: false },
+  "merri-700":   { police: '"Merriweather", Georgia, serif', graisse: 700, bionic: false },
+  "merri-900":   { police: '"Merriweather", Georgia, serif', graisse: 900, bionic: false },
+  "mono-400":    { police: 'ui-monospace, "Courier New", monospace', graisse: 400, bionic: false },
+  "mono-700":    { police: 'ui-monospace, "Courier New", monospace', graisse: 700, bionic: false },
+  "roboto-400":  { police: '"Roboto", sans-serif', graisse: 400, bionic: false },
+  "roboto-700":  { police: '"Roboto", sans-serif', graisse: 700, bionic: false },
+  "dys-400":     { police: '"OpenDyslexic", sans-serif', graisse: 400, bionic: false },
+  "dys-700":     { police: '"OpenDyslexic", sans-serif', graisse: 700, bionic: false },
+  "bionic-georgia": { police: 'Georgia, "Times New Roman", serif', graisse: 400, bionic: true },
+  "bionic-roboto":  { police: '"Roboto", sans-serif', graisse: 400, bionic: true },
+};
+function appliquerPolice(id) {
+  const cfg = POLICES[id] || POLICES["georgia-400"];
+  document.documentElement.style.setProperty("--police", cfg.police);
+  document.documentElement.style.setProperty("--graisse", cfg.graisse);
+  etat.bionic = cfg.bionic;
+  // La couleur du début bionic ne s'affiche que si le bionic est choisi
+  $("bloc-bionic-couleur").style.display = cfg.bionic ? "block" : "none";
+  $("bloc-bionic-perso").style.display =
+    (cfg.bionic && $("reglage-bionic-couleur").value === "perso") ? "flex" : "none";
+}
+$("reglage-police").addEventListener("change", (e) => {
+  appliquerPolice(e.target.value);
   afficherChunk();
 });
 
@@ -943,14 +971,6 @@ $("reglage-bionic-couleur").addEventListener("change", (e) => {
   appliquerBioCouleur();
 });
 $("reglage-bio-teinte").addEventListener("input", appliquerBioCouleur);
-$("reglage-police").addEventListener("change", (e) => {
-  document.documentElement.style.setProperty("--police", e.target.value);
-  afficherChunk();
-});
-$("reglage-graisse").addEventListener("change", (e) => {
-  document.documentElement.style.setProperty("--graisse", e.target.value);
-  afficherChunk();
-});
 $("reglage-majuscules").addEventListener("change", (e) => {
   motAffiche.classList.toggle("majuscules", e.target.checked);
   afficherChunk(); // recalcule le centrage ORP (largeurs modifiées)

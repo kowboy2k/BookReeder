@@ -118,52 +118,36 @@
       <div class="reglage">
         <label for="reglage-police">Police</label>
         <select id="reglage-police">
-          <option value='Georgia, "Times New Roman", serif'>Georgia</option>
-          <option value='"Merriweather", Georgia, serif'>Merriweather</option>
+          <optgroup label="Georgia">
+            <option value="georgia-400" selected>Normal</option>
+            <option value="georgia-700">Gras</option>
+          </optgroup>
+          <optgroup label="Merriweather">
+            <option value="merri-300">Léger</option>
+            <option value="merri-400">Normal</option>
+            <option value="merri-700">Gras</option>
+            <option value="merri-900">Noir</option>
+          </optgroup>
+          <optgroup label="Monospace">
+            <option value="mono-400">Normal</option>
+            <option value="mono-700">Gras</option>
+          </optgroup>
+          <optgroup label="Roboto">
+            <option value="roboto-400">Normal</option>
+            <option value="roboto-700">Gras</option>
+          </optgroup>
+          <optgroup label="Dyslexia">
+            <option value="dys-400">Normal</option>
+            <option value="dys-700">Gras</option>
+          </optgroup>
+          <optgroup label="Bionic">
+            <option value="bionic-georgia">Georgia</option>
+            <option value="bionic-roboto">Roboto</option>
+          </optgroup>
         </select>
       </div>
 
-      <div class="reglage reglage-case">
-        <label for="reglage-majuscules">Tout en majuscules</label>
-        <input type="checkbox" id="reglage-majuscules">
-      </div>
-
-      <div class="reglage">
-        <label for="reglage-graisse">Graisse</label>
-        <select id="reglage-graisse">
-          <option value="300">Fin</option>
-          <option value="400" selected>Normal</option>
-          <option value="600">Moyen</option>
-          <option value="700">Gras</option>
-        </select>
-      </div>
-
-      <div class="reglage">
-        <label for="reglage-espace-lettres">Espacement des lettres : <span id="valeur-espace-lettres">0</span> px</label>
-        <input type="range" id="reglage-espace-lettres" min="-1" max="8" step="0.5" value="0">
-      </div>
-
-      <div class="reglage">
-        <label for="reglage-espace-mots">Espacement des mots : <span id="valeur-espace-mots">0</span> px</label>
-        <input type="range" id="reglage-espace-mots" min="0" max="24" step="1" value="0">
-      </div>
-
-      <div class="reglage reglage-case">
-        <label for="reglage-cadre">Cadre (contour autour du mot)</label>
-        <input type="checkbox" id="reglage-cadre" checked>
-      </div>
-
-      <div class="reglage reglage-case">
-        <label for="reglage-orp">Cartouche ORP (repère central)</label>
-        <input type="checkbox" id="reglage-orp" checked>
-      </div>
-
-      <div class="reglage reglage-case">
-        <label for="reglage-bionic">Lecture bionic (début des mots en gras)</label>
-        <input type="checkbox" id="reglage-bionic">
-      </div>
-
-      <div class="reglage" id="bloc-bionic-couleur">
+      <div class="reglage" id="bloc-bionic-couleur" style="display:none">
         <label for="reglage-bionic-couleur">Couleur du début bionic</label>
         <select id="reglage-bionic-couleur">
           <option value="uniforme" selected>Uniforme (couleur du texte)</option>
@@ -178,6 +162,31 @@
       <div class="reglage reglage-case" id="bloc-bionic-perso" style="display:none">
         <label for="reglage-bio-teinte">Couleur personnalisée</label>
         <input type="color" id="reglage-bio-teinte" value="#f39c12">
+      </div>
+
+      <div class="reglage reglage-case">
+        <label for="reglage-majuscules">Tout en majuscules</label>
+        <input type="checkbox" id="reglage-majuscules">
+      </div>
+
+      <div class="reglage">
+        <label for="reglage-espace-lettres">Espacement des lettres : <span id="valeur-espace-lettres">0</span> px</label>
+        <input type="range" id="reglage-espace-lettres" min="-1" max="8" step="0.5" value="0">
+      </div>
+
+      <div class="reglage">
+        <label for="reglage-espace-mots">Espacement des mots : <span id="valeur-espace-mots">0</span> px</label>
+        <input type="range" id="reglage-espace-mots" min="0" max="24" step="1" value="0">
+      </div>
+
+      <div class="reglage reglage-case">
+        <label for="reglage-cadre">Cartouche ORP</label>
+        <input type="checkbox" id="reglage-cadre" checked>
+      </div>
+
+      <div class="reglage reglage-case">
+        <label for="reglage-orp">Repère central</label>
+        <input type="checkbox" id="reglage-orp" checked>
       </div>
 
       <div class="reglage" id="bloc-ecart-reperes">

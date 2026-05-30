@@ -1,6 +1,6 @@
 // Service worker : « réseau d'abord » pour toujours charger la dernière
 // version quand on est en ligne, avec repli sur le cache hors-ligne.
-const CACHE = "bookreeder-v43";
+const CACHE = "bookreeder-v44";
 const FICHIERS = [
   "./",
   "./index.html",
@@ -11,6 +11,10 @@ const FICHIERS = [
   "./lib/epub.min.js",
   "./fonts/merriweather-latin.woff2",
   "./fonts/merriweather-latin-ext.woff2",
+  "./fonts/roboto-400.woff2",
+  "./fonts/roboto-700.woff2",
+  "./fonts/opendyslexic-400.woff2",
+  "./fonts/opendyslexic-700.woff2",
 ];
 
 self.addEventListener("install", (e) => {
