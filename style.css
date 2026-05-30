@@ -224,7 +224,9 @@ html, body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  cursor: pointer;
 }
+#titre-livre:hover { color: var(--texte); }
 #info-progression {
   position: fixed;
   bottom: 13.85rem;

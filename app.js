@@ -711,6 +711,7 @@ function ouvrirNavigation() {
   majBarreLivre();
 }
 $("info-progression").addEventListener("click", ouvrirNavigation);
+$("titre-livre").addEventListener("click", ouvrirNavigation);
 $("btn-liste").addEventListener("click", ouvrirNavigation);
 $("btn-fermer-navigation").addEventListener("click", () => {
   $("panneau-navigation").classList.add("cache");
