@@ -542,6 +542,7 @@ function majBarreLivre() {
   const pct = etat.mots.length ? (etat.index / etat.mots.length) * 100 : 0;
   $("remplissage-livre").style.width = pct + "%";
   $("curseur-livre").style.left = pct + "%";
+  $("position-pct-livre").textContent = pct.toFixed(2).replace(".", ",");
 }
 
 // Tronque un titre de chapitre trop long pour la ligne d'info
