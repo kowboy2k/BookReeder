@@ -1,5 +1,5 @@
 // Service worker : met l'app en cache pour fonctionner hors-ligne
-const CACHE = "bookreeder-v14";
+const CACHE = "bookreeder-v17";
 const FICHIERS = [
   "./",
   "./index.html",

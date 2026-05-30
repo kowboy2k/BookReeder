@@ -163,7 +163,7 @@ html, body {
 
 #barre-progression {
   position: fixed;
-  bottom: 13.9rem;
+  bottom: 16.8rem;
   left: 8%;
   width: 84%;
   height: 4px;
@@ -210,7 +210,7 @@ html, body {
 }
 #titre-livre {
   position: fixed;
-  bottom: 12.6rem;
+  bottom: 13.9rem;
   left: 0;
   width: 100%;
   text-align: center;
@@ -224,7 +224,7 @@ html, body {
 }
 #info-progression {
   position: fixed;
-  bottom: 11.3rem;
+  bottom: 12.6rem;
   left: 0;
   width: 100%;
   text-align: center;
@@ -240,7 +240,7 @@ html, body {
 /* Avance / retour rapide : deux gros boutons */
 #nav-rapide {
   position: fixed;
-  bottom: 6rem;
+  bottom: 7rem;
   left: 0;
   width: 100%;
   display: flex;

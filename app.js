@@ -487,9 +487,6 @@ barre.addEventListener("pointerup", (e) => {
 // =========================================================
 function ouvrirNavigation() {
   $("nav-chapitre").value = etat.chapitres.indexOf(chapitreActuel());
-  const pct = etat.mots.length ? Math.round(etat.index / etat.mots.length * 100) : 0;
-  $("nav-position").value = pct;
-  $("nav-position-valeur").textContent = pct;
   $("panneau-navigation").classList.remove("cache");
 }
 $("info-progression").addEventListener("click", ouvrirNavigation);
@@ -502,11 +499,6 @@ $("nav-chapitre").addEventListener("change", (e) => {
   const ch = etat.chapitres[+e.target.value];
   if (!ch) return;
   deplacer(ch.debut - etat.index);
-});
-$("nav-position").addEventListener("input", (e) => {
-  $("nav-position-valeur").textContent = e.target.value;
-  const cible = Math.round(+e.target.value / 100 * (etat.mots.length - 1));
-  deplacer(cible - etat.index);
 });
 
 // =========================================================
