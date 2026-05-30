@@ -939,43 +939,89 @@ $("reglage-orp").addEventListener("change", (e) => {
   afficherChunk();
 });
 
-// --- Police (police + graisse + bionic combinés dans un seul menu) ---
-const POLICES = {
-  "georgia-400": { police: 'Georgia, "Times New Roman", serif', graisse: 400, bionic: false },
-  "georgia-700": { police: 'Georgia, "Times New Roman", serif', graisse: 700, bionic: false },
-  "merri-300":   { police: '"Merriweather", Georgia, serif', graisse: 300, bionic: false },
-  "merri-400":   { police: '"Merriweather", Georgia, serif', graisse: 400, bionic: false },
-  "merri-700":   { police: '"Merriweather", Georgia, serif', graisse: 700, bionic: false },
-  "merri-900":   { police: '"Merriweather", Georgia, serif', graisse: 900, bionic: false },
-  "mono-400":    { police: 'ui-monospace, "Courier New", monospace', graisse: 400, bionic: false },
-  "mono-700":    { police: 'ui-monospace, "Courier New", monospace', graisse: 700, bionic: false },
-  "roboto-400":  { police: '"Roboto", sans-serif', graisse: 400, bionic: false },
-  "roboto-700":  { police: '"Roboto", sans-serif', graisse: 700, bionic: false },
-  "literata-400":{ police: '"Literata", Georgia, serif', graisse: 400, bionic: false },
-  "literata-700":{ police: '"Literata", Georgia, serif', graisse: 700, bionic: false },
-  "noto-400":    { police: '"Noto Sans", sans-serif', graisse: 400, bionic: false },
-  "noto-700":    { police: '"Noto Sans", sans-serif', graisse: 700, bionic: false },
-  "dejavu-400":  { police: '"DejaVu Sans", sans-serif', graisse: 400, bionic: false },
-  "dejavu-700":  { police: '"DejaVu Sans", sans-serif', graisse: 700, bionic: false },
-  "dys-400":     { police: '"OpenDyslexic", sans-serif', graisse: 400, bionic: false },
-  "dys-700":     { police: '"OpenDyslexic", sans-serif', graisse: 700, bionic: false },
-  "bionic-georgia": { police: 'Georgia, "Times New Roman", serif', graisse: 400, bionic: true },
-  "bionic-roboto":  { police: '"Roboto", sans-serif', graisse: 400, bionic: true },
+// --- Police : 2 menus (famille + variante) ---
+// CSS de chaque famille « normale »
+const FAMILLE_CSS = {
+  georgia:  'Georgia, "Times New Roman", serif',
+  merri:    '"Merriweather", Georgia, serif',
+  mono:     'ui-monospace, "Courier New", monospace',
+  roboto:   '"Roboto", sans-serif',
+  literata: '"Literata", Georgia, serif',
+  noto:     '"Noto Sans", sans-serif',
+  dejavu:   '"DejaVu Sans", sans-serif',
+  dys:      '"OpenDyslexic", sans-serif',
 };
-function appliquerPolice(id) {
-  const cfg = POLICES[id] || POLICES["georgia-400"];
-  document.documentElement.style.setProperty("--police", cfg.police);
-  document.documentElement.style.setProperty("--graisse", cfg.graisse);
-  etat.bionic = cfg.bionic;
+// Familles proposées + leurs variantes (poids, ou police de base pour Bionic)
+const POIDS = [{ id: "300", nom: "Léger" }, { id: "400", nom: "Normal" },
+               { id: "700", nom: "Gras" }, { id: "900", nom: "Noir" }];
+const wn = [POIDS[1], POIDS[2]]; // Normal / Gras
+const FAMILLES = [
+  { id: "georgia",  nom: "Georgia",       variantes: wn },
+  { id: "merri",    nom: "Merriweather",  variantes: POIDS },
+  { id: "mono",     nom: "Monospace",     variantes: wn },
+  { id: "roboto",   nom: "Roboto",        variantes: wn },
+  { id: "literata", nom: "Literata",      variantes: wn },
+  { id: "noto",     nom: "Noto Sans",     variantes: wn },
+  { id: "dejavu",   nom: "DejaVu Sans",   variantes: wn },
+  { id: "dys",      nom: "Open Dyslexic", variantes: wn },
+  { id: "bionic",   nom: "Bionic",        variantes: [
+      { id: "georgia", nom: "Georgia" }, { id: "roboto", nom: "Roboto" }] },
+];
+const variantesDe = (id) => (FAMILLES.find((f) => f.id === id) || FAMILLES[0]).variantes;
+
+function appliquerPolice() {
+  const fam = $("reglage-police").value;
+  const varr = $("reglage-variante").value;
+  let police, graisse, bionic;
+  if (fam === "bionic") {
+    police = FAMILLE_CSS[varr] || FAMILLE_CSS.georgia;
+    graisse = 400; bionic = true;
+  } else {
+    police = FAMILLE_CSS[fam] || FAMILLE_CSS.georgia;
+    graisse = +varr || 400; bionic = false;
+  }
+  document.documentElement.style.setProperty("--police", police);
+  document.documentElement.style.setProperty("--graisse", graisse);
+  etat.bionic = bionic;
   // La couleur du début bionic ne s'affiche que si le bionic est choisi
-  $("bloc-bionic-couleur").style.display = cfg.bionic ? "block" : "none";
+  $("bloc-bionic-couleur").style.display = bionic ? "block" : "none";
   $("bloc-bionic-perso").style.display =
-    (cfg.bionic && $("reglage-bionic-couleur").value === "perso") ? "flex" : "none";
+    (bionic && $("reglage-bionic-couleur").value === "perso") ? "flex" : "none";
 }
-$("reglage-police").addEventListener("change", (e) => {
-  appliquerPolice(e.target.value);
+
+// (Re)remplit le menu Variante selon la famille choisie ; défaut = Normal
+function remplirVariantes(familleId) {
+  const sel = $("reglage-variante");
+  const vs = variantesDe(familleId);
+  sel.innerHTML = "";
+  vs.forEach((v) => {
+    const o = document.createElement("option");
+    o.value = v.id; o.textContent = v.nom; sel.appendChild(o);
+  });
+  sel.value = vs.some((v) => v.id === "400") ? "400" : vs[0].id;
+}
+
+function initialiserPolices() {
+  const selP = $("reglage-police");
+  selP.innerHTML = "";
+  FAMILLES.forEach((f) => {
+    const o = document.createElement("option");
+    o.value = f.id; o.textContent = f.nom; selP.appendChild(o);
+  });
+  selP.value = "georgia";
+  remplirVariantes("georgia");
+  appliquerPolice();
+}
+$("reglage-police").addEventListener("change", () => {
+  remplirVariantes($("reglage-police").value);
+  appliquerPolice();
   afficherChunk();
 });
+$("reglage-variante").addEventListener("change", () => {
+  appliquerPolice();
+  afficherChunk();
+});
+initialiserPolices();
 
 // --- Couleur du début bionic ---
 function appliquerBioCouleur() {
