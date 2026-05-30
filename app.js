@@ -340,17 +340,29 @@ function construireChunkDepuis(start) {
   return { texte: parts.join(" "), nb: parts.length || 1 };
 }
 
-// Réduit la police si le groupe dépasse la largeur du cadre
+// Réduit la police si le groupe dépasse le cadre. Le texte étant centré sur
+// la lettre ORP (au milieu de l'écran), il faut que le plus grand des deux
+// côtés (gauche / droite du repère) tienne dans la moitié du cadre.
 function ajusterTaillePolice() {
   motAffiche.style.fontSize = "";
   const cadre = $("cadre");
-  const dispo = zoneMot.classList.contains("avec-cadre")
-    ? cadre.clientWidth - 32
-    : window.innerWidth * 0.9;
-  const largeur = motAffiche.getBoundingClientRect().width;
-  if (dispo > 0 && largeur > dispo) {
+  const dispo = (zoneMot.classList.contains("avec-cadre")
+    ? cadre.clientWidth
+    : window.innerWidth * 0.9) - 32;
+  if (dispo <= 0) return;
+
+  const boite = motAffiche.getBoundingClientRect();
+  const total = boite.width;
+  const orp = motAffiche.querySelector(".orp");
+  let besoin = total;                       // sans ORP : largeur totale centrée
+  if (orp) {
+    const r = orp.getBoundingClientRect();
+    const centre = r.left - boite.left + r.width / 2;
+    besoin = 2 * Math.max(centre, total - centre); // largeur centrée sur l'ORP
+  }
+  if (besoin > dispo) {
     const base = parseFloat(getComputedStyle(motAffiche).fontSize);
-    motAffiche.style.fontSize = (base * dispo / largeur) + "px";
+    motAffiche.style.fontSize = (base * dispo / besoin) + "px";
   }
 }
 
@@ -623,6 +635,7 @@ function demarrerLecture() {
   ecranLecture.classList.remove("cache");
   $("titre-livre").textContent = etat.titreLivre || etat.nomLivre || "";
   reglerVitesse(etat.vitesse);
+  ajusterCadre();
   appliquerOrp();
   afficherChunk();
 }
@@ -790,26 +803,22 @@ $("reglage-vitesse").addEventListener("input", (e) => reglerVitesse(+e.target.va
 $("reglage-nb-mots").addEventListener("input", (e) => {
   etat.nbMots = +e.target.value;
   $("valeur-nb-mots").textContent = etat.nbMots;
+  ajusterCadre();
   afficherChunk();
-});
-$("reglage-continuer").addEventListener("change", (e) => {
-  etat.continuerApresSaut = e.target.checked;
 });
 
-// --- Taille du cartouche (cadre) ---
-function appliquerLargeurCadre() {
-  const manuel = $("reglage-taille-cadre").value === "manuel";
-  const valeur = manuel ? ($("reglage-largeur-cadre").value + "px") : "min(90%, 600px)";
-  document.documentElement.style.setProperty("--cadre-largeur", valeur);
-  afficherChunk();
+// Largeur du cartouche calculée automatiquement selon le nombre de mots
+// affichés (1 à 4) : plus il y a de mots, plus le cadre est large, pour que
+// tout tienne sans déborder. La police s'ajuste ensuite si besoin (garde-fou).
+function ajusterCadre() {
+  const n = etat.nbMots;
+  document.documentElement.style.setProperty(
+    "--cadre-largeur",
+    `min(${88 + n * 2}%, ${440 + n * 140}px)`
+  );
 }
-$("reglage-taille-cadre").addEventListener("change", (e) => {
-  $("bloc-largeur-cadre").style.display = e.target.value === "manuel" ? "block" : "none";
-  appliquerLargeurCadre();
-});
-$("reglage-largeur-cadre").addEventListener("input", (e) => {
-  $("valeur-largeur-cadre").textContent = e.target.value;
-  appliquerLargeurCadre();
+$("reglage-continuer").addEventListener("change", (e) => {
+  etat.continuerApresSaut = e.target.checked;
 });
 $("reglage-orp").addEventListener("change", (e) => {
   etat.orpActif = e.target.checked;

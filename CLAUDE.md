@@ -64,7 +64,11 @@ Serveur local (config preview centralisée `C:\Claude Code\.claude\launch.json`,
 - **Découpe d'affichage** : max **4 mots** ; un mot > 12 caractères s'affiche seul ; on ne
   regroupe jamais après une fin de phrase (`FIN_PHRASE`, évite « fin. Début ») ; la police est
   réduite automatiquement si le groupe dépasse le cadre (`ajusterTaillePolice`).
-- **Cartouche** : taille Auto (`min(90%,600px)`, défaut) ou Manuelle (slider `--cadre-largeur`).
+- **Cartouche** : largeur automatique selon le nombre de mots affichés
+  (`ajusterCadre` → `--cadre-largeur = min((88+2n)%, (440+140n)px)`, n = 1–4) — plus de mots,
+  plus large. `ajusterTaillePolice` réduit ensuite la police si besoin en tenant compte du
+  décalage ORP (le plus grand côté autour du repère doit tenir dans la moitié du cadre) : rien
+  ne déborde jamais.
 - **Continuer après saut** : option (cochée par défaut) — `deplacer(pas, true)` relance la
   lecture après avance/retour/chapitre sans casser le rythme.
 - **Bibliothèque (IndexedDB, base `bookreeder`, store `livres`)** : chaque livre chargé est
