@@ -21,6 +21,10 @@ const etat = {
 // d'un guillemet/parenthèse fermant. On ne regroupe jamais après lui.
 const FIN_PHRASE = /[.!?…]["»”'’)\]]*$/;
 
+// Délai avant que la lecture ne reprenne après un saut (phrase/chapitre),
+// réinitialisé à chaque clic : laisse le temps d'enchaîner les appuis.
+const DELAI_REPRISE = 800;
+
 // --- Références DOM ---
 const $ = (id) => document.getElementById(id);
 const ecranAccueil = $("ecran-accueil");
@@ -467,7 +471,8 @@ function deplacer(pas, continuer) {
   etat.index = Math.min(Math.max(0, etat.index + pas), etat.mots.length - 1);
   afficherChunk();
   if (reprendre) {
-    etat.minuteur = setTimeout(tick, delaiChunk());
+    // Reprise différée (réarmée à chaque saut) pour permettre d'enchaîner
+    etat.minuteur = setTimeout(tick, DELAI_REPRISE);
   } else {
     etat.enLecture = false;
     $("btn-lecture").textContent = "▶";
