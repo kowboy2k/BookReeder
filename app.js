@@ -10,11 +10,17 @@ const etat = {
   enLecture: false,
   minuteur: null,
   vitesse: 300,      // mots/min
-  nbMots: 1,         // mots affichés simultanément
+  nbMots: 1,         // mots affichés simultanément (max souhaité)
+  nbCourant: 1,      // mots réellement affichés dans le chunk courant
   pasNav: 10,        // mots sautés par avance/retour rapide
+  continuerApresSaut: true, // garder la lecture en marche après avance/retour
   orpActif: true,
   bionic: false,     // lecture bionic (début des mots en gras)
 };
+
+// Un mot qui termine une phrase : ponctuation forte éventuellement suivie
+// d'un guillemet/parenthèse fermant. On ne regroupe jamais après lui.
+const FIN_PHRASE = /[.!?…]["»”'’)\]]*$/;
 
 // --- Références DOM ---
 const $ = (id) => document.getElementById(id);
@@ -151,41 +157,66 @@ $("btn-demo").addEventListener("click", () => {
 });
 
 // Parcourt toutes les sections, concatène le texte ET repère où commence
-// chaque chapitre (index du mot). Les titres viennent de la table des
-// matières (TOC) quand elle existe, sinon du nom de section. En dernier
-// recours, on pose des repères « Passage N » tous les 1500 mots.
-// section.load() peut renvoyer un Document OU l'élément <html> selon
-// la version d'epub.js : on gère les deux cas.
+// chaque chapitre (index du mot). La table des matières (TOC) est la
+// source principale : chaque entrée pointe vers une section et parfois vers
+// une ancre précise (#id) à l'intérieur — on calcule alors le nombre de mots
+// avant cette ancre pour situer le chapitre au bon endroit. Sans TOC
+// exploitable : repli sur les sections, puis sur des « Passage N » de 1500 mots.
 async function extraireLivre(livre) {
-  // Titres de la TOC indexés par href de section (sans ancre)
-  const titres = {};
+  // TOC à plat, en gardant l'ordre et l'ancre éventuelle (#id)
+  const toc = [];
   try {
     const nav = await livre.loaded.navigation;
     const parcourir = (liste) => liste.forEach((item) => {
-      const href = (item.href || "").split("#")[0];
-      if (href && !titres[href]) titres[href] = item.label.trim();
-      if (item.subitems) parcourir(item.subitems);
+      if (item.href) toc.push({ href: item.href, label: (item.label || "").trim() });
+      if (item.subitems && item.subitems.length) parcourir(item.subitems);
     });
     if (nav && nav.toc) parcourir(nav.toc);
   } catch (e) { /* pas de TOC : on continuera sans */ }
 
   const motsTotal = [];
-  const chapitres = [];
+  const debutSection = {};   // href (sans ancre) -> index du 1er mot
+  const debutAncre = {};     // href complet (#id)   -> index du mot
+
   for (const section of livre.spine.spineItems) {
     try {
       const contenu = await section.load(livre.load.bind(livre));
-      let corps = null;
+      let corps = null, doc = null;
       if (contenu) {
-        if (contenu.body) corps = contenu.body;                                   // Document
-        else if (contenu.querySelector) corps = contenu.querySelector("body") || contenu; // <html>
+        if (contenu.body) { corps = contenu.body; doc = contenu; }
+        else if (contenu.querySelector) {
+          corps = contenu.querySelector("body") || contenu;
+          doc = contenu.ownerDocument || contenu;
+        }
       }
+      const baseHref = (section.href || "").split("#")[0];
       const txt = corps ? texteAvecSeparateurs(corps)
                         : (contenu ? contenu.textContent : "");
       const motsSection = txt && txt.trim() ? decouperEnMots(txt.trim()) : [];
+      const base = motsTotal.length;
+
       if (motsSection.length) {
-        const href = (section.href || "").split("#")[0];
-        const titre = titres[href] || ("Section " + (chapitres.length + 1));
-        chapitres.push({ titre, debut: motsTotal.length });
+        if (debutSection[baseHref] === undefined) debutSection[baseHref] = base;
+
+        // Pour chaque entrée TOC avec ancre dans cette section, compter les
+        // mots situés avant l'ancre pour caler le chapitre dessus.
+        if (corps && doc && doc.createRange) {
+          toc.forEach((t) => {
+            const [h, id] = t.href.split("#");
+            if (h !== baseHref || !id || debutAncre[t.href] !== undefined) return;
+            let el = null;
+            try { el = corps.querySelector("#" + cssEchappe(id)); } catch (e) {}
+            if (!el && doc.getElementById) el = doc.getElementById(id);
+            if (!el) return;
+            try {
+              const range = doc.createRange();
+              range.setStart(corps, 0);
+              range.setEndBefore(el);
+              const avant = decouperEnMots(range.toString()).length;
+              debutAncre[t.href] = base + Math.min(avant, motsSection.length - 1);
+            } catch (e) {}
+          });
+        }
         motsTotal.push(...motsSection);
       }
     } catch (e) {
@@ -195,15 +226,40 @@ async function extraireLivre(livre) {
     }
   }
 
-  // Aucun chapitre exploitable : repères réguliers tous les 1500 mots
+  // Construction des chapitres depuis la TOC (ordre du livre)
+  let chapitres = [];
+  toc.forEach((t) => {
+    let debut = debutAncre[t.href];
+    if (debut === undefined) debut = debutSection[t.href.split("#")[0]];
+    if (debut !== undefined)
+      chapitres.push({ titre: t.label || ("Chapitre " + (chapitres.length + 1)), debut });
+  });
+  chapitres.sort((a, b) => a.debut - b.debut);
+  chapitres = chapitres.filter((c, i) => i === 0 || c.debut > chapitres[i - 1].debut);
+
+  // Repli : pas de TOC -> une entrée par section
+  if (chapitres.length === 0) {
+    Object.keys(debutSection)
+      .sort((a, b) => debutSection[a] - debutSection[b])
+      .forEach((h, i) => chapitres.push({ titre: "Section " + (i + 1), debut: debutSection[h] }));
+  }
+  // Repli ultime : un seul (ou aucun) repère pour un long texte
   if (chapitres.length <= 1 && motsTotal.length > 1500) {
-    chapitres.length = 0;
+    chapitres = [];
     for (let d = 0, n = 1; d < motsTotal.length; d += 1500, n++)
       chapitres.push({ titre: "Passage " + n, debut: d });
   }
   if (chapitres.length === 0) chapitres.push({ titre: "Début", debut: 0 });
+  // Garantit un repère au tout début (matière avant le 1er chapitre de la TOC)
+  if (chapitres[0].debut > 0) chapitres.unshift({ titre: "Début", debut: 0 });
 
   return { mots: motsTotal, chapitres };
+}
+
+// Échappe un id pour querySelector (CSS.escape si dispo)
+function cssEchappe(id) {
+  if (window.CSS && CSS.escape) return CSS.escape(id);
+  return id.replace(/([^\w-])/g, "\\$1");
 }
 
 // Extrait le texte d'un élément en insérant des espaces entre les blocs,
@@ -256,12 +312,49 @@ function decouperEnMots(texte) {
 // =========================================================
 //  Affichage RSVP avec point ORP
 // =========================================================
-function afficherChunk() {
-  const chunk = etat.mots.slice(etat.index, etat.index + etat.nbMots).join(" ");
-  if (!chunk) return;
+// Longueur "visible" d'un jeton (sans les espaces de ponctuation rattachée)
+function longueurVisible(mot) {
+  return mot.replace(/\s+/g, "").length;
+}
 
-  const idxOrp = etat.orpActif ? calculerOrp(chunk) : -1;
-  motAffiche.innerHTML = construireHtml(chunk, idxOrp);
+// Construit le groupe de mots à afficher à partir de `start`, en respectant :
+//  - le maximum demandé (etat.nbMots) ;
+//  - un mot très long (> 12 caractères) s'affiche seul ;
+//  - on n'enchaîne jamais après une fin de phrase (« fin. Début » évité).
+function construireChunkDepuis(start) {
+  const parts = [];
+  for (let i = start; i < start + etat.nbMots && i < etat.mots.length; i++) {
+    const mot = etat.mots[i];
+    const longMot = longueurVisible(mot) > 12;
+    if (parts.length > 0 && longMot) break;     // un mot long démarre un nouveau groupe
+    parts.push(mot);
+    if (longMot || FIN_PHRASE.test(mot)) break; // mot long seul, ou fin de phrase
+  }
+  return { texte: parts.join(" "), nb: parts.length || 1 };
+}
+
+// Réduit la police si le groupe dépasse la largeur du cadre
+function ajusterTaillePolice() {
+  motAffiche.style.fontSize = "";
+  const cadre = $("cadre");
+  const dispo = zoneMot.classList.contains("avec-cadre")
+    ? cadre.clientWidth - 32
+    : window.innerWidth * 0.9;
+  const largeur = motAffiche.getBoundingClientRect().width;
+  if (dispo > 0 && largeur > dispo) {
+    const base = parseFloat(getComputedStyle(motAffiche).fontSize);
+    motAffiche.style.fontSize = (base * dispo / largeur) + "px";
+  }
+}
+
+function afficherChunk() {
+  const { texte, nb } = construireChunkDepuis(etat.index);
+  etat.nbCourant = nb;
+  if (!texte) return;
+
+  const idxOrp = etat.orpActif ? calculerOrp(texte) : -1;
+  motAffiche.innerHTML = construireHtml(texte, idxOrp);
+  ajusterTaillePolice();
 
   if (idxOrp < 0) {
     // Pas d'ORP : on centre tout le chunk
@@ -321,11 +414,11 @@ function calculerOrp(mot) {
 // =========================================================
 function delaiChunk() {
   const base = 60000 / etat.vitesse;          // ms par mot
-  let delai = base * etat.nbMots;
-  // Pause supplémentaire en fin de phrase
-  const chunk = etat.mots[etat.index + etat.nbMots - 1] || "";
-  if (/[.!?…]$/.test(chunk)) delai += base * 2;
-  else if (/[,;:]$/.test(chunk)) delai += base;
+  let delai = base * etat.nbCourant;
+  // Pause supplémentaire en fin de phrase / après une virgule
+  const dernier = etat.mots[etat.index + etat.nbCourant - 1] || "";
+  if (/[.!?…]["»”'’)\]]*$/.test(dernier)) delai += base * 2;
+  else if (/[,;:]["»”'’)\]]*$/.test(dernier)) delai += base;
   return delai;
 }
 
@@ -334,9 +427,9 @@ function tick() {
     pause();
     return;
   }
-  afficherChunk();
+  afficherChunk();           // calcule etat.nbCourant
   const d = delaiChunk();
-  etat.index += etat.nbMots;
+  etat.index += etat.nbCourant;
   etat.minuteur = setTimeout(tick, d);
 }
 
@@ -362,20 +455,65 @@ function basculerLecture() {
 // =========================================================
 //  Navigation et progression
 // =========================================================
-function deplacer(pas) {
-  pause();
+// Déplace la lecture de `pas` mots. Si `continuer` et que l'option est
+// active et qu'on lisait, la lecture reprend immédiatement (fluidité) ;
+// sinon on se met en pause à la nouvelle position.
+function deplacer(pas, continuer) {
+  const reprendre = continuer && etat.continuerApresSaut && etat.enLecture;
+  clearTimeout(etat.minuteur);
   etat.index = Math.min(Math.max(0, etat.index + pas), etat.mots.length - 1);
   afficherChunk();
+  if (reprendre) {
+    etat.minuteur = setTimeout(tick, delaiChunk());
+  } else {
+    etat.enLecture = false;
+    $("btn-lecture").textContent = "▶";
+  }
+  sauverPosition();
+}
+
+// Saute au chapitre voisin (dir = -1 précédent, +1 suivant). « Précédent »
+// revient d'abord au début du chapitre courant si on y est déjà engagé.
+function allerChapitre(dir) {
+  const ci = etat.chapitres.indexOf(chapitreActuel());
+  let cible = ci + dir;
+  if (dir < 0 && etat.index > chapitreActuel().debut + 3) cible = ci;
+  cible = Math.min(Math.max(0, cible), etat.chapitres.length - 1);
+  deplacer(etat.chapitres[cible].debut - etat.index, true);
+}
+
+// Bornes [debut, fin) du chapitre courant
+function bornesChapitre() {
+  const ci = etat.chapitres.indexOf(chapitreActuel());
+  const debut = etat.chapitres[ci] ? etat.chapitres[ci].debut : 0;
+  const fin = (ci >= 0 && ci + 1 < etat.chapitres.length)
+    ? etat.chapitres[ci + 1].debut : etat.mots.length;
+  return { ci, debut, fin };
 }
 
 function majProgression() {
-  const pct = etat.mots.length ? (etat.index / etat.mots.length) * 100 : 0;
-  $("progression-remplissage").style.width = pct + "%";
-  $("curseur").style.left = pct + "%";
+  // Barre principale = progression DANS le chapitre courant
+  const { debut, fin } = bornesChapitre();
+  const lenChap = Math.max(1, fin - debut);
+  const pctChap = Math.min(1, Math.max(0, (etat.index - debut) / lenChap)) * 100;
+  $("progression-remplissage").style.width = pctChap + "%";
+  $("curseur").style.left = pctChap + "%";
+
+  // Texte d'info = pourcentage sur le LIVRE entier
+  const pctLivre = etat.mots.length ? (etat.index / etat.mots.length) * 100 : 0;
   $("position-actuelle").textContent = etat.index;
   $("total-mots").textContent = etat.mots.length;
-  $("position-pct").textContent = pct.toFixed(2).replace(".", ",");
+  $("position-pct").textContent = pctLivre.toFixed(2).replace(".", ",");
   $("chapitre-actuel").textContent = chapitreActuel().titre;
+
+  if (!$("panneau-navigation").classList.contains("cache")) majBarreLivre();
+}
+
+// Barre du livre entier (panneau de navigation)
+function majBarreLivre() {
+  const pct = etat.mots.length ? (etat.index / etat.mots.length) * 100 : 0;
+  $("remplissage-livre").style.width = pct + "%";
+  $("curseur-livre").style.left = pct + "%";
 }
 
 // Chapitre contenant la position de lecture courante
@@ -399,9 +537,12 @@ function remplirSelectChapitres() {
   });
 }
 
-// Place un petit trait sur la barre à chaque début de chapitre
+// Place un repère de chapitre sur la barre du LIVRE ENTIER (panneau nav).
+// La barre principale ne représente que le chapitre courant : pas de repères.
 function placerMarqueursChapitres() {
-  const conteneur = $("marqueurs-chapitres");
+  $("marqueurs-chapitres").innerHTML = "";
+  const conteneur = $("marqueurs-livre");
+  if (!conteneur) return;
   conteneur.innerHTML = "";
   if (!etat.mots.length) return;
   etat.chapitres.forEach((ch) => {
@@ -438,8 +579,11 @@ $("btn-moins").addEventListener("click", () => reglerVitesse(etat.vitesse - 50))
 $("btn-plus").addEventListener("click", () => reglerVitesse(etat.vitesse + 50));
 
 // Avance / retour rapide (pas réglable, 5–50 mots)
-$("btn-recul").addEventListener("click", () => deplacer(-etat.pasNav));
-$("btn-avance").addEventListener("click", () => deplacer(etat.pasNav));
+$("btn-recul").addEventListener("click", () => deplacer(-etat.pasNav, true));
+$("btn-avance").addEventListener("click", () => deplacer(etat.pasNav, true));
+// Chapitre précédent / suivant
+$("btn-chap-prec").addEventListener("click", () => allerChapitre(-1));
+$("btn-chap-suiv").addEventListener("click", () => allerChapitre(1));
 
 $("btn-fermer").addEventListener("click", async () => {
   pause();
@@ -454,25 +598,30 @@ $("btn-fermer").addEventListener("click", async () => {
 // =========================================================
 //  Curseur déplaçable sur la barre (souris + tactile)
 // =========================================================
-const barre = $("barre-progression");
-function positionDepuisEvenement(e) {
-  const r = barre.getBoundingClientRect();
-  let ratio = (e.clientX - r.left) / r.width;
-  ratio = Math.min(1, Math.max(0, ratio));
-  return Math.round(ratio * (etat.mots.length - 1));
+// Petit utilitaire : ratio (0–1) d'un événement pointeur sur un élément
+function ratioPointeur(el, e) {
+  const r = el.getBoundingClientRect();
+  return Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
 }
+
+// Barre principale : déplacement DANS le chapitre courant
+const barre = $("barre-progression");
 let glisse = false;
+function indexBarreChapitre(e) {
+  const { debut, fin } = bornesChapitre();
+  return debut + Math.round(ratioPointeur(barre, e) * Math.max(0, fin - debut - 1));
+}
 barre.addEventListener("pointerdown", (e) => {
   if (!etat.mots.length) return;
   glisse = true;
   pause();
   barre.setPointerCapture(e.pointerId);
-  etat.index = positionDepuisEvenement(e);
+  etat.index = indexBarreChapitre(e);
   afficherChunk();
 });
 barre.addEventListener("pointermove", (e) => {
   if (!glisse) return;
-  etat.index = positionDepuisEvenement(e);
+  etat.index = indexBarreChapitre(e);
   afficherChunk();
 });
 barre.addEventListener("pointerup", (e) => {
@@ -482,12 +631,39 @@ barre.addEventListener("pointerup", (e) => {
   sauverPosition();
 });
 
+// Barre du livre entier (panneau navigation) : déplacement global
+const barreLivre = $("barre-livre");
+let glisseLivre = false;
+function indexBarreLivre(e) {
+  return Math.round(ratioPointeur(barreLivre, e) * (etat.mots.length - 1));
+}
+barreLivre.addEventListener("pointerdown", (e) => {
+  if (!etat.mots.length) return;
+  glisseLivre = true;
+  pause();
+  barreLivre.setPointerCapture(e.pointerId);
+  etat.index = indexBarreLivre(e);
+  afficherChunk();
+});
+barreLivre.addEventListener("pointermove", (e) => {
+  if (!glisseLivre) return;
+  etat.index = indexBarreLivre(e);
+  afficherChunk();
+});
+barreLivre.addEventListener("pointerup", (e) => {
+  if (!glisseLivre) return;
+  glisseLivre = false;
+  barreLivre.releasePointerCapture(e.pointerId);
+  sauverPosition();
+});
+
 // =========================================================
 //  Panneau de navigation (chapitre + position %)
 // =========================================================
 function ouvrirNavigation() {
   $("nav-chapitre").value = etat.chapitres.indexOf(chapitreActuel());
   $("panneau-navigation").classList.remove("cache");
+  majBarreLivre();
 }
 $("info-progression").addEventListener("click", ouvrirNavigation);
 $("btn-liste").addEventListener("click", ouvrirNavigation);
@@ -498,7 +674,7 @@ $("btn-fermer-navigation").addEventListener("click", () => {
 $("nav-chapitre").addEventListener("change", (e) => {
   const ch = etat.chapitres[+e.target.value];
   if (!ch) return;
-  deplacer(ch.debut - etat.index);
+  deplacer(ch.debut - etat.index, true);
 });
 
 // =========================================================
@@ -555,6 +731,25 @@ $("reglage-nb-mots").addEventListener("input", (e) => {
 $("reglage-pas-nav").addEventListener("input", (e) => {
   etat.pasNav = +e.target.value;
   $("valeur-pas-nav").textContent = etat.pasNav;
+});
+$("reglage-continuer").addEventListener("change", (e) => {
+  etat.continuerApresSaut = e.target.checked;
+});
+
+// --- Taille du cartouche (cadre) ---
+function appliquerLargeurCadre() {
+  const manuel = $("reglage-taille-cadre").value === "manuel";
+  const valeur = manuel ? ($("reglage-largeur-cadre").value + "px") : "min(90%, 600px)";
+  document.documentElement.style.setProperty("--cadre-largeur", valeur);
+  afficherChunk();
+}
+$("reglage-taille-cadre").addEventListener("change", (e) => {
+  $("bloc-largeur-cadre").style.display = e.target.value === "manuel" ? "block" : "none";
+  appliquerLargeurCadre();
+});
+$("reglage-largeur-cadre").addEventListener("input", (e) => {
+  $("valeur-largeur-cadre").textContent = e.target.value;
+  appliquerLargeurCadre();
 });
 $("reglage-orp").addEventListener("change", (e) => {
   etat.orpActif = e.target.checked;
@@ -620,8 +815,8 @@ function appliquerOrp() {
 document.addEventListener("keydown", (e) => {
   if (ecranLecture.classList.contains("cache")) return;
   if (e.code === "Space") { e.preventDefault(); basculerLecture(); }
-  else if (e.code === "ArrowLeft") deplacer(-etat.pasNav);
-  else if (e.code === "ArrowRight") deplacer(etat.pasNav);
+  else if (e.code === "ArrowLeft") deplacer(-etat.pasNav, true);
+  else if (e.code === "ArrowRight") deplacer(etat.pasNav, true);
 });
 
 // Toucher l'écran central = lecture/pause (mobile / Vivlio)

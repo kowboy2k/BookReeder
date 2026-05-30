@@ -48,10 +48,12 @@
       &nbsp;•&nbsp; <span id="position-actuelle">0</span> / <span id="total-mots">0</span> mots
     </button>
 
-    <!-- Avance / retour rapide -->
+    <!-- Chapitre précédent · retour rapide · avance rapide · chapitre suivant -->
     <div id="nav-rapide">
-      <button id="btn-recul" title="Retour rapide">⏮</button>
-      <button id="btn-avance" title="Avance rapide">⏭</button>
+      <button id="btn-chap-prec" class="btn-chapitre" title="Chapitre précédent">⏮&#xFE0E;</button>
+      <button id="btn-recul" title="Retour rapide">⏪&#xFE0E;</button>
+      <button id="btn-avance" title="Avance rapide">⏩&#xFE0E;</button>
+      <button id="btn-chap-suiv" class="btn-chapitre" title="Chapitre suivant">⏭&#xFE0E;</button>
     </div>
 
     <!-- Barre principale : liste · vitesse · réglages -->
@@ -77,6 +79,15 @@
         <select id="nav-chapitre"></select>
       </div>
 
+      <div class="reglage">
+        <label>Position dans le livre entier</label>
+        <div id="barre-livre">
+          <div id="remplissage-livre"></div>
+          <div id="marqueurs-livre"></div>
+          <div id="curseur-livre"></div>
+        </div>
+      </div>
+
       <button id="btn-fermer-navigation">Fermer</button>
     </div>
   </div>
@@ -93,12 +104,30 @@
 
       <div class="reglage">
         <label for="reglage-nb-mots">Mots affichés : <span id="valeur-nb-mots">1</span></label>
-        <input type="range" id="reglage-nb-mots" min="1" max="8" step="1" value="1">
+        <input type="range" id="reglage-nb-mots" min="1" max="4" step="1" value="1">
       </div>
 
       <div class="reglage">
         <label for="reglage-pas-nav">Saut avance/retour rapide : <span id="valeur-pas-nav">10</span> mots</label>
         <input type="range" id="reglage-pas-nav" min="5" max="50" step="1" value="10">
+      </div>
+
+      <div class="reglage reglage-case">
+        <label for="reglage-continuer">Continuer la lecture après avance/retour</label>
+        <input type="checkbox" id="reglage-continuer" checked>
+      </div>
+
+      <div class="reglage">
+        <label for="reglage-taille-cadre">Taille du cartouche</label>
+        <select id="reglage-taille-cadre">
+          <option value="auto" selected>Automatique (selon la police)</option>
+          <option value="manuel">Manuelle</option>
+        </select>
+      </div>
+
+      <div class="reglage" id="bloc-largeur-cadre" style="display:none">
+        <label for="reglage-largeur-cadre">Largeur du cartouche : <span id="valeur-largeur-cadre">600</span> px</label>
+        <input type="range" id="reglage-largeur-cadre" min="240" max="900" step="10" value="600">
       </div>
 
       <div class="reglage">

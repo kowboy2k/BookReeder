@@ -30,6 +30,7 @@
   --ret-ecart: 40px;
   --ret-longueur: 14px;
   --bio-couleur: inherit; /* couleur du début de mot bionic */
+  --cadre-largeur: min(90%, 600px); /* largeur du cartouche */
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -134,7 +135,7 @@ html, body {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: min(90%, 600px);
+  width: var(--cadre-largeur);
   height: calc((var(--ret-ecart) + var(--ret-longueur)) * 2);
   transform: translate(-50%, -50%);
   border: 2px solid var(--gris);
@@ -244,8 +245,9 @@ html, body {
   left: 0;
   width: 100%;
   display: flex;
+  align-items: center;
   justify-content: center;
-  gap: 2.5rem;
+  gap: 1.2rem;
 }
 #nav-rapide button {
   background: #2a2a3a;
@@ -257,6 +259,8 @@ html, body {
   font-size: 1.7rem;
   cursor: pointer;
 }
+/* Chapitre précédent / suivant : boutons plus petits sur les côtés */
+#nav-rapide .btn-chapitre { width: 3.6rem; height: 3.6rem; font-size: 1.3rem; }
 #nav-rapide button:active { transform: scale(0.93); }
 
 /* Barre principale : liste · vitesse · réglages */
@@ -361,6 +365,37 @@ html, body {
   border-radius: 0.6rem;
   font-size: 1rem;
   cursor: pointer;
+}
+
+/* Barre du livre entier dans le panneau de navigation */
+#barre-livre {
+  position: relative;
+  width: 100%;
+  height: 6px;
+  margin: 1.4rem 0 0.6rem;
+  background: #3a3a4a;
+  border-radius: 3px;
+  touch-action: none;
+  cursor: pointer;
+}
+#barre-livre::before { content: ""; position: absolute; inset: -16px 0; }
+#remplissage-livre {
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  border-radius: 3px;
+}
+#marqueurs-livre { position: absolute; inset: 0; pointer-events: none; }
+#curseur-livre {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 1.4rem;
+  height: 1.4rem;
+  background: transparent;
+  border: 2px solid var(--texte);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
 }
 .panneau-contenu {
   background: #2a2a3a;

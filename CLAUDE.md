@@ -41,9 +41,22 @@ Serveur local (config preview centralisée `C:\Claude Code\.claude\launch.json`,
 - **Repères de chapitres** : petits traits sur la barre au début de chaque chapitre. La ligne
   d'info affiche `chapitre · % · index / total`. Cliquer dessus (ou le bouton `☰`) ouvre le
   **panneau de navigation** (menu déroulant des chapitres + slider de position en %).
-- **Chapitres** : extraits au chargement depuis la TOC (`livre.loaded.navigation`), repérés par
-  href de section. Sans TOC → « Section N ». Si ≤ 1 chapitre et > 1500 mots → « Passage N »
-  tous les 1500 mots. Position exprimée en chapitre + % (pas de pages dans un EPUB).
+- **Chapitres (repérage rigoureux)** : la TOC (`livre.loaded.navigation`) est la source
+  principale. Chaque entrée pointe vers une section et parfois une **ancre `#id`** ; on calcule
+  alors le nombre de mots avant cette ancre (Range `setEndBefore` + `decouperEnMots`) pour caler
+  le chapitre au bon mot, même si plusieurs chapitres sont dans le même fichier. Replis : une
+  entrée par section, puis « Passage N » tous les 1500 mots. Repère « Début » garanti à 0.
+- **Boutons chapitre** : `⏮`/`⏭` (avec sélecteur de variation `&#xFE0E;` pour rester monochrome)
+  vont au chapitre précédent/suivant ; `⏮` revient d'abord au début du chapitre courant si on y
+  est déjà engagé. `⏪`/`⏩` = retour/avance rapide par `etat.pasNav`.
+- **Barre principale = chapitre courant** ; la **barre du livre entier** (avec repères de
+  chapitre) est dans le panneau de navigation. Le `%` du texte d'info reste celui du livre entier.
+- **Découpe d'affichage** : max **4 mots** ; un mot > 12 caractères s'affiche seul ; on ne
+  regroupe jamais après une fin de phrase (`FIN_PHRASE`, évite « fin. Début ») ; la police est
+  réduite automatiquement si le groupe dépasse le cadre (`ajusterTaillePolice`).
+- **Cartouche** : taille Auto (`min(90%,600px)`, défaut) ou Manuelle (slider `--cadre-largeur`).
+- **Continuer après saut** : option (cochée par défaut) — `deplacer(pas, true)` relance la
+  lecture après avance/retour/chapitre sans casser le rythme.
 - **Bibliothèque (IndexedDB, base `bookreeder`, store `livres`)** : chaque livre chargé est
   stocké découpé (mots + chapitres + position), repris instantanément au clic depuis l'accueil
   sans relire l'EPUB. Affiche nom, date d'ajout (JJ/MM/AAAA HH:MM:SS) et % de progression ;
