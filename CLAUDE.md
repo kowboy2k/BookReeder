@@ -27,6 +27,11 @@ Cible : PC (Windows 11), Mac, iPhone (iOS) et liseuse Vivlio (Android).
   mémorisé en `localStorage` (`bookreeder-modele`). La tokenisation `decouperEnMots` reste
   COMMUNE à tous (liée au stockage/chapitres). Le slider « Longueur des pauses » (`coefPause`)
   est un multiplicateur utilisateur appliqué par-dessus les pauses du modèle.
+- **Modèle « HotGato »** (`chunkHotGato`/`delaiHotGato`/`orpHotGato`/`grasHotGato`) : reproduction
+  fidèle de hotgato.com (core.js du dépôt TheRedJalapeno/HotGato_SpeedReader). Découpe N mots
+  coupée sur fin de phrase ; rythme simple (mots÷vitesse + pause fixe ×pauseFactor si le groupe
+  contient chiffre/ponctuation) ; **pas d'ORP** (`orp` renvoie -1, groupe centré) ; bionic = 2
+  premières lettres. N'affecte pas le modèle par défaut ; bascule via le menu Réglages.
 - **Rythme de lecture** (`delaiChunk`) : la durée d'un groupe est proportionnelle à la
   **longueur réelle** des mots (≈ caractères/5,5 × base) → mots longs s'attardent, courts
   défilent vite. + respirations : fin de phrase (+2×base), virgule/`;`/`:` (+1×base), et

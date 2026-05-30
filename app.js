@@ -582,6 +582,41 @@ function commenceMajuscule(mot) {
 //  modèle, ajouter une entrée ici avec ses propres fonctions — le défaut reste
 //  intact. (La tokenisation de base `decouperEnMots` est commune à tous.)
 // =========================================================
+// =========================================================
+//  Modèle « HotGato » (reproduction fidèle de hotgato.com)
+//  - découpe : N mots, coupée sur une fin de phrase (. ! ?) ;
+//  - rythme : durée = mots / vitesse, + une pause fixe si le groupe contient
+//    un chiffre ou de la ponctuation (pas d'accélération douce, pas de
+//    ralentissement dialogue/nom propre) ;
+//  - PAS de repère ORP (le groupe est simplement centré) ;
+//  - bionic : 2 premières lettres de chaque mot.
+// =========================================================
+function chunkHotGato(start) {
+  const parts = [];
+  for (let i = start; i < start + etat.nbMots && i < etat.mots.length; i++) {
+    parts.push(etat.mots[i]);
+    if (/[.!?]["»”'’)\]]*$/.test(etat.mots[i])) break; // coupe sur fin de phrase
+  }
+  return { texte: parts.join(" "), nb: parts.length || 1 };
+}
+function delaiHotGato() {
+  const P = etat.modele.params;
+  const base = 60000 / etat.vitesse;
+  const texte = etat.mots.slice(etat.index, etat.index + etat.nbCourant).join(" ");
+  let delai = base * etat.nbCourant;
+  // Pause fixe dès qu'il y a un chiffre ou de la ponctuation (× coef réglable)
+  if (/[\d.,!?;:'"`«»…]/.test(texte)) delai += base * P.pauseFactor * etat.coefPause;
+  return Math.max(delai, P.affichageMin);
+}
+function orpHotGato() { return -1; } // HotGato n'a pas de repère ORP
+function grasHotGato(mot) {
+  const lettres = [];
+  for (let k = 0; k < mot.length; k++) if (/[\p{L}\p{N}]/u.test(mot[k])) lettres.push(k);
+  if (lettres.length === 0) return null;
+  const nb = Math.min(2, lettres.length); // 2 premières lettres
+  return { debut: lettres[0], fin: lettres[nb - 1] + 1 };
+}
+
 const MODELES = {
   default: {
     id: "default",
@@ -606,6 +641,18 @@ const MODELES = {
       elanAccel: 0.18,         // accélération de l'élan par mot (vers 1)
       affichageMin: 90,        // durée mini absolue d'affichage (ms)
       motLongMax: 12,          // au-delà, un mot s'affiche seul
+    },
+  },
+  hotgato: {
+    id: "hotgato",
+    nom: "HotGato",
+    chunk: chunkHotGato,
+    delai: delaiHotGato,
+    orp: orpHotGato,
+    gras: grasHotGato,
+    params: {
+      pauseFactor: 3,   // pause fixe (× base × coef) sur ponctuation/chiffre
+      affichageMin: 90, // durée mini d'affichage (ms)
     },
   },
 };
