@@ -149,7 +149,7 @@ html, body {
    remplit l'espace restant, puis la signature, le tout dans la colonne. */
 #ecran-accueil {
   justify-content: flex-start;
-  padding: env(safe-area-inset-top) 1rem env(safe-area-inset-bottom);
+  padding: max(10vh, env(safe-area-inset-top)) 1rem env(safe-area-inset-bottom);
 }
 /* Bloc haut : 50% de l'écran, contenu aéré et réparti ; (i) ancré en haut à droite. */
 #accueil-haut {
