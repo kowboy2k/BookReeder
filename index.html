@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=75">
+  <link rel="stylesheet" href="style.css?v=76">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -47,8 +47,8 @@
       <div id="titre-livre">—</div>
       <div id="info-progression">
         <span id="position-pct">0,00</span>%
-        &nbsp;•&nbsp; <span id="chapitre-actuel">—</span>
-        &nbsp;•&nbsp; <span id="position-actuelle">0</span> / <span id="total-mots">0</span> mots
+        &nbsp;•&nbsp; <span id="chapitre-actuel">—</span><span id="bloc-nb-mots" style="display:none">
+        &nbsp;•&nbsp; <span id="position-actuelle">0</span> / <span id="total-mots">0</span> mots</span>
       </div>
     </div>
     <div id="barre-progression">
@@ -126,6 +126,11 @@
       <div class="reglage reglage-case">
         <label for="reglage-pause-chapitre">Pause à la fin de chaque chapitre</label>
         <input type="checkbox" id="reglage-pause-chapitre" checked>
+      </div>
+
+      <div class="reglage reglage-case">
+        <label for="reglage-afficher-mots">Afficher le nombre de mots du chapitre en cours</label>
+        <input type="checkbox" id="reglage-afficher-mots">
       </div>
 
       <div class="reglage reglage-inline">
@@ -212,6 +217,6 @@
 
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
-  <script src="app.js?v=75"></script>
+  <script src="app.js?v=76"></script>
 </body>
 </html>

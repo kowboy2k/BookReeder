@@ -1172,6 +1172,9 @@ $("reglage-continuer").addEventListener("change", (e) => {
 $("reglage-pause-chapitre").addEventListener("change", (e) => {
   etat.pauseFinChapitre = e.target.checked;
 });
+$("reglage-afficher-mots").addEventListener("change", (e) => {
+  $("bloc-nb-mots").style.display = e.target.checked ? "inline" : "none";
+});
 
 // --- Longueur des pauses (coefficient multiplicateur) ---
 function appliquerCoefPause(v) {
