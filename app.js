@@ -1248,7 +1248,7 @@ $("reglage-afficher-mots").addEventListener("change", (e) => {
 // --- Couleur de la police (cases : Blanc 100/85/70 %, Crème, Perso) ---
 function appliquerCouleurPolice(c) {
   if (!c) return;
-  const perso = !["#ffffff", "rgba(255,255,255,0.75)", "#efe3c8", "#000000", "rgba(0,0,0,0.9)"].includes(c);
+  const perso = !["#ffffff", "rgba(255,255,255,0.75)", "#efe3c8", "rgba(0,0,0,0.9)", "rgba(0,0,0,0.7)"].includes(c);
   document.documentElement.style.setProperty("--couleur-police", c);
   // Surligne la case correspondante
   document.querySelectorAll(".case-couleur").forEach((b) => {
