@@ -594,10 +594,10 @@ function delaiChunk() {
   }
   if (enDialogue) mot = Math.max(mot, base * P.plancherDialogue);
 
-  // Noms propres (majuscule en milieu de phrase) : on s'attarde dessus.
-  const nom = facteurNomPropre(debut, fin);
-  if (nom.mult > 1) mot = Math.max(mot * nom.mult, nom.plancher);
-  const majuscule = nom.mult > 1;   // sert aussi à la reprise d'élan plus bas
+  // Noms propres (majuscule en milieu de phrase) : 500 ms mini par nom propre.
+  const planNom = plancherNomPropre(debut, fin);
+  if (planNom > 0) mot = Math.max(mot, planNom);
+  const majuscule = planNom > 0;   // sert aussi à la reprise d'élan plus bas
 
   // 3) Respirations ajoutées : ponctuation de fin de groupe + ouverture de réplique
   const dernier = groupe[groupe.length - 1] || "";
@@ -624,20 +624,18 @@ function commenceMajuscule(mot) {
   return !!m && /\p{Lu}/u.test(m[0]);
 }
 
-// Allongement pour les noms propres (majuscule en milieu de phrase).
-// Modèles concernés via params.nomPropreFacteur (BookReeder & Hybride).
-// Renvoie { mult, plancher } : on applique le facteur PUIS un plancher mini (ms).
-// 1 nom propre → ×facteur, plancher 500 ms ; nom+prénom (2 mots+) → ×facteur×2, plancher 1000 ms.
-function facteurNomPropre(debut, fin) {
-  const P = etat.modele.params;
-  if (!P.nomPropreFacteur) return { mult: 1, plancher: 0 };
+// Durée plancher (ms) pour les noms propres (majuscule en milieu de phrase).
+// Modèles concernés via params.nomPropreMs (BookReeder & Hybride).
+// Chaque nom propre du groupe ajoute `nomPropreMs` : 1 nom → 500 ms,
+// 2 noms consécutifs (John Woodhouse) → 1000 ms, 3 (John William Woodhouse) → 1500 ms…
+function plancherNomPropre(debut, fin) {
+  const unite = etat.modele.params.nomPropreMs;
+  if (!unite) return 0;
   let n = 0;
   for (let k = debut; k < fin; k++) {
     if (!estDebutPhrase(k) && commenceMajuscule(etat.mots[k])) n++;
   }
-  if (n >= 2) return { mult: P.nomPropreFacteur * 2, plancher: P.nomPrenomPlancher || 0 };
-  if (n === 1) return { mult: P.nomPropreFacteur, plancher: P.nomProprePlancher || 0 };
-  return { mult: 1, plancher: 0 };
+  return n * unite;
 }
 
 // =========================================================
@@ -670,9 +668,9 @@ function delaiHotGato() {
   const base = 60000 / etat.vitesse;
   const texte = etat.mots.slice(etat.index, etat.index + etat.nbCourant).join(" ");
   let delai = base * etat.nbCourant;
-  // Noms propres (uniquement si le modèle le demande, ex. Hybride) : on s'attarde.
-  const nom = facteurNomPropre(etat.index, etat.index + etat.nbCourant);
-  if (nom.mult > 1) delai = Math.max(delai * nom.mult, nom.plancher);
+  // Noms propres (uniquement si le modèle le demande, ex. Hybride) : 500 ms mini par nom.
+  const planNom = plancherNomPropre(etat.index, etat.index + etat.nbCourant);
+  if (planNom > 0) delai = Math.max(delai, planNom);
   // Pause fixe dès qu'il y a un chiffre ou de la ponctuation (× coef réglable)
   if (/[\d.,!?;:'"`«»…]/.test(texte)) delai += base * P.pauseFactor * etat.coefPause;
   return Math.max(delai, P.affichageMin);
@@ -710,9 +708,7 @@ const MODELES = {
       pauseVirgule: 1,         // pause après , ; : (× base)
       pauseReplique: 3,        // pause avant une réplique de dialogue (× base)
       plancherDialogue: 1.6,   // durée mini d'un mot en dialogue (× base)
-      nomPropreFacteur: 1.75,  // nom propre ×1,75 ; nom+prénom (2 mots+) ×3,5
-      nomProprePlancher: 500,  // durée mini d'un nom propre (ms)
-      nomPrenomPlancher: 1000, // durée mini d'un nom+prénom (ms)
+      nomPropreMs: 500,        // 500 ms mini par nom propre (cumulés si consécutifs)
       elanGrossePause: 0.65,   // élan après une grosse pause (reprise douce)
       elanPauseMoyenne: 0.82,  // élan après une pause moyenne
       elanAccel: 0.1,          // accélération de l'élan par mot (vers 1), graduelle
@@ -749,9 +745,7 @@ const MODELES = {
       affichageMin: 90,
       motLongMax: 12,   // utilisés par construireChunkDepuis (découpe BookReeder)
       lettresMax: 16,
-      nomPropreFacteur: 1.75, // nom propre ×1,75 ; nom+prénom (2 mots+) ×3,5
-      nomProprePlancher: 500,  // durée mini d'un nom propre (ms)
-      nomPrenomPlancher: 1000, // durée mini d'un nom+prénom (ms)
+      nomPropreMs: 500,       // 500 ms mini par nom propre (cumulés si consécutifs)
     },
   },
 };
