@@ -562,7 +562,11 @@ html, body {
   height: 3.6rem;
   border-radius: 50%;
   font-size: 2.3rem;
+  line-height: 1;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 #controles button:active { transform: scale(0.92); }
 /* Play/pause aussi grand que les boutons avance/retour rapide */
@@ -636,6 +640,9 @@ html, body {
   font-size: 1.5rem;
   line-height: 1;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 #barre-epure-vitesse button:active { transform: scale(0.92); }
 #ep-vitesse { min-width: 2.5rem; text-align: center; font-size: 1.2rem; color: var(--texte); }
