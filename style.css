@@ -185,6 +185,8 @@ html, body {
   color: var(--gris);
   opacity: 0.7;
 }
+#signature a { color: var(--accent); text-decoration: none; }
+#signature a:hover { text-decoration: underline; }
 
 /* Bouton ⓘ en haut à droite de l'accueil */
 #btn-infos {
