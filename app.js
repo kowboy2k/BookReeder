@@ -13,6 +13,7 @@ const etat = {
   nbMots: 1,         // mots affichés simultanément (max souhaité)
   nbCourant: 1,      // mots réellement affichés dans le chunk courant
   continuerApresSaut: true, // garder la lecture en marche après avance/retour
+  pauseFinChapitre: true,   // se mettre en pause à la fin de chaque chapitre
   coefPause: 1,      // coefficient multiplicateur des temps de pause (0,5–4)
   elan: 1,           // « momentum » : <1 juste après une pause, remonte vers 1
   orpActif: true,
@@ -414,13 +415,20 @@ function construireChunkDepuis(start) {
     return { texte: parts.join(" "), nb: parts.length };
   }
   // Groupement normal
-  const motLongMax = etat.modele.params.motLongMax;
+  const P = etat.modele.params;
+  const motLongMax = P.motLongMax;
+  const lettresMax = P.lettresMax || 16;
   const parts = [];
+  let lettres = 0;
   for (let i = start; i < start + etat.nbMots && i < etat.mots.length; i++) {
     const mot = etat.mots[i];
-    const longMot = longueurVisible(mot) > motLongMax;
-    if (parts.length > 0 && longMot) break;        // un mot long démarre un nouveau groupe
+    const lg = longueurVisible(mot);
+    const longMot = lg > motLongMax;
+    // Un mot long démarre un nouveau groupe ; et un groupe ne dépasse jamais
+    // `lettresMax` lettres (au-delà, on réduit à moins de mots / 1 mot).
+    if (parts.length > 0 && (longMot || lettres + lg > lettresMax)) break;
     parts.push(mot);
+    lettres += lg;
     if (longMot || PONCT_COUPE.test(mot)) break;   // mot long seul, ou coupe après ponctuation
   }
   return { texte: parts.join(" "), nb: parts.length || 1 };
@@ -573,10 +581,11 @@ function delaiChunk() {
   const debut = etat.index, fin = etat.index + etat.nbCourant;
   const groupe = etat.mots.slice(debut, fin);
 
-  // 1) Durée du mot proportionnelle à sa longueur réelle, modulée par l'« élan »
-  //    (reprise progressive après une pause : elan<1 ralentit, remonte vers 1).
-  const chars = groupe.join(" ").replace(/\s+/g, "").length;
-  let mot = base * Math.max(P.motMin * etat.nbCourant, chars / P.charsParMot) / etat.elan;
+  // 1) Cadence CONSTANTE par mot : chaque mot dure `base` (= 60000/vitesse),
+  //    quel que soit le groupement. Un groupe de N mots dure N×base, donc le
+  //    rythme par mot ne change pas (mots isolés ou groupés = même vitesse).
+  //    L'« élan » ralentit juste la reprise après une pause, puis revient à 1.
+  let mot = base * etat.nbCourant / etat.elan;
 
   // 2) Planchers (mot lui-même) : dialogue, et majuscule en milieu de phrase
   let enDialogue = false;
@@ -689,6 +698,7 @@ const MODELES = {
       elanAccel: 0.18,         // accélération de l'élan par mot (vers 1)
       affichageMin: 90,        // durée mini absolue d'affichage (ms)
       motLongMax: 12,          // au-delà, un mot s'affiche seul
+      lettresMax: 16,          // un groupe ne dépasse jamais ce nb de lettres
     },
   },
   hotgato: {
@@ -702,6 +712,23 @@ const MODELES = {
     params: {
       pauseFactor: 3,   // pause fixe (× base × coef) sur ponctuation/chiffre
       affichageMin: 90, // durée mini d'affichage (ms)
+    },
+  },
+  // Hybride : découpe + ORP + bionic de BookReeder, mais RYTHME de HotGato
+  // (cadence régulière + pause fixe sur ponctuation, sans élan ni planchers).
+  hybride: {
+    id: "hybride",
+    nom: "Hybride (découpe BookReeder + rythme HotGato)",
+    decouper: decouperEnMots,
+    chunk: construireChunkDepuis,
+    delai: delaiHotGato,
+    orp: calculerOrp,
+    gras: bornesGras,
+    params: {
+      pauseFactor: 3,   // pause fixe (× base × coef) sur ponctuation/chiffre
+      affichageMin: 90,
+      motLongMax: 12,   // utilisés par construireChunkDepuis (découpe BookReeder)
+      lettresMax: 16,
     },
   },
 };
@@ -738,7 +765,14 @@ function tick() {
   }
   afficherChunk();           // calcule etat.nbCourant
   const d = etat.modele.delai();
+  const finChap = bornesChapitre().fin;     // fin du chapitre du chunk affiché
   etat.index += etat.nbCourant;
+  // Pause en fin de chapitre : on a fini ce chapitre et il en reste un autre.
+  if (etat.pauseFinChapitre && finChap < etat.mots.length && etat.index >= finChap) {
+    etat.index = finChap;                   // prêt à reprendre au chapitre suivant
+    etat.minuteur = setTimeout(pause, d);   // afficher le dernier chunk puis pause
+    return;
+  }
   etat.minuteur = setTimeout(tick, d);
 }
 
@@ -1127,6 +1161,9 @@ function ajusterCadre() {
 }
 $("reglage-continuer").addEventListener("change", (e) => {
   etat.continuerApresSaut = e.target.checked;
+});
+$("reglage-pause-chapitre").addEventListener("change", (e) => {
+  etat.pauseFinChapitre = e.target.checked;
 });
 
 // --- Longueur des pauses (coefficient multiplicateur) ---
