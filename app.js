@@ -975,9 +975,12 @@ $("btn-lecture").addEventListener("click", basculerLecture);
 function reglerVitesse(v) {
   etat.vitesse = Math.min(800, Math.max(100, v));
   $("vitesse-actuelle").textContent = etat.vitesse;
+  $("ep-vitesse").textContent = etat.vitesse;
 }
 $("btn-moins").addEventListener("click", () => reglerVitesse(etat.vitesse - 20));
 $("btn-plus").addEventListener("click", () => reglerVitesse(etat.vitesse + 20));
+$("ep-moins").addEventListener("click", () => reglerVitesse(etat.vitesse - 20));
+$("ep-plus").addEventListener("click", () => reglerVitesse(etat.vitesse + 20));
 
 // Retour / avance à la phrase précédente / suivante
 $("btn-recul").addEventListener("click", () => deplacer(phrasePrecedente() - etat.index, true));

@@ -522,7 +522,7 @@ html, body {
 #groupe-vitesse #btn-plus { position: relative; top: 10px; }
 
 /* --- Mode épuré (« fullscreen ») : cartouche + 3 boutons seulement --- */
-#barre-epure { display: none; }
+#barre-epure, #barre-epure-vitesse { display: none; }
 #ecran-lecture.epure #zone-navigation,
 #ecran-lecture.epure #barre-progression,
 #ecran-lecture.epure #nav-rapide,
@@ -535,10 +535,37 @@ html, body {
   gap: 2rem;
   width: 100%;
   margin-bottom: 0.5rem;
-  opacity: 0.1;                /* à peine visibles en plein écran épuré */
+  opacity: 0.15;               /* à peine visibles en plein écran épuré */
   transition: opacity 0.25s;
 }
 #barre-epure:active { opacity: 1; }   /* réapparaissent au toucher */
+
+/* Vitesse en mode épuré : − chiffre + */
+#ecran-lecture.epure #barre-epure-vitesse {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.4rem;
+  width: 100%;
+  margin-bottom: 0.6rem;
+  opacity: 0.15;
+  transition: opacity 0.25s;
+  font-family: sans-serif;
+}
+#barre-epure-vitesse:active { opacity: 1; }
+#barre-epure-vitesse button {
+  width: 3rem;
+  height: 3rem;
+  background: var(--surface);
+  color: var(--texte);
+  border: none;
+  border-radius: 50%;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+#barre-epure-vitesse button:active { transform: scale(0.92); }
+#ep-vitesse { min-width: 2.5rem; text-align: center; font-size: 1.2rem; color: var(--texte); }
 #barre-epure button {
   background: var(--surface);
   color: var(--texte);
