@@ -801,7 +801,7 @@ function commenceMajuscule(mot) {
 // Durée plancher (ms) pour les noms propres (majuscule en milieu de phrase).
 // Modèles concernés via params.nomPropreMs (BookReeder & Hybride).
 // Chaque nom propre du groupe ajoute `nomPropreMs`, modulé par le slider « Longueur
-// des pauses » (coefPause) avec 2,0× comme référence : 1,0×→375 ms, 2,0×→750 ms, 4,0×→1500 ms.
+// des pauses » (coefPause) avec 2,0× comme référence : 1,0×→250 ms, 2,0×→500 ms, 4,0×→1000 ms.
 // Cumulé si plusieurs noms consécutifs (John William Woodhouse → 3×).
 function plancherNomPropre(debut, fin) {
   const unite = etat.modele.params.nomPropreMs;
@@ -846,8 +846,11 @@ function delaiHotGato() {
   // Noms propres (uniquement si le modèle le demande, ex. Hybride) : 500 ms mini par nom.
   const planNom = plancherNomPropre(etat.index, etat.index + etat.nbCourant);
   if (planNom > 0) delai = Math.max(delai, planNom);
-  // Pause fixe dès qu'il y a un chiffre ou de la ponctuation (× coef réglable)
+  // Pause fixe dès qu'il y a un chiffre ou de la ponctuation (× coef réglable),
+  // sinon respiration en fin de bloc/paragraphe (titre sans ponctuation, etc.).
+  const fin = etat.index + etat.nbCourant;
   if (/[\d.,!?;:'"`«»…]/.test(texte)) delai += base * P.pauseFactor * etat.coefPause;
+  else if (etat.debutsPhrase && etat.debutsPhrase.has(fin)) delai += base * P.pauseFactor * etat.coefPause;
   return Math.max(delai, P.affichageMin);
 }
 // Tokenisation simple façon HotGato : découpe sur les espaces (la ponctuation
@@ -883,7 +886,7 @@ const MODELES = {
       pauseVirgule: 1,         // pause après , ; : (× base)
       pauseReplique: 3,        // pause avant une réplique de dialogue (× base)
       plancherDialogue: 1.6,   // durée mini d'un mot en dialogue (× base)
-      nomPropreMs: 750,        // 750 ms mini par nom propre @2,0× (cumulés si consécutifs)
+      nomPropreMs: 500,        // 500 ms mini par nom propre @2,0× (cumulés si consécutifs)
       elanGrossePause: 0.65,   // élan après une grosse pause (reprise douce)
       elanPauseMoyenne: 0.82,  // élan après une pause moyenne
       elanAccel: 0.1,          // accélération de l'élan par mot (vers 1), graduelle
@@ -920,7 +923,7 @@ const MODELES = {
       affichageMin: 90,
       motLongMax: 12,   // utilisés par construireChunkDepuis (découpe BookReeder)
       lettresMax: 16,
-      nomPropreMs: 750,       // 750 ms mini par nom propre @2,0× (cumulés si consécutifs)
+      nomPropreMs: 500,       // 500 ms mini par nom propre @2,0× (cumulés si consécutifs)
     },
   },
 };
