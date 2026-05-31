@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=195">
+  <link rel="stylesheet" href="style.css?v=196">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -124,6 +124,8 @@
       <button id="ctx-play" class="icone-play" title="Reprendre la lecture" aria-label="Reprendre"></button>
       <button id="ctx-avance" class="ic-fleche ic-avance" title="Phrase suivante" aria-label="Phrase suivante"></button>
     </div>
+    <!-- Infos de lecture (Mode Loupe) : position · chapitre · mots, sous les boutons -->
+    <div id="contexte-infos"></div>
   </div>
 
   <!-- Panneau d'aide / fonctionnalités -->
@@ -231,6 +233,11 @@
       <div class="reglage reglage-case">
         <label for="reglage-infos-minimal">Afficher les infos en Mode Minimaliste</label>
         <input type="checkbox" id="reglage-infos-minimal">
+      </div>
+
+      <div class="reglage reglage-case">
+        <label for="reglage-infos-loupe">Afficher les infos en Mode Loupe</label>
+        <input type="checkbox" id="reglage-infos-loupe">
       </div>
 
       <div class="reglage reglage-inline">
@@ -347,6 +354,6 @@
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="app.js?v=195"></script>
+  <script src="app.js?v=196"></script>
 </body>
 </html>

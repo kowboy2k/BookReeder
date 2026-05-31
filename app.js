@@ -148,7 +148,7 @@ async function finaliserChargement(chapitresTexte, nom, taille, titre, auteur) {
   const id = nom + "|" + taille;
   const fiche = {
     id, nom, titre: titre || nom, auteur: auteur || "", dateAjout: Date.now(),
-    chapitresTexte, progression: 0, total: apercu.mots.length,
+    chapitresTexte, notes: [], progression: 0, total: apercu.mots.length,
   };
   await sauverLivre(fiche);
   ouvrirFiche(fiche);
@@ -223,7 +223,7 @@ async function chargerEpub(buffer, nom, taille) {
         carteCasse = construireCarteCasse(css);
       }
     } catch (e) { carteCasse = null; }
-    const { chapitresTexte } = await extraireLivre(livre);
+    const { chapitresTexte, notes } = await extraireLivre(livre);
     const apercu = tokeniserChapitres(chapitresTexte, etat.modele.decouper);
     if (apercu.mots.length === 0) throw new Error("Aucun texte trouvé");
 
@@ -247,7 +247,7 @@ async function chargerEpub(buffer, nom, taille) {
     const id = nom + "|" + taille;
     const fiche = {
       id, nom, titre, auteur, dateAjout: Date.now(),
-      chapitresTexte, progression: 0, total: apercu.mots.length,
+      chapitresTexte, notes: notes || [], progression: 0, total: apercu.mots.length,
     };
     await sauverLivre(fiche);
     ouvrirFiche(fiche);
@@ -271,6 +271,7 @@ function reconstruireChapitresTexte(fiche) {
 function ouvrirFiche(fiche) {
   etat.chapitresTexte = fiche.chapitresTexte && fiche.chapitresTexte.length
     ? fiche.chapitresTexte : reconstruireChapitresTexte(fiche);
+  etat.notes = fiche.notes || [];
   etat.idLivre = fiche.id;
   etat.nomLivre = fiche.nom;
   etat.titreLivre = fiche.titre || fiche.nom;
@@ -294,6 +295,7 @@ Lord John se retourna en réprimant une grimace et en affichant un sourire court
 
 $("btn-demo").addEventListener("click", () => {
   etat.chapitresTexte = [{ titre: "Texte de démo", texte: TEXTE_DEMO }];
+  etat.notes = [];
   etat.idLivre = null;
   etat.nomLivre = "Démo";
   etat.titreLivre = "Texte de démo";
@@ -333,6 +335,9 @@ async function extraireLivre(livre) {
   };
 
   const chapitresTexte = [];   // [{ titre, texte }]
+  const notesArr = [];         // contenus des annotations, indexés par noteId
+  const idMap = {};            // id d'ancre -> texte (pour les notes d'une autre section)
+  const attente = [];          // renvois à résoudre après le parcours complet
   let nSection = 0;
 
   for (const section of livre.spine.spineItems) {
@@ -346,6 +351,7 @@ async function extraireLivre(livre) {
           doc = contenu.ownerDocument || contenu;
         }
       }
+      if (corps && doc) { try { baliserNotes(doc, corps, notesArr, idMap, attente); } catch (e) {} }
       const fullText = corps ? texteAvecSeparateurs(corps).trim()
                              : (contenu ? (contenu.textContent || "").trim() : "");
       if (!fullText) continue;
@@ -396,15 +402,27 @@ async function extraireLivre(livre) {
   }
 
   if (chapitresTexte.length === 0) chapitresTexte.push({ titre: "Début", texte: "" });
-  return { chapitresTexte };
+  // Résolution des notes pointant vers une autre section (endnotes regroupées).
+  attente.forEach((p) => {
+    if (!notesArr[p.noteId].texte && idMap[p.fragId]) notesArr[p.noteId].texte = nettoyerNote(idMap[p.fragId]);
+  });
+  return { chapitresTexte, notes: notesArr };
 }
 
 // Tokenise le texte par chapitre avec le découpage `decouper` du modèle actif,
 // et calcule les index de début de chaque chapitre.
+// Sentinelle de renvoi de note insérée dans le texte à l'extraction :
+// <noteId> (caractères de zone privée, invisibles, sans espace →
+// la marque reste collée au mot qui précède). On la retire des mots affichés
+// et on mémorise, pour chaque mot, les notes qui s'y rattachent.
+const RE_NOTE = /(\d+)/g;
+const NOTE_DEB = String.fromCharCode(0xE000), NOTE_FIN = String.fromCharCode(0xE001);
+function marqueNote(id) { return NOTE_DEB + id + NOTE_FIN; }
 function tokeniserChapitres(chapitresTexte, decouper) {
   const mots = [];
   const chapitres = [];
   const debuts = new Set();   // index des mots qui commencent un bloc/paragraphe
+  const refs = [];            // { motIndex, noteId } : renvois de note par mot
   (chapitresTexte || []).forEach((ch) => {
     // Chaque bloc (séparé par un saut de ligne) est traité comme un paragraphe :
     // son 1er mot devient un « début de phrase » (respiration + pas de fusion
@@ -414,25 +432,50 @@ function tokeniserChapitres(chapitresTexte, decouper) {
     paras.forEach((para) => {
       const m = decouper(para);
       if (m.length === 0) return;
+      // Nettoie les sentinelles de note de chaque jeton et note leur position.
+      const propres = [];
+      for (let t of m) {
+        const trouves = [];
+        t = t.replace(RE_NOTE, (x, id) => { trouves.push(+id); return ""; });
+        if (t === "") {                       // marque seule → mot précédent
+          const cible = mots.length + propres.length - 1;
+          trouves.forEach((id) => refs.push({ motIndex: Math.max(0, cible), noteId: id }));
+          continue;
+        }
+        const idx = mots.length + propres.length;
+        trouves.forEach((id) => refs.push({ motIndex: idx, noteId: id }));
+        propres.push(t);
+      }
+      if (propres.length === 0) return;
       if (!chapAjoute) {
         chapitres.push({ titre: ch.titre || "Chapitre", debut: mots.length });
         chapAjoute = true;
       }
       debuts.add(mots.length);
-      mots.push(...m);
+      for (const w of propres) mots.push(w);
     });
   });
   if (chapitres.length === 0) chapitres.push({ titre: "Début", debut: 0 });
-  return { mots, chapitres, debuts };
+  return { mots, chapitres, debuts, refs };
 }
 
 // (Re)tokenise le livre courant avec le modèle actif, en conservant la
 // position relative (progression) de lecture.
 function retokeniser() {
-  const { mots, chapitres, debuts } = tokeniserChapitres(etat.chapitresTexte, etat.modele.decouper);
+  const { mots, chapitres, debuts, refs } = tokeniserChapitres(etat.chapitresTexte, etat.modele.decouper);
   etat.mots = mots;
   etat.chapitres = chapitres;
   etat.debutsPhrase = debuts || new Set();
+  // Table mot -> annotations (pour l'affichage en exposant et la bulle en loupe).
+  const notes = etat.notes || [];
+  const map = new Map();
+  (refs || []).forEach((r) => {
+    const n = notes[r.noteId];
+    if (!n) return;
+    if (!map.has(r.motIndex)) map.set(r.motIndex, []);
+    map.get(r.motIndex).push(n);
+  });
+  etat.noteParMot = map;
   const total = Math.max(1, etat.mots.length);
   etat.index = Math.min(Math.round((etat.progression || 0) * (total - 1)), total - 1);
   if (etat.index < 0 || !isFinite(etat.index)) etat.index = 0;
@@ -517,6 +560,75 @@ function retirerAppelsNote(racine) {
   racine.querySelectorAll("sup").forEach((s) => {
     const t = (s.textContent || "").trim();
     if (t === "" || estNumero(t)) s.remove();
+  });
+  // 4) Conteneurs de NOTE marqués (leur contenu est montré dans la bulle) :
+  //    on les sort du flux de lecture pour ne pas les lire deux fois.
+  racine.querySelectorAll("*").forEach((el) => {
+    let t = (el.getAttribute("epub:type") || "");
+    try { t += " " + (el.getAttributeNS("http://www.idpf.org/2007/ops", "type") || ""); } catch (e) {}
+    t = (t + " " + (el.getAttribute("role") || "")).toLowerCase();
+    if (/footnote|endnote|rearnote|doc-footnote|doc-endnote|(^|\s)note(\s|$)/.test(t)) el.remove();
+  });
+}
+
+// Nettoie le texte d'une annotation : enlève un numéro/puce en tête (souvent
+// répété) et les flèches « retour » des liens de renvoi.
+function nettoyerNote(t) {
+  t = (t || "").replace(/\s+/g, " ").trim();
+  t = t.replace(/^[\[(]?\s*\d{1,4}\s*[\]).°:]?\s*/, "");
+  t = t.replace(/[↑↩⤴⮮⇧⬆]/g, "").trim();
+  return t;
+}
+
+// Repère les RENVOIS de note dans une section (exposants/liens « noteref ») et
+// les remplace, dans le document d'origine, par une sentinelle invisible
+// <id> collée au mot. Mémorise le contenu de la note (résolu dans la
+// même section si possible, sinon en attente via la table d'identifiants idMap,
+// renseignée pour toutes les sections puis résolue à la fin).
+function baliserNotes(doc, corps, notesArr, idMap, attente) {
+  if (!corps || !corps.querySelectorAll) return;
+  const estNum = (t) => {
+    const n = (t || "").trim().replace(/[\[\]()]/g, "");
+    return /^\d{1,4}$/.test(n) || /^[*†‡§¶+]+$/.test(n);
+  };
+  // Contenus candidats (notes courtes) repérés par leur id.
+  corps.querySelectorAll("[id]").forEach((el) => {
+    const id = el.id; if (!id || idMap[id] != null) return;
+    const txt = (el.textContent || "").replace(/\s+/g, " ").trim();
+    if (txt && txt.length <= 2000) idMap[id] = txt;
+  });
+  // Renvois : éléments marqués noteref, puis liens vers une ancre au texte court.
+  const refs = [];
+  corps.querySelectorAll("*").forEach((el) => {
+    let ty = (el.getAttribute("epub:type") || "");
+    try { ty += " " + (el.getAttributeNS("http://www.idpf.org/2007/ops", "type") || ""); } catch (e) {}
+    ty = (ty + " " + (el.getAttribute("role") || "")).toLowerCase();
+    if (/noteref/.test(ty)) refs.push(el);
+  });
+  corps.querySelectorAll("a[href]").forEach((a) => {
+    if (refs.indexOf(a) >= 0) return;
+    const href = a.getAttribute("href") || "";
+    if (href.includes("#") && estNum(a.textContent)) refs.push(a);
+  });
+  refs.forEach((el) => {
+    const cible = (el.closest && el.closest("sup")) || el;
+    if (!cible.parentNode) return;
+    const a = (el.matches && el.matches("a[href]")) ? el
+            : (el.querySelector ? el.querySelector("a[href]") : null);
+    const fragId = ((a && a.getAttribute("href")) || "").split("#")[1] || "";
+    let num = (cible.textContent || "").replace(/[\s\[\]()]/g, "").trim();
+    if (!num) num = String(notesArr.length + 1);
+    const noteId = notesArr.length;
+    const note = { num, texte: "" };
+    if (fragId) {
+      let tgt = null;
+      try { tgt = corps.querySelector("#" + cssEchappe(fragId)); } catch (e) {}
+      if (!tgt && doc.getElementById) tgt = doc.getElementById(fragId);
+      if (tgt) note.texte = nettoyerNote(tgt.textContent);
+      else attente.push({ noteId, fragId });
+    }
+    notesArr.push(note);
+    cible.parentNode.replaceChild(doc.createTextNode(marqueNote(noteId)), cible);
   });
 }
 
@@ -1201,14 +1313,22 @@ function majProgression() {
 
   // Infos de lecture du Mode Minimaliste (sous les boutons de vitesse)
   const im = $("infos-minimal");
-  if (im) {
-    const esc = (s) => (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    let html = pctChap.toFixed(1).replace(".", ",") + " % · " + esc(tronquerTitre(chapitreActuel().titre));
-    if (etat.afficherMots) html += "<br>" + posChap + " / " + lenChap + " mots";  // 2e ligne
-    im.innerHTML = html;
-  }
+  if (im) im.innerHTML = infosLectureHtml(true);
 
   if (!$("panneau-navigation").classList.contains("cache")) majBarreLivre();
+}
+
+// Ligne d'infos de lecture (position % · chapitre [· nb de mots]), partagée par
+// le Mode Minimaliste et le Mode Loupe.
+function infosLectureHtml(avecMots) {
+  const { debut, fin } = bornesChapitre();
+  const lenChap = Math.max(1, fin - debut);
+  const posChap = Math.min(lenChap, Math.max(0, etat.index - debut));
+  const pctChap = (posChap / lenChap) * 100;
+  const esc = (s) => (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  let html = pctChap.toFixed(1).replace(".", ",") + " % · " + esc(tronquerTitre(chapitreActuel().titre));
+  if (avecMots && etat.afficherMots) html += "<br>" + posChap + " / " + lenChap + " mots";  // 2e ligne
+  return html;
 }
 
 // Barre du livre entier (panneau de navigation)
@@ -1290,6 +1410,7 @@ function construireContexte() {
   const echap = (s) => (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   // Index de début de chapitre (le 1er bloc du chapitre = son titre → en Black).
   const debutsChap = new Set(etat.chapitres.map((c) => c.debut));
+  const notesMot = etat.noteParMot || new Map();
   let html = "", ouvert = false;
   for (let i = debut; i < fin; i++) {
     if (i === debut || (etat.debutsPhrase && etat.debutsPhrase.has(i))) {  // nouveau bloc/paragraphe
@@ -1297,7 +1418,10 @@ function construireContexte() {
       html += `<p class="ctx-bloc${debutsChap.has(i) ? " ctx-titre" : ""}">`;
       ouvert = true;
     }
-    html += `<span data-i="${i}">${echap(etat.mots[i])}</span> `;
+    const ns = notesMot.get(i);
+    const sup = (ns && ns.length)
+      ? `<sup class="ctx-note">${echap(ns.map((n) => n.num).join(","))}</sup>` : "";
+    html += `<span data-i="${i}"${(ns && ns.length) ? ' class="a-note"' : ""}>${echap(etat.mots[i])}${sup}</span> `;
   }
   if (ouvert) html += "</p>";
   cont.innerHTML = html;
@@ -1321,6 +1445,8 @@ function marquerCourant(recentrer) {
     if (s) { s.classList.add("courant"); if (!prem) prem = s; }
   }
   if (recentrer && prem) prem.scrollIntoView({ block: "center" });
+  const ci = $("contexte-infos");
+  if (ci) ci.innerHTML = infosLectureHtml();
 }
 function rafraichirContexte(recentrer) {
   if (!ctxRange || etat.index < ctxRange.a || etat.index >= ctxRange.b) construireContexte();
@@ -1333,9 +1459,9 @@ function ouvrirContexte() {
   construireContexte();
   marquerCourant(true);
 }
-function fermerContexte() { $("ecran-contexte").classList.add("cache"); }
-$("ctx-recul").addEventListener("click", () => { etat.index = phrasePrecedente(); rafraichirContexte(true); });
-$("ctx-avance").addEventListener("click", () => { etat.index = phraseSuivante(); rafraichirContexte(true); });
+function fermerContexte() { if (typeof fermerBulleNote === "function") fermerBulleNote(); $("ecran-contexte").classList.add("cache"); }
+$("ctx-recul").addEventListener("click", () => { fermerBulleNote(); etat.index = phrasePrecedente(); rafraichirContexte(true); });
+$("ctx-avance").addEventListener("click", () => { fermerBulleNote(); etat.index = phraseSuivante(); rafraichirContexte(true); });
 // Trouve le mot le plus proche d'un point (x, y) — pour ne pas avoir à viser
 // précisément : on privilégie un mot sur la même ligne, sinon le plus proche.
 function spanProche(cont, x, y) {
@@ -1355,18 +1481,49 @@ function spanProche(cont, x, y) {
   }
   return surLigne || partout;
 }
-// Clic/appui : choisit le point de reprise (sans recentrer la vue). On accepte
-// un clic approximatif sur la ligne → on prend le mot le plus proche.
+// Bulle d'annotation : ouverte au clic sur un mot porteur de note (ou son
+// exposant). Affiche le texte de la/des note(s), recadrée dans l'écran.
+function echHtml(s) { return (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+function fermerBulleNote() { const b = $("bulle-note"); if (b) b.classList.add("cache"); }
+function ouvrirBulleNote(i, ancre) {
+  const notes = (etat.noteParMot && etat.noteParMot.get(i)) || [];
+  if (!notes.length) return;
+  let b = $("bulle-note");
+  if (!b) {
+    b = document.createElement("div");
+    b.id = "bulle-note"; b.className = "cache";
+    $("ecran-contexte").appendChild(b);
+    b.addEventListener("click", (ev) => { ev.stopPropagation(); fermerBulleNote(); });
+  }
+  b.innerHTML = notes.map((n) =>
+    `<p><b>${echHtml(n.num)}.</b> ${n.texte ? echHtml(n.texte) : "<i>(annotation introuvable)</i>"}</p>`
+  ).join("");
+  b.classList.remove("cache");
+  // Positionnement sous l'ancre, recadré dans la fenêtre (largeur fixée en CSS).
+  const r = ancre.getBoundingClientRect();
+  const bb = b.getBoundingClientRect();
+  let left = Math.max(8, Math.min(r.left, window.innerWidth - 8 - bb.width));
+  let top = r.bottom + 8;
+  if (top + bb.height > window.innerHeight - 8) top = Math.max(8, r.top - 8 - bb.height);
+  b.style.left = left + "px";
+  b.style.top = top + "px";
+}
+// Clic/appui : mot porteur de note → bulle d'annotation ; sinon point de reprise
+// (clic approximatif accepté → mot le plus proche, sans recentrer la vue).
 $("contexte-texte").addEventListener("click", (e) => {
+  fermerBulleNote();
   let s = e.target.closest("span[data-i]");
   if (!s) s = spanProche($("contexte-texte"), e.clientX, e.clientY);
   if (!s) return;
-  etat.index = debutPhraseAvant(+s.dataset.i);   // début de la phrase cliquée
+  const i = +s.dataset.i;
+  if (etat.noteParMot && etat.noteParMot.has(i)) { ouvrirBulleNote(i, s); return; }
+  etat.index = debutPhraseAvant(i);   // début de la phrase cliquée
   marquerCourant(false);
   sauverPosition();
 });
 // Play : referme, affiche la position puis relance la lecture après 1 s.
 $("ctx-play").addEventListener("click", () => {
+  fermerBulleNote();
   fermerContexte();
   afficherChunk();
   clearTimeout(etat.minuteur);
@@ -1759,6 +1916,19 @@ $("reglage-infos-minimal").addEventListener("change", (e) => {
   $("reglage-infos-minimal").checked = on;
   etat.infosMinimal = on;
   ecranLecture.classList.toggle("infos-min", on);
+})();
+// Afficher les infos de lecture (position · chapitre · mots) en Mode Loupe
+$("reglage-infos-loupe").addEventListener("change", (e) => {
+  etat.infosLoupe = e.target.checked;
+  $("ecran-contexte").classList.toggle("infos-loupe", e.target.checked);
+  try { localStorage.setItem("bookreeder-infos-loupe", e.target.checked ? "1" : "0"); } catch (err) {}
+});
+(function initInfosLoupe() {
+  let on = false;
+  try { on = localStorage.getItem("bookreeder-infos-loupe") === "1"; } catch (e) {}
+  $("reglage-infos-loupe").checked = on;
+  etat.infosLoupe = on;
+  $("ecran-contexte").classList.toggle("infos-loupe", on);
 })();
 
 // --- Couleur de la police (cases : Blanc 100/75 %, Crème, Noir 70/90 %, Perso) ---
