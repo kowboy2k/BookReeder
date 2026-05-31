@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=154">
+  <link rel="stylesheet" href="style.css?v=155">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -175,11 +175,6 @@
         <input type="range" id="reglage-pauses" min="0.5" max="4" step="0.1" value="1">
       </div>
 
-      <div class="reglage reglage-case">
-        <label for="reglage-continuer">Continuer la lecture après avance/retour</label>
-        <input type="checkbox" id="reglage-continuer" checked>
-      </div>
-
       <div class="reglage reglage-inline">
         <label for="reglage-pause-auto">Pause automatique</label>
         <select id="reglage-pause-auto">
@@ -187,6 +182,11 @@
           <option value="suivant">Début de chapitre</option>
           <option value="off">Désactivée</option>
         </select>
+      </div>
+
+      <div class="reglage reglage-case">
+        <label for="reglage-continuer">Continuer la lecture après avance/retour</label>
+        <input type="checkbox" id="reglage-continuer" checked>
       </div>
 
       <div class="reglage reglage-case">
@@ -303,6 +303,6 @@
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="app.js?v=154"></script>
+  <script src="app.js?v=155"></script>
 </body>
 </html>
