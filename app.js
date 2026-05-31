@@ -693,9 +693,9 @@ const MODELES = {
       pauseReplique: 3,        // pause avant une réplique de dialogue (× base)
       plancherDialogue: 1.6,   // durée mini d'un mot en dialogue (× base)
       plancherMajuscule: 3,    // durée mini d'un nom propre en milieu de phrase (× base)
-      elanGrossePause: 0.45,   // élan après une grosse pause (reprise lente)
-      elanPauseMoyenne: 0.7,   // élan après une pause moyenne
-      elanAccel: 0.18,         // accélération de l'élan par mot (vers 1)
+      elanGrossePause: 0.65,   // élan après une grosse pause (reprise douce)
+      elanPauseMoyenne: 0.82,  // élan après une pause moyenne
+      elanAccel: 0.1,          // accélération de l'élan par mot (vers 1), graduelle
       affichageMin: 90,        // durée mini absolue d'affichage (ms)
       motLongMax: 12,          // au-delà, un mot s'affiche seul
       lettresMax: 16,          // un groupe ne dépasse jamais ce nb de lettres
