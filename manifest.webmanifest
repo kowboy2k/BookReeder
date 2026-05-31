@@ -2,7 +2,7 @@
   "name": "BookReeder",
   "short_name": "BookReeder",
   "description": "Lecture rapide d'ebooks, hors-ligne",
-  "version": "1.0",
+  "version": "1.0b",
   "start_url": "./index.html",
   "display": "standalone",
   "orientation": "any",

@@ -12,16 +12,17 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=115">
+  <link rel="stylesheet" href="style.css?v=120">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
   <div id="ecran-accueil" class="ecran">
     <button id="btn-infos" title="Aide / fonctionnalités" aria-label="Aide">ⓘ</button>
     <img id="logo" src="BookReeder.svg" alt="BookReeder">
-    <p class="sous-titre">Lecture rapide d'eBooks ePUB, PDF et TXT</p>
+    <p class="sous-titre">Lecture rapide d'eBooks sur PC, Mac, iPhone et Android</p>
     <label class="bouton-ouvrir">
-      Ouvrir un fichier
+      <span class="bouton-titre">Ouvrir un fichier</span>
+      <span class="bouton-formats">(ePUB, PDF, TXT)</span>
       <input type="file" id="input-fichier" accept=".epub,.pdf,.txt" hidden>
     </label>
     <button id="btn-demo" class="lien-demo">Essayer avec un texte de démo</button>
@@ -29,7 +30,7 @@
 
     <!-- Bibliothèque : fichiers déjà chargés, repris au clic -->
     <div id="bibliotheque"></div>
-    <p id="signature">BookReeder v1.0 by <a href="https://github.com/kowboy2k" target="_blank" rel="noopener">KowBoy</a></p>
+    <p id="signature">BookReeder v1.0b by <a href="https://github.com/kowboy2k" target="_blank" rel="noopener">KowBoy</a></p>
   </div>
 
   <!-- Écran de lecture RSVP -->
@@ -117,6 +118,8 @@
         <li><b>Bibliothèque</b> — vos livres restent enregistrés et reprennent à la bonne page, même hors-ligne.</li>
         <li><b>Astuce</b> — pour un meilleur confort, enregistrez la page sur l'écran d'accueil.</li>
       </ul>
+      <button id="btn-ajouter-accueil">📲 Ajouter à l'écran d'accueil</button>
+      <p id="aide-install" class="aide-install"></p>
       <button id="btn-fermer-infos">Ok</button>
     </div>
   </div>
@@ -169,9 +172,13 @@
         <input type="checkbox" id="reglage-continuer" checked>
       </div>
 
-      <div class="reglage reglage-case">
-        <label for="reglage-pause-chapitre">Pause à la fin de chaque chapitre</label>
-        <input type="checkbox" id="reglage-pause-chapitre" checked>
+      <div class="reglage reglage-inline">
+        <label for="reglage-pause-auto">Pause automatique</label>
+        <select id="reglage-pause-auto">
+          <option value="fin" selected>Fin de chapitre</option>
+          <option value="suivant">Début de chapitre</option>
+          <option value="off">Désactivé</option>
+        </select>
       </div>
 
       <div class="reglage reglage-case">
@@ -288,6 +295,6 @@
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="app.js?v=115"></script>
+  <script src="app.js?v=120"></script>
 </body>
 </html>

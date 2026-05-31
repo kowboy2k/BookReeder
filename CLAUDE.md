@@ -31,8 +31,10 @@ Cible : PC (Windows 11), Mac, iPhone (iOS) et liseuse Vivlio (Android).
   par mot, plus de pondération par longueur) ; un groupe ne dépasse jamais `lettresMax`=16
   lettres (sinon il est réduit) ; planchers dialogue/majuscule, pauses ponctuation et élan
   (reprise progressive) conservés.
-- **Pause de fin de chapitre** (`etat.pauseFinChapitre`, réglage dédié) : `tick` se met en pause
-  quand on franchit une frontière de chapitre, prêt à reprendre au chapitre suivant.
+- **Pause automatique** (`etat.pauseAuto`, dropdown « Pause automatique ») : `"fin"` = pause en
+  affichant le dernier mot du chapitre terminé ; `"suivant"` = enchaîne et met en pause sur le
+  1er mot du chapitre suivant (drapeau interne `_pauseApresChunk`) ; `"off"` = aucune pause auto.
+  Mémorisé en `localStorage` (`bookreeder-pause-auto`).
 - **Modèle « Hybride »** : découpe + ORP + bionic de BookReeder, mais `delai = delaiHotGato`
   (rythme HotGato : cadence régulière + pause fixe sur ponctuation/chiffre).
 - **Modèle « HotGato »** (`chunkHotGato`/`delaiHotGato`/`orpHotGato`/`grasHotGato`) : reproduction

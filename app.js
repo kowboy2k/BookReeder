@@ -13,7 +13,8 @@ const etat = {
   nbMots: 1,         // mots affichés simultanément (max souhaité)
   nbCourant: 1,      // mots réellement affichés dans le chunk courant
   continuerApresSaut: true, // garder la lecture en marche après avance/retour
-  pauseFinChapitre: true,   // se mettre en pause à la fin de chaque chapitre
+  pauseAuto: "fin",         // pause auto : "fin" (fin de chapitre), "suivant" (ouverture du suivant), "off"
+  _pauseApresChunk: false,  // drapeau interne pour le mode "suivant"
   coefPause: 1,      // coefficient multiplicateur des temps de pause (0,5–4)
   elan: 1,           // « momentum » : <1 juste après une pause, remonte vers 1
   orpActif: true,
@@ -870,11 +871,27 @@ function tick() {
   afficherChunk();           // calcule etat.nbCourant
   const d = etat.modele.delai();
   const finChap = bornesChapitre().fin;     // fin du chapitre du chunk affiché
+  const mode = etat.pauseAuto;              // "fin" | "suivant" | "off"
+
+  // Mode « Chapitre suivant » : on vient d'afficher le 1er chunk du nouveau
+  // chapitre → on le laisse à l'écran puis on met en pause.
+  if (mode === "suivant" && etat._pauseApresChunk) {
+    etat._pauseApresChunk = false;
+    etat.index += etat.nbCourant;
+    etat.minuteur = setTimeout(pause, d);
+    return;
+  }
+
   etat.index += etat.nbCourant;
-  // Pause en fin de chapitre : on a fini ce chapitre et il en reste un autre.
-  if (etat.pauseFinChapitre && finChap < etat.mots.length && etat.index >= finChap) {
+  // On vient de finir un chapitre et il en reste un autre.
+  if (mode !== "off" && finChap < etat.mots.length && etat.index >= finChap) {
     etat.index = finChap;                   // prêt à reprendre au chapitre suivant
-    etat.minuteur = setTimeout(pause, d);   // afficher le dernier chunk puis pause
+    if (mode === "fin") {
+      etat.minuteur = setTimeout(pause, d); // pause en montrant la fin du chapitre
+    } else {                                // "suivant" : enchaîner pour montrer le 1er chunk du suivant
+      etat._pauseApresChunk = true;
+      etat.minuteur = setTimeout(tick, d);
+    }
     return;
   }
   etat.minuteur = setTimeout(tick, d);
@@ -885,6 +902,7 @@ function lecture() {
   if (etat.index >= etat.mots.length) etat.index = 0;
   etat.enLecture = true;
   etat.elan = 1;            // repart à pleine cadence
+  etat._pauseApresChunk = false;
   clearTimeout(etat.minuteur); // évite tout minuteur en double
   iconeLecture(true);
   majDureeChapitre();
@@ -1201,6 +1219,35 @@ $("zone-navigation").addEventListener("click", ouvrirNavigation);
 // Panneau d'aide / fonctionnalités (accueil)
 $("btn-infos").addEventListener("click", () => $("panneau-infos").classList.remove("cache"));
 $("btn-fermer-infos").addEventListener("click", () => $("panneau-infos").classList.add("cache"));
+
+// --- Ajouter à l'écran d'accueil (PWA) ---
+// Android/Chrome : on capte l'invite native pour la déclencher au clic.
+// iOS/Safari : pas d'API → on affiche la marche à suivre (Partager → écran d'accueil).
+let inviteInstall = null;
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  inviteInstall = e;
+});
+(function initBoutonInstall() {
+  const dejaInstallee = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
+  const btn = $("btn-ajouter-accueil");
+  if (dejaInstallee && btn) { btn.style.display = "none"; return; }   // déjà sur l'écran d'accueil
+  if (!btn) return;
+  btn.addEventListener("click", async () => {
+    if (inviteInstall) {                       // Android : invite native
+      inviteInstall.prompt();
+      try { await inviteInstall.userChoice; } catch (e) {}
+      inviteInstall = null;
+      $("aide-install").textContent = "";
+      return;
+    }
+    const ua = navigator.userAgent || "";
+    const ios = /iphone|ipad|ipod/i.test(ua) || (/Macintosh/.test(ua) && "ontouchend" in document);
+    $("aide-install").textContent = ios
+      ? "Sur iPhone/iPad : touchez le bouton Partager (carré avec une flèche ↑) en bas de Safari, puis « Sur l'écran d'accueil »."
+      : "Ouvrez le menu de votre navigateur (⋮), puis « Ajouter à l'écran d'accueil » / « Installer l'application ».";
+  });
+})();
 $("btn-fermer-navigation").addEventListener("click", () => {
   $("panneau-navigation").classList.add("cache");
   sauverPosition();
@@ -1307,9 +1354,18 @@ function ajusterCadre() {
 $("reglage-continuer").addEventListener("change", (e) => {
   etat.continuerApresSaut = e.target.checked;
 });
-$("reglage-pause-chapitre").addEventListener("change", (e) => {
-  etat.pauseFinChapitre = e.target.checked;
-});
+// Pause automatique : "fin" (fin de chapitre) | "suivant" (ouverture du suivant) | "off"
+function appliquerPauseAuto(v) {
+  etat.pauseAuto = v;
+  $("reglage-pause-auto").value = v;
+  try { localStorage.setItem("bookreeder-pause-auto", v); } catch (e) {}
+}
+$("reglage-pause-auto").addEventListener("change", (e) => appliquerPauseAuto(e.target.value));
+(function initPauseAuto() {
+  let v = "fin";
+  try { v = localStorage.getItem("bookreeder-pause-auto") || "fin"; } catch (e) {}
+  appliquerPauseAuto(v);
+})();
 
 // --- Thème (Midnight / Dark Mono / Sepia / Deep Black) ---
 const COULEURS_THEME = { midnight: "#1e1e2e", mono: "#121212", sepia: "#f4ecd8", black: "#000000" };

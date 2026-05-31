@@ -153,15 +153,21 @@ html, body {
 .sous-titre { color: var(--gris); margin: 1rem 0 2.5rem; font-style: italic; }
 
 .bouton-ouvrir {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
   background: var(--accent);
   color: #fff;
-  padding: 1rem 2rem;
+  padding: 0.9rem 2rem;
   border-radius: 0.6rem;
   font-size: 1.1rem;
   cursor: pointer;
   font-family: sans-serif;
+  text-align: center;
 }
 .bouton-ouvrir:active { transform: scale(0.97); }
+.bouton-formats { font-size: 0.8rem; font-weight: 300; opacity: 0.85; }
 .lien-demo {
   margin-top: 1.2rem;
   background: none;
@@ -245,6 +251,25 @@ html, body {
   font-size: 1rem;
   cursor: pointer;
 }
+#btn-ajouter-accueil {
+  width: 100%;
+  padding: 0.8rem;
+  margin-bottom: 0.6rem;
+  background: transparent;
+  color: var(--texte);
+  border: 1px solid var(--surface-bord);
+  border-radius: 0.6rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+#btn-ajouter-accueil:active { transform: scale(0.98); }
+.aide-install {
+  margin: 0 0 0.8rem;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--gris);
+}
+.aide-install:empty { display: none; }
 .message { margin-top: 1.5rem; color: var(--gris); font-family: sans-serif; min-height: 1.2em; }
 
 /* --- Lecture RSVP --- */
