@@ -326,6 +326,29 @@ html, body {
 #nav-rapide .btn-chapitre { width: 3.6rem; height: 3.6rem; font-size: 1.5rem; }
 #nav-rapide button:active { transform: scale(0.93); }
 
+/* Flèches phrase précédente / suivante dessinées en CSS (centrées partout,
+   contrairement aux glyphes ⇤/⇥ qui s'affichent bas sur iOS). */
+#nav-rapide .ic-fleche { gap: 0.12em; }
+#nav-rapide .ic-fleche::before,
+#nav-rapide .ic-fleche::after { content: ""; display: block; }
+/* barre verticale (à gauche pour « retour », à droite pour « avance ») */
+.ic-recul::before, .ic-avance::after {
+  width: 0.16em; height: 0.95em; background: currentColor; border-radius: 1px;
+}
+/* triangle pointant vers la barre */
+.ic-recul::after {            /* triangle vers la gauche */
+  width: 0; height: 0;
+  border-style: solid;
+  border-width: 0.5em 0.72em 0.5em 0;
+  border-color: transparent currentColor transparent transparent;
+}
+.ic-avance::before {          /* triangle vers la droite */
+  width: 0; height: 0;
+  border-style: solid;
+  border-width: 0.5em 0 0.5em 0.72em;
+  border-color: transparent transparent transparent currentColor;
+}
+
 /* Barre principale : groupe vitesse (− lecture +) centré */
 #controles {
   width: 100%;
