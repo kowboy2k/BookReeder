@@ -149,7 +149,7 @@ html, body {
    remplit l'espace restant, puis la signature, le tout dans la colonne. */
 #ecran-accueil {
   justify-content: flex-start;
-  padding: max(10vh, env(safe-area-inset-top)) 1rem env(safe-area-inset-bottom);
+  padding: max(10vh, env(safe-area-inset-top)) 1rem max(5vh, env(safe-area-inset-bottom));
 }
 /* Bloc haut : 50% de l'écran, contenu aéré et réparti ; (i) ancré en haut à droite. */
 #accueil-haut {
@@ -206,14 +206,14 @@ html, body {
 }
 .lien-demo:hover { color: var(--texte); }
 
-/* Signature : bande de 10%, collée tout en bas */
+/* Signature : bande de 5%, plaquée tout en bas (5% de marge sous elle) */
 #signature {
-  flex: 0 0 10%;
+  flex: 0 0 5%;
+  margin-top: auto;
   width: 100%;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding-bottom: 0.4rem;
   text-align: center;
   font-style: italic;
   font-size: 0.8rem;
