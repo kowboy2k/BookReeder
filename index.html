@@ -12,23 +12,27 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=128">
+  <link rel="stylesheet" href="style.css?v=130">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
   <div id="ecran-accueil" class="ecran">
     <button id="btn-infos" title="Aide / fonctionnalités" aria-label="Aide">ⓘ</button>
-    <img id="logo" src="BookReeder.svg" alt="BookReeder">
-    <p class="sous-titre">Lecture rapide d'eBooks sur PC, Mac et mobile</p>
-    <label class="bouton-ouvrir">
-      <span class="bouton-titre">Ouvrir un fichier…</span>
-      <span class="bouton-formats">(ePUB, PDF, TXT)</span>
-      <input type="file" id="input-fichier" accept=".epub,.pdf,.txt" hidden>
-    </label>
-    <button id="btn-demo" class="lien-demo">Essayer avec un texte de démo</button>
-    <p id="message-chargement" class="message"></p>
+    <!-- Bloc fixe : logo + sous-titre + boutons -->
+    <div id="accueil-haut">
+      <img id="logo" src="BookReeder.svg" alt="BookReeder">
+      <p class="sous-titre">Lecture rapide d'eBooks sur PC, Mac et mobile</p>
+      <label class="bouton-ouvrir">
+        <span class="bouton-titre">Ouvrir un fichier…</span>
+        <span class="bouton-formats">(ePUB, PDF, TXT)</span>
+        <input type="file" id="input-fichier" accept=".epub,.pdf,.txt" hidden>
+      </label>
+      <button id="btn-demo" class="lien-demo">Essayer avec un texte de démo</button>
+      <p id="message-chargement" class="message"></p>
+    </div>
 
-    <!-- Bibliothèque : fichiers déjà chargés, repris au clic -->
+    <!-- Titre fixe + liste scrollable des fichiers déjà chargés -->
+    <h2 id="titre-lectures" class="titre-biblio" style="display:none">Mes lectures</h2>
     <div id="bibliotheque"></div>
     <p id="signature">BookReeder 1.2b by <a href="https://github.com/kowboy2k" target="_blank" rel="noopener">KowBoy</a></p>
   </div>
@@ -297,6 +301,6 @@
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="app.js?v=128"></script>
+  <script src="app.js?v=130"></script>
 </body>
 </html>

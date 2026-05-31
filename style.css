@@ -145,9 +145,17 @@ html, body {
 .cache { display: none !important; }
 
 /* --- Accueil --- */
-#ecran-accueil h1 {
-  font-size: 3rem;
-  letter-spacing: 0.05em;
+/* Bloc haut (logo + boutons) FIXE ; seule la liste « Mes lectures » défile. */
+#ecran-accueil {
+  justify-content: flex-start;
+  padding: calc(env(safe-area-inset-top) + 72px) 1rem calc(env(safe-area-inset-bottom) + 48px);
+}
+#accueil-haut {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
 }
 #logo { width: min(84vw, 336px); height: auto; }
 .sous-titre { color: var(--gris); margin: 1rem 0 2.5rem; font-style: italic; }
@@ -184,7 +192,7 @@ html, body {
 /* Signature en bas de l'accueil */
 #signature {
   position: fixed;
-  bottom: max(0.8rem, env(safe-area-inset-bottom));
+  bottom: max(20px, env(safe-area-inset-bottom));
   left: 0;
   right: 0;
   text-align: center;
@@ -199,7 +207,7 @@ html, body {
 /* Bouton ⓘ en haut à droite de l'accueil */
 #btn-infos {
   position: fixed;
-  top: calc(50px + max(1rem, env(safe-area-inset-top)));
+  top: calc(env(safe-area-inset-top) + 20px);
   right: max(1rem, env(safe-area-inset-right));
   width: 2.6rem;
   height: 2.6rem;
@@ -638,10 +646,11 @@ html, body {
 #duree-chapitre { font-size: 0.82rem; opacity: 0.8; margin-top: 0.15rem; }
 
 /* --- Bibliothèque (écran d'accueil) --- */
+/* La liste « Mes lectures » occupe une hauteur fixe (40% de l'écran) et défile. */
 #bibliotheque {
   width: min(90%, 460px);
-  margin-top: 2rem;
-  max-height: 40vh;
+  flex: none;
+  height: 40vh;
   overflow-y: auto;
   overflow-x: hidden;
   touch-action: pan-y;                  /* défilement vertical fluide (iOS) */
@@ -652,9 +661,10 @@ html, body {
   font-family: sans-serif;
   font-size: 1rem;
   color: var(--gris);
-  margin-bottom: 0.8rem;
+  margin: 1.8rem 0 0.8rem;
   font-weight: normal;
 }
+#titre-lectures { flex: none; width: min(90%, 460px); }
 .item-livre {
   display: flex;
   align-items: center;

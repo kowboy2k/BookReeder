@@ -1264,15 +1264,12 @@ $("nav-chapitre").addEventListener("change", (e) => {
 async function afficherBibliotheque() {
   const conteneur = $("bibliotheque");
   conteneur.innerHTML = "";
+  const titre = $("titre-lectures");
   let livres = [];
-  try { livres = (await listerLivres()) || []; } catch (e) { return; }
+  try { livres = (await listerLivres()) || []; } catch (e) { if (titre) titre.style.display = "none"; return; }
   livres.sort((a, b) => b.dateAjout - a.dateAjout);
+  if (titre) titre.style.display = livres.length ? "block" : "none";
   if (!livres.length) return;
-
-  const titre = document.createElement("h2");
-  titre.textContent = "Mes livres";
-  titre.className = "titre-biblio";
-  conteneur.appendChild(titre);
 
   livres.forEach((livre) => {
     const frac = livre.progression != null ? livre.progression
