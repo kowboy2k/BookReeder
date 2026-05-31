@@ -594,11 +594,10 @@ function delaiChunk() {
   }
   if (enDialogue) mot = Math.max(mot, base * P.plancherDialogue);
 
-  let majuscule = false;
-  for (let k = 0; k < groupe.length; k++) {
-    if (!estDebutPhrase(debut + k) && commenceMajuscule(groupe[k])) { majuscule = true; break; }
-  }
-  if (majuscule) mot = Math.max(mot, base * P.plancherMajuscule);
+  // Noms propres (majuscule en milieu de phrase) : on s'attarde dessus.
+  const facNom = facteurNomPropre(debut, fin);
+  if (facNom > 1) mot *= facNom;
+  const majuscule = facNom > 1;   // sert aussi à la reprise d'élan plus bas
 
   // 3) Respirations ajoutées : ponctuation de fin de groupe + ouverture de réplique
   const dernier = groupe[groupe.length - 1] || "";
@@ -623,6 +622,21 @@ function delaiChunk() {
 function commenceMajuscule(mot) {
   const m = (mot || "").match(/\p{L}/u);
   return !!m && /\p{Lu}/u.test(m[0]);
+}
+
+// Facteur d'allongement pour les noms propres (majuscule en milieu de phrase).
+// Modèles concernés via params.nomPropreFacteur (BookReeder & Hybride).
+// 1 nom propre dans le groupe → ×facteur ; 2 mots ou + (nom + prénom) → ×(facteur×2).
+function facteurNomPropre(debut, fin) {
+  const f = etat.modele.params.nomPropreFacteur;
+  if (!f) return 1;
+  let n = 0;
+  for (let k = debut; k < fin; k++) {
+    if (!estDebutPhrase(k) && commenceMajuscule(etat.mots[k])) n++;
+  }
+  if (n >= 2) return f * 2;
+  if (n === 1) return f;
+  return 1;
 }
 
 // =========================================================
@@ -655,6 +669,9 @@ function delaiHotGato() {
   const base = 60000 / etat.vitesse;
   const texte = etat.mots.slice(etat.index, etat.index + etat.nbCourant).join(" ");
   let delai = base * etat.nbCourant;
+  // Noms propres (uniquement si le modèle le demande, ex. Hybride) : on s'attarde.
+  const facNom = facteurNomPropre(etat.index, etat.index + etat.nbCourant);
+  if (facNom > 1) delai *= facNom;
   // Pause fixe dès qu'il y a un chiffre ou de la ponctuation (× coef réglable)
   if (/[\d.,!?;:'"`«»…]/.test(texte)) delai += base * P.pauseFactor * etat.coefPause;
   return Math.max(delai, P.affichageMin);
@@ -692,7 +709,7 @@ const MODELES = {
       pauseVirgule: 1,         // pause après , ; : (× base)
       pauseReplique: 3,        // pause avant une réplique de dialogue (× base)
       plancherDialogue: 1.6,   // durée mini d'un mot en dialogue (× base)
-      plancherMajuscule: 3,    // durée mini d'un nom propre en milieu de phrase (× base)
+      nomPropreFacteur: 1.75,  // nom propre ×1,75 ; nom+prénom (2 mots+) ×3,5
       elanGrossePause: 0.65,   // élan après une grosse pause (reprise douce)
       elanPauseMoyenne: 0.82,  // élan après une pause moyenne
       elanAccel: 0.1,          // accélération de l'élan par mot (vers 1), graduelle
@@ -729,6 +746,7 @@ const MODELES = {
       affichageMin: 90,
       motLongMax: 12,   // utilisés par construireChunkDepuis (découpe BookReeder)
       lettresMax: 16,
+      nomPropreFacteur: 1.75, // nom propre ×1,75 ; nom+prénom (2 mots+) ×3,5
     },
   },
 };
@@ -824,7 +842,9 @@ function majDureeChapitre() {
   const totalMin = restant / etat.vitesse;       // mots ÷ (mots/min) = minutes
   const h = Math.floor(totalMin / 60);
   const m = Math.round(totalMin % 60);
-  el.textContent = `Durée chapitre : ${h}h${String(m).padStart(2, "0")}m`;
+  // Sous 1 h, on n'affiche que les minutes ; au-delà, format XhYYm.
+  const txt = h > 0 ? `${h}h${String(m).padStart(2, "0")}m` : `${m}m`;
+  el.textContent = `Durée chapitre : ${txt}`;
 }
 
 // =========================================================
@@ -1225,6 +1245,38 @@ $("reglage-theme").addEventListener("change", (e) => appliquerTheme(e.target.val
 $("reglage-afficher-mots").addEventListener("change", (e) => {
   $("bloc-nb-mots").style.display = e.target.checked ? "block" : "none";
 });
+
+// --- Couleur de la police (cases : Blanc 100/85/70 %, Crème, Perso) ---
+function appliquerCouleurPolice(c) {
+  if (!c) return;
+  const perso = !["#ffffff", "rgba(255,255,255,0.85)", "rgba(255,255,255,0.7)", "#efe3c8"].includes(c);
+  document.documentElement.style.setProperty("--couleur-police", c);
+  // Surligne la case correspondante
+  document.querySelectorAll(".case-couleur").forEach((b) => {
+    const v = b.dataset.couleur;
+    b.classList.toggle("active", v === c || (v === "perso" && perso));
+  });
+  // La case « Perso » affiche la couleur choisie (remplace le damier)
+  const casePerso = document.querySelector(".case-perso");
+  if (perso && casePerso) {
+    casePerso.style.backgroundImage = "none";
+    casePerso.style.background = c;
+    $("couleur-police-perso").value = /^#/.test(c) ? c : "#ffcc66";
+  }
+  try { localStorage.setItem("bookreeder-couleur-police", c); } catch (e) {}
+}
+document.querySelectorAll("#couleurs-police .case-couleur").forEach((b) => {
+  b.addEventListener("click", () => {
+    if (b.dataset.couleur === "perso") $("couleur-police-perso").click();
+    else appliquerCouleurPolice(b.dataset.couleur);
+  });
+});
+$("couleur-police-perso").addEventListener("input", (e) => appliquerCouleurPolice(e.target.value));
+(function initCouleurPolice() {
+  let c = null;
+  try { c = localStorage.getItem("bookreeder-couleur-police"); } catch (e) {}
+  if (c) appliquerCouleurPolice(c);
+})();
 
 // --- Longueur des pauses (coefficient multiplicateur) ---
 function appliquerCoefPause(v) {

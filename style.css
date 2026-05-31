@@ -268,6 +268,7 @@ html, body {
 }
 
 #mot-affiche {
+  color: var(--couleur-police, var(--texte));
   font-size: calc(clamp(2rem, 9vw, 5rem) * var(--echelle-police, 1));
   font-family: var(--police);
   font-weight: var(--graisse);
@@ -677,6 +678,8 @@ html, body {
 #panneau-reglages .panneau-contenu {
   max-height: 67vh;
   overflow-y: auto;
+  overflow-x: hidden;                          /* pas de défilement horizontal */
+  touch-action: pan-y;                         /* tactile : défilement vertical seul */
   scrollbar-width: thin;                       /* Firefox : barre fine */
   scrollbar-color: rgba(255,255,255,0.18) transparent;
 }
@@ -772,6 +775,28 @@ html, body {
 /* Deux cases côte à côte sur une même ligne */
 /* Libellé + menu déroulant sur la même ligne (gain de place) */
 .reglage-inline { display: flex; align-items: center; gap: 0.8rem; }
+
+/* Cases « Couleur de la police » */
+.cases-couleur { display: flex; gap: 0.5rem; margin-left: auto; }
+.case-couleur {
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  border: 2px solid var(--surface-bord);
+  padding: 0;
+  cursor: pointer;
+  flex: none;
+}
+.case-couleur.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+/* Damier tant qu'aucune couleur perso n'est définie */
+.case-perso {
+  background-color: #fff;
+  background-image:
+    linear-gradient(45deg, #bbb 25%, transparent 0, transparent 75%, #bbb 0),
+    linear-gradient(45deg, #bbb 25%, transparent 0, transparent 75%, #bbb 0);
+  background-size: 0.8rem 0.8rem;
+  background-position: 0 0, 0.4rem 0.4rem;
+}
 .reglage-inline label { margin-bottom: 0; flex: none; }
 .reglage-inline select { flex: 1; min-width: 0; }
 .reglage-duo { display: flex; justify-content: space-between; gap: 1rem; }
