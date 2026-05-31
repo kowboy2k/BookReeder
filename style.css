@@ -296,6 +296,8 @@ html, body {
   margin-bottom: 1.0rem;
 }
 #info-progression { font-size: 1rem; }
+/* Nombre de mots du chapitre : sur sa propre ligne (libère de la place pour le titre) */
+#bloc-nb-mots { margin-top: 0.35rem; font-size: 0.9em; opacity: 0.85; }
 
 /* Avance / retour rapide : deux gros boutons */
 #nav-rapide {
@@ -314,7 +316,7 @@ html, body {
   width: 5rem;
   height: 5rem;
   border-radius: 50%;
-  font-size: 2.7rem;
+  font-size: 2.16rem;        /* symboles réduits de 20% */
   line-height: 1;
   cursor: pointer;
   /* Centre le glyphe (⇤ ⇥ ⏮ ⏭) dans le bouton, quelles que soient ses métriques */
@@ -323,7 +325,7 @@ html, body {
   justify-content: center;
 }
 /* Chapitre précédent / suivant : boutons plus petits sur les côtés */
-#nav-rapide .btn-chapitre { width: 3.6rem; height: 3.6rem; font-size: 1.5rem; }
+#nav-rapide .btn-chapitre { width: 3.6rem; height: 3.6rem; font-size: 1.2rem; }
 #nav-rapide button:active { transform: scale(0.93); }
 
 /* Flèches phrase précédente / suivante dessinées en CSS (centrées partout,

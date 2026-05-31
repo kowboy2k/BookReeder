@@ -911,7 +911,7 @@ function majBarreLivre() {
 // Tronque un titre de chapitre trop long pour la ligne d'info
 function tronquerTitre(t) {
   t = t || "";
-  return t.length > 20 ? t.slice(0, 20).trimEnd() + "..." : t;
+  return t.length > 28 ? t.slice(0, 28).trimEnd() + "..." : t;
 }
 
 // Chapitre contenant la position de lecture courante
@@ -1173,7 +1173,7 @@ $("reglage-pause-chapitre").addEventListener("change", (e) => {
   etat.pauseFinChapitre = e.target.checked;
 });
 $("reglage-afficher-mots").addEventListener("change", (e) => {
-  $("bloc-nb-mots").style.display = e.target.checked ? "inline" : "none";
+  $("bloc-nb-mots").style.display = e.target.checked ? "block" : "none";
 });
 
 // --- Longueur des pauses (coefficient multiplicateur) ---
