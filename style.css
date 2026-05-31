@@ -206,13 +206,14 @@ html, body {
 }
 .lien-demo:hover { color: var(--texte); }
 
-/* Signature : bande de 10%, centrée, toujours tout en bas */
+/* Signature : bande de 10%, collée tout en bas */
 #signature {
   flex: 0 0 10%;
   width: 100%;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
+  padding-bottom: 0.4rem;
   text-align: center;
   font-style: italic;
   font-size: 0.8rem;
@@ -222,11 +223,10 @@ html, body {
 #signature a { color: var(--accent); text-decoration: none; }
 #signature a:hover { text-decoration: underline; }
 
-/* Bouton ⓘ : ancré en haut à droite, à 5% du haut (au-dessus du logo) */
+/* Bouton ⓘ : dans le flux, 1re ligne du bloc haut, aligné à droite (au-dessus du logo) */
 #btn-infos {
-  position: absolute;
-  top: 5vh;
-  right: 0;
+  flex: none;
+  align-self: flex-end;
   width: 2.6rem;
   height: 2.6rem;
   border: none;
