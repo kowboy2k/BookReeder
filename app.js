@@ -1499,6 +1499,19 @@ async function afficherBibliotheque() {
 afficherBibliotheque();
 initialiserModeles();
 
+// Numéro de version dérivé du ?v=N de app.js (175 → "1.75"), mis à jour à chaque
+// déploiement. Affiché dans la signature et dans « Vérifier les mises à jour ».
+function versionApp() {
+  const sc = [...document.querySelectorAll("script")].find((x) => /app\.js/.test(x.src));
+  const mv = sc && sc.src.match(/[?&]v=(\d+)/);
+  return mv ? (mv[1] / 100).toFixed(2) : null;
+}
+(function majSignature() {
+  const el = $("sig-version");
+  const v = versionApp();
+  if (el && v) el.textContent = v;
+})();
+
 // Réglages : on met en pause et on fait monter la zone de lecture en aperçu (1/3
 // haut) pendant que le panneau occupe les 2/3 du bas ; à la fermeture, on
 // ré-affiche le chunk pour appliquer proprement tous les réglages.
@@ -1890,12 +1903,10 @@ $("btn-maj").addEventListener("click", async () => {
     if (swRegistration.installing || swRegistration.waiting) {
       statut.textContent = "Nouvelle version trouvée, mise à jour…";
     } else {
-      // Date de dernière mise à jour = date de modification du fichier en ligne
+      // Numéro de version + date de dernière mise à jour
       let detail = "";
-      // Numéro de version (lu sur la balise <script src="app.js?v=N">)
-      const sc = [...document.querySelectorAll("script")].find((x) => /app\.js/.test(x.src));
-      const mv = sc && sc.src.match(/[?&]v=(\d+)/);
-      if (mv) detail = "v" + (mv[1] / 100).toFixed(2);   // 175 → v1.75
+      const ver = versionApp();
+      if (ver) detail = "v" + ver;
       // Date du dernier déploiement (modification du fichier en ligne), sans les secondes
       try {
         const r = await fetch("./app.js?ts=" + Date.now(), { cache: "no-store" });
