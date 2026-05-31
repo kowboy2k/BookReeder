@@ -252,7 +252,7 @@ html, body {
   font-size: 1rem;
   cursor: pointer;
 }
-#btn-ajouter-accueil {
+#btn-ajouter-accueil, #btn-maj {
   width: 100%;
   padding: 0.8rem;
   margin-bottom: 0.6rem;
@@ -263,7 +263,7 @@ html, body {
   font-size: 0.95rem;
   cursor: pointer;
 }
-#btn-ajouter-accueil:active { transform: scale(0.98); }
+#btn-ajouter-accueil:active, #btn-maj:active { transform: scale(0.98); }
 .aide-install {
   margin: 0 0 0.8rem;
   font-size: 0.85rem;
@@ -271,6 +271,7 @@ html, body {
   color: var(--gris);
 }
 .aide-install:empty { display: none; }
+#statut-maj { text-align: center; }
 .message { margin-top: 1.5rem; color: var(--gris); font-family: sans-serif; min-height: 1.2em; }
 
 /* --- Lecture RSVP --- */

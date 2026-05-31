@@ -1644,7 +1644,47 @@ $("ep-recul").addEventListener("click", () => deplacer(phrasePrecedente() - etat
 $("ep-avance").addEventListener("click", () => deplacer(phraseSuivante() - etat.index, true));
 $("ep-lecture").addEventListener("click", basculerLecture);
 
-// PWA : enregistrement du service worker pour le hors-ligne
+// PWA : enregistrement du service worker (hors-ligne + mise à jour auto)
+let swRegistration = null;
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js").catch(() => {});
+  let rechargement = false;
+  const avaitControleur = !!navigator.serviceWorker.controller;
+  // Quand le nouveau service worker prend la main → on recharge une fois pour
+  // basculer sur la nouvelle version (sauf à la toute première visite).
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (rechargement || !avaitControleur) return;
+    rechargement = true;
+    location.reload();
+  });
+  navigator.serviceWorker.register("sw.js").then((reg) => {
+    swRegistration = reg;
+    const verifier = () => reg.update().catch(() => {});
+    verifier();                                   // vérifie au démarrage
+    // …et à chaque fois qu'on revient sur l'onglet / rouvre l'app
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) verifier();
+    });
+  }).catch(() => {});
 }
+
+// Bouton « Vérifier les mises à jour… » du panneau Infos
+$("btn-maj").addEventListener("click", async () => {
+  const statut = $("statut-maj");
+  if (!("serviceWorker" in navigator) || !swRegistration) {
+    statut.textContent = "Mises à jour indisponibles ici.";
+    return;
+  }
+  statut.textContent = "Vérification…";
+  try {
+    await swRegistration.update();
+    // Si une nouvelle version est trouvée, elle s'installe puis l'app se
+    // rechargera automatiquement (via controllerchange). Sinon : déjà à jour.
+    if (swRegistration.installing || swRegistration.waiting) {
+      statut.textContent = "Nouvelle version trouvée, mise à jour…";
+    } else {
+      statut.textContent = "Vous avez déjà la dernière version. ✓";
+    }
+  } catch (e) {
+    statut.textContent = "Impossible de vérifier (connexion ?).";
+  }
+});

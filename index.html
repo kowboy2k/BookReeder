@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=122">
+  <link rel="stylesheet" href="style.css?v=127">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -21,7 +21,7 @@
     <img id="logo" src="BookReeder.svg" alt="BookReeder">
     <p class="sous-titre">Lecture rapide d'eBooks sur PC, Mac et mobile</p>
     <label class="bouton-ouvrir">
-      <span class="bouton-titre">Ouvrir un fichier</span>
+      <span class="bouton-titre">Ouvrir un fichier…</span>
       <span class="bouton-formats">(ePUB, PDF, TXT)</span>
       <input type="file" id="input-fichier" accept=".epub,.pdf,.txt" hidden>
     </label>
@@ -30,7 +30,7 @@
 
     <!-- Bibliothèque : fichiers déjà chargés, repris au clic -->
     <div id="bibliotheque"></div>
-    <p id="signature">BookReeder 1.0b by <a href="https://github.com/kowboy2k" target="_blank" rel="noopener">KowBoy</a></p>
+    <p id="signature">BookReeder 1.2b by <a href="https://github.com/kowboy2k" target="_blank" rel="noopener">KowBoy</a></p>
   </div>
 
   <!-- Écran de lecture RSVP -->
@@ -120,6 +120,8 @@
       </ul>
       <button id="btn-ajouter-accueil">📲 Ajouter à l'écran d'accueil</button>
       <p id="aide-install" class="aide-install"></p>
+      <button id="btn-maj">🔄 Vérifier les mises à jour…</button>
+      <p id="statut-maj" class="aide-install"></p>
       <button id="btn-fermer-infos">Ok</button>
     </div>
   </div>
@@ -295,6 +297,6 @@
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="app.js?v=122"></script>
+  <script src="app.js?v=127"></script>
 </body>
 </html>
