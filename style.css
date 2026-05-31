@@ -148,7 +148,8 @@ html, body {
   font-size: 3rem;
   letter-spacing: 0.05em;
 }
-.sous-titre { color: var(--gris); margin: 0.5rem 0 2.5rem; font-style: italic; }
+#logo { width: min(84vw, 336px); height: auto; }
+.sous-titre { color: var(--gris); margin: 1rem 0 2.5rem; font-style: italic; }
 
 .bouton-ouvrir {
   background: var(--accent);
