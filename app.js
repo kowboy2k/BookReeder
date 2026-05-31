@@ -1573,6 +1573,7 @@ function afficherBulleLireMoi() {
   setTimeout(() => document.addEventListener("click", cacherBulleLireMoi, { once: true }), 0);
 }
 $("btn-infos").addEventListener("click", cacherBulleLireMoi);
+$("bulle-liremoi").addEventListener("click", cacherBulleLireMoi);
 (function initBulleLireMoi() {
   let vue = null;
   try { vue = localStorage.getItem("bookreeder-vue-version"); } catch (e) {}
