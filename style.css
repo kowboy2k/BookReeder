@@ -145,13 +145,30 @@ html, body {
 .cache { display: none !important; }
 
 /* --- Accueil --- */
-/* Bloc haut (logo + boutons) FIXE ; seule la liste « Mes lectures » défile. */
+/* Découpage relatif (en flux, sans chevauchement) : bloc haut ~50%, liste qui
+   remplit l'espace restant, puis la signature, le tout dans la colonne. */
 #ecran-accueil {
   justify-content: flex-start;
-  padding: calc(env(safe-area-inset-top) + 72px) 1rem calc(env(safe-area-inset-bottom) + 48px);
+  padding: env(safe-area-inset-top) 1rem env(safe-area-inset-bottom);
 }
+/* Bloc haut : 50% de l'écran, contenu aéré et réparti ; (i) ancré en haut à droite. */
 #accueil-haut {
-  flex: none;
+  flex: 0 0 50%;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3.2vh;
+  width: 100%;
+}
+#accueil-haut .sous-titre,
+#accueil-haut .lien-demo,
+#accueil-haut .message { margin: 0; }
+#accueil-lectures {
+  flex: 0 0 40%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -189,12 +206,13 @@ html, body {
 }
 .lien-demo:hover { color: var(--texte); }
 
-/* Signature en bas de l'accueil */
+/* Signature : bande de 10%, centrée, toujours tout en bas */
 #signature {
-  position: fixed;
-  bottom: max(20px, env(safe-area-inset-bottom));
-  left: 0;
-  right: 0;
+  flex: 0 0 10%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   font-style: italic;
   font-size: 0.8rem;
@@ -204,11 +222,11 @@ html, body {
 #signature a { color: var(--accent); text-decoration: none; }
 #signature a:hover { text-decoration: underline; }
 
-/* Bouton ⓘ en haut à droite de l'accueil */
+/* Bouton ⓘ : ancré en haut à droite, à 5% du haut (au-dessus du logo) */
 #btn-infos {
-  position: fixed;
-  top: calc(env(safe-area-inset-top) + 20px);
-  right: max(1rem, env(safe-area-inset-right));
+  position: absolute;
+  top: 5vh;
+  right: 0;
   width: 2.6rem;
   height: 2.6rem;
   border: none;
@@ -218,7 +236,6 @@ html, body {
   font-size: 1.5rem;
   line-height: 1;
   cursor: pointer;
-  z-index: 5;
 }
 #btn-infos:active { transform: scale(0.95); }
 
@@ -280,7 +297,7 @@ html, body {
 }
 .aide-install:empty { display: none; }
 #statut-maj { text-align: center; }
-.message { margin-top: 1.5rem; color: var(--gris); font-family: sans-serif; min-height: 1.2em; }
+.message { margin-top: 0.6rem; color: var(--gris); font-family: sans-serif; min-height: 1.2em; }
 
 /* --- Lecture RSVP --- */
 /* L'écran de lecture est une colonne : le mot occupe tout l'espace du haut,
@@ -646,22 +663,31 @@ html, body {
 #duree-chapitre { font-size: 0.82rem; opacity: 0.8; margin-top: 0.15rem; }
 
 /* --- Bibliothèque (écran d'accueil) --- */
-/* La liste « Mes lectures » occupe une hauteur fixe (40% de l'écran) et défile. */
+/* La liste remplit le bloc « Mes lectures » (40%) sous le titre, et défile. */
 #bibliotheque {
   width: min(90%, 460px);
-  flex: none;
-  height: 40vh;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding-bottom: 0.4rem;               /* le dernier item ne touche jamais le bord */
   overflow-y: auto;
   overflow-x: hidden;
   touch-action: pan-y;                  /* défilement vertical fluide (iOS) */
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+  scrollbar-width: thin;                /* même barre fine que les Réglages */
+  scrollbar-color: rgba(255,255,255,0.18) transparent;
+}
+#bibliotheque::-webkit-scrollbar { width: 5px; }
+#bibliotheque::-webkit-scrollbar-track { background: transparent; }
+#bibliotheque::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.18);
+  border-radius: 3px;
 }
 .titre-biblio {
   font-family: sans-serif;
   font-size: 1rem;
   color: var(--gris);
-  margin: 1.8rem 0 0.8rem;
+  margin: 0.6rem 0 0.8rem;
   font-weight: normal;
 }
 #titre-lectures { flex: none; width: min(90%, 460px); }

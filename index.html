@@ -12,14 +12,14 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=130">
+  <link rel="stylesheet" href="style.css?v=139">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
   <div id="ecran-accueil" class="ecran">
-    <button id="btn-infos" title="Aide / fonctionnalités" aria-label="Aide">ⓘ</button>
-    <!-- Bloc fixe : logo + sous-titre + boutons -->
+    <!-- Bloc fixe : (i) au-dessus du logo, puis sous-titre + boutons -->
     <div id="accueil-haut">
+      <button id="btn-infos" title="Aide / fonctionnalités" aria-label="Aide">ⓘ</button>
       <img id="logo" src="BookReeder.svg" alt="BookReeder">
       <p class="sous-titre">Lecture rapide d'eBooks sur PC, Mac et mobile</p>
       <label class="bouton-ouvrir">
@@ -31,9 +31,11 @@
       <p id="message-chargement" class="message"></p>
     </div>
 
-    <!-- Titre fixe + liste scrollable des fichiers déjà chargés -->
-    <h2 id="titre-lectures" class="titre-biblio" style="display:none">Mes lectures</h2>
-    <div id="bibliotheque"></div>
+    <!-- Bloc « Mes lectures » (40% de l'écran) : titre fixe + liste scrollable -->
+    <div id="accueil-lectures">
+      <h2 id="titre-lectures" class="titre-biblio" style="display:none">Mes lectures</h2>
+      <div id="bibliotheque"></div>
+    </div>
     <p id="signature">BookReeder 1.2b by <a href="https://github.com/kowboy2k" target="_blank" rel="noopener">KowBoy</a></p>
   </div>
 
@@ -301,6 +303,6 @@
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="app.js?v=130"></script>
+  <script src="app.js?v=139"></script>
 </body>
 </html>
