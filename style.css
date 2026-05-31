@@ -607,6 +607,7 @@ html, body {
   font-size: 1rem;
   color: var(--gris);
 }
+#duree-chapitre { font-size: 0.82rem; opacity: 0.8; margin-top: 0.15rem; }
 
 /* --- Bibliothèque (écran d'accueil) --- */
 #bibliotheque {

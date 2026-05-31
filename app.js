@@ -783,6 +783,7 @@ function lecture() {
   etat.elan = 1;            // repart à pleine cadence
   clearTimeout(etat.minuteur); // évite tout minuteur en double
   iconeLecture(true);
+  majDureeChapitre();
   tick();
 }
 
@@ -801,11 +802,25 @@ function pause() {
   etat.enLecture = false;
   clearTimeout(etat.minuteur);
   iconeLecture(false);
+  majDureeChapitre();
   sauverPosition();
 }
 
 function basculerLecture() {
   etat.enLecture ? pause() : lecture();
+}
+
+// Durée estimée pour finir le chapitre courant, selon les mots RESTANTS
+// et la vitesse actuelle. Recalculée à chaque play/pause.
+function majDureeChapitre() {
+  const el = $("duree-chapitre");
+  if (!el || !etat.mots.length) return;
+  const { fin } = bornesChapitre();
+  const restant = Math.max(0, fin - etat.index);
+  const totalMin = restant / etat.vitesse;       // mots ÷ (mots/min) = minutes
+  const h = Math.floor(totalMin / 60);
+  const m = Math.round(totalMin % 60);
+  el.textContent = `Durée chapitre : ${h}h${String(m).padStart(2, "0")}m`;
 }
 
 // =========================================================
@@ -964,6 +979,7 @@ function demarrerLecture() {
   ajusterCadre();
   appliquerOrp();
   afficherChunk();
+  majDureeChapitre();
 }
 
 // =========================================================

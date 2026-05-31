@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=94">
+  <link rel="stylesheet" href="style.css?v=95">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -74,7 +74,10 @@
     <!-- Barre du bas : fermer · vitesse · réglages -->
     <div id="barre-bas">
       <button id="btn-fermer" title="Changer de livre">✖</button>
-      <div id="info-vitesse">Vitesse : <span id="vitesse-actuelle">300</span> mots/min</div>
+      <div id="info-vitesse">
+        <div>Vitesse : <span id="vitesse-actuelle">300</span> mots/min</div>
+        <div id="duree-chapitre">Durée chapitre : 0h00m</div>
+      </div>
       <button id="btn-reglages" title="Réglages">⚙</button>
     </div>
 
@@ -261,6 +264,6 @@
 
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
-  <script src="app.js?v=94"></script>
+  <script src="app.js?v=95"></script>
 </body>
 </html>
