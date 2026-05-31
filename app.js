@@ -1568,9 +1568,7 @@ function afficherBulleLireMoi() {
   bulle.classList.remove("cache");
   bulle.style.top = (r.bottom + 10) + "px";
   bulle.style.right = Math.max(8, window.innerWidth - r.right) + "px";
-  clearTimeout(etat._bulleTimer);
-  etat._bulleTimer = setTimeout(cacherBulleLireMoi, 9000);   // disparaît seule après 9 s
-  setTimeout(() => document.addEventListener("click", cacherBulleLireMoi, { once: true }), 0);
+  // Se masque uniquement à l'ouverture du (i) ou au clic sur la bulle.
 }
 $("btn-infos").addEventListener("click", cacherBulleLireMoi);
 $("bulle-liremoi").addEventListener("click", cacherBulleLireMoi);
