@@ -12,17 +12,17 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=104">
+  <link rel="stylesheet" href="style.css?v=115">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
   <div id="ecran-accueil" class="ecran">
     <button id="btn-infos" title="Aide / fonctionnalités" aria-label="Aide">ⓘ</button>
     <img id="logo" src="BookReeder.svg" alt="BookReeder">
-    <p class="sous-titre">Lecture rapide d'eBooks</p>
+    <p class="sous-titre">Lecture rapide d'eBooks ePUB, PDF et TXT</p>
     <label class="bouton-ouvrir">
-      Ouvrir un fichier ePUB
-      <input type="file" id="input-fichier" accept=".epub" hidden>
+      Ouvrir un fichier
+      <input type="file" id="input-fichier" accept=".epub,.pdf,.txt" hidden>
     </label>
     <button id="btn-demo" class="lien-demo">Essayer avec un texte de démo</button>
     <p id="message-chargement" class="message"></p>
@@ -78,7 +78,16 @@
         <div>Vitesse : <span id="vitesse-actuelle">300</span> mots/min</div>
         <div id="duree-chapitre">Durée chapitre : 0h00m</div>
       </div>
-      <button id="btn-reglages" title="Réglages">⚙</button>
+      <button id="btn-reglages" title="Réglages" aria-label="Réglages">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="4" y1="7" x2="20" y2="7"></line>
+          <line x1="4" y1="12" x2="20" y2="12"></line>
+          <line x1="4" y1="17" x2="20" y2="17"></line>
+          <circle cx="9" cy="7" r="2.3" fill="var(--surface)"></circle>
+          <circle cx="15" cy="12" r="2.3" fill="var(--surface)"></circle>
+          <circle cx="8" cy="17" r="2.3" fill="var(--surface)"></circle>
+        </svg>
+      </button>
     </div>
 
     <!-- Mode épuré : barre minimale (retour phrase · play/pause · avance phrase) -->
@@ -131,7 +140,7 @@
         </div>
       </div>
 
-      <button id="btn-fermer-navigation">Ok</button>
+      <button id="btn-fermer-navigation">Go</button>
     </div>
   </div>
 
@@ -188,8 +197,9 @@
           <button type="button" class="case-couleur" data-couleur="#efe3c8" title="Crème" style="background:#efe3c8"></button>
           <button type="button" class="case-couleur" data-couleur="rgba(0,0,0,0.7)" title="Noir 70%" style="background:rgba(0,0,0,0.7)"></button>
           <button type="button" class="case-couleur" data-couleur="rgba(0,0,0,0.9)" title="Noir 90%" style="background:rgba(0,0,0,0.9)"></button>
-          <button type="button" class="case-couleur case-perso" data-couleur="perso" title="Personnalisé…"></button>
-          <input type="color" id="couleur-police-perso" value="#ffcc66" hidden>
+          <label class="case-couleur case-perso" title="Personnalisé…">
+            <input type="color" id="couleur-police-perso" value="#ffcc66">
+          </label>
         </div>
       </div>
 
@@ -271,12 +281,13 @@
         </select>
       </div>
 
-      <button id="btn-fermer-reglages">Fermer</button>
+      <button id="btn-fermer-reglages">OK</button>
     </div>
   </div>
 
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
-  <script src="app.js?v=104"></script>
+  <script src="lib/pdf.min.js"></script>
+  <script src="app.js?v=115"></script>
 </body>
 </html>

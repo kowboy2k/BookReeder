@@ -99,9 +99,94 @@ async function sauverPosition() {
 $("input-fichier").addEventListener("change", async (e) => {
   const fichier = e.target.files[0];
   if (!fichier) return;
-  const buffer = await fichier.arrayBuffer();
-  await chargerEpub(buffer, fichier.name, fichier.size);
+  const nom = (fichier.name || "").toLowerCase();
+  const msg = $("message-chargement");
+  try {
+    if (nom.endsWith(".txt")) {
+      await chargerTexteBrut(await fichier.text(), fichier.name, fichier.size);
+    } else if (nom.endsWith(".pdf")) {
+      await chargerPdf(await fichier.arrayBuffer(), fichier.name, fichier.size);
+    } else {
+      await chargerEpub(await fichier.arrayBuffer(), fichier.name, fichier.size);
+    }
+  } catch (err) {
+    console.error(err);
+    msg.textContent = "Impossible de lire ce fichier : " + err.message;
+  }
 });
+
+// Découpe un texte brut en « passages » d'environ 1500 mots (pour la navigation
+// et des pauses de fin de chapitre raisonnables). Court → un seul bloc « Début ».
+function chapitresDepuisTexte(texte) {
+  const mots = (texte || "").split(/\s+/).filter(Boolean);
+  if (mots.length <= 1800) return [{ titre: "Début", texte: (texte || "").trim() }];
+  const taille = 1500, ch = [];
+  for (let i = 0; i < mots.length; i += taille) {
+    ch.push({ titre: "Passage " + (ch.length + 1), texte: mots.slice(i, i + taille).join(" ") });
+  }
+  return ch;
+}
+
+// Étapes communes : tokenise un aperçu, enregistre la fiche, ouvre la lecture.
+async function finaliserChargement(chapitresTexte, nom, taille, titre, auteur) {
+  const apercu = tokeniserChapitres(chapitresTexte, etat.modele.decouper);
+  if (apercu.mots.length === 0) throw new Error("Aucun texte trouvé");
+  const id = nom + "|" + taille;
+  const fiche = {
+    id, nom, titre: titre || nom, auteur: auteur || "", dateAjout: Date.now(),
+    chapitresTexte, progression: 0, total: apercu.mots.length,
+  };
+  await sauverLivre(fiche);
+  ouvrirFiche(fiche);
+  $("message-chargement").textContent = "";
+}
+
+// --- Fichier texte (.txt) ---
+async function chargerTexteBrut(texte, nom, taille) {
+  const msg = $("message-chargement");
+  msg.textContent = "Lecture du fichier…";
+  const chapitresTexte = chapitresDepuisTexte(texte);
+  await finaliserChargement(chapitresTexte, nom, taille, nom.replace(/\.txt$/i, ""), "");
+}
+
+// --- PDF (.pdf) via pdf.js, texte uniquement (best-effort, pas d'OCR) ---
+function texteDePagePdf(tc) {
+  let out = "";
+  for (const it of tc.items) {
+    out += it.str;
+    out += it.hasEOL ? "\n" : " ";
+  }
+  return out;
+}
+function nettoyerTextePdf(t) {
+  return (t || "")
+    .replace(/­/g, "")                       // tirets conditionnels
+    .replace(/-\n/g, "")                          // césures en fin de ligne
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{2,}/g, "\n\n")                   // paragraphes
+    .replace(/([^\n])\n([^\n])/g, "$1 $2")        // lignes simples → espace
+    .replace(/\s+\n/g, "\n")
+    .trim();
+}
+async function chargerPdf(buffer, nom, taille) {
+  const msg = $("message-chargement");
+  msg.textContent = "Lecture du PDF…";
+  if (!window.pdfjsLib) throw new Error("Moteur PDF indisponible");
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "lib/pdf.worker.min.js";
+  const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+  let texte = "";
+  for (let p = 1; p <= pdf.numPages; p++) {
+    msg.textContent = `Lecture du PDF… page ${p}/${pdf.numPages}`;
+    const page = await pdf.getPage(p);
+    const tc = await page.getTextContent();
+    texte += texteDePagePdf(tc) + "\n\n";
+  }
+  texte = nettoyerTextePdf(texte);
+  if (!texte) throw new Error("PDF sans texte (peut-être scanné ?)");
+  let titre = nom.replace(/\.pdf$/i, "");
+  try { const m = await pdf.getMetadata(); if (m && m.info && m.info.Title) titre = m.info.Title.trim() || titre; } catch (e) {}
+  await finaliserChargement(chapitresDepuisTexte(texte), nom, taille, titre, "");
+}
 
 // Charge un EPUB (ArrayBuffer), extrait le texte + les chapitres,
 // l'enregistre dans la bibliothèque et démarre la lecture
@@ -409,6 +494,7 @@ function construireChunkDepuis(start) {
       const mot = etat.mots[i];
       parts.push(mot);
       if (estHonorifique(mot)) continue;              // un titre ne coupe jamais
+      if (parts.length >= 3) break;                   // jamais plus de 3 mots groupés
       if (PONCT_COUPE.test(mot)) break;               // ponctuation finale -> fin du nom
       if (!estMotMajuscule(etat.mots[i + 1])) break;  // mot suivant pas en majuscule -> fin
     }
@@ -1225,9 +1311,12 @@ $("reglage-pause-chapitre").addEventListener("change", (e) => {
   etat.pauseFinChapitre = e.target.checked;
 });
 
-// --- Thème (Midnight / Dark Mono / Sepia) ---
+// --- Thème (Midnight / Dark Mono / Sepia / Deep Black) ---
 const COULEURS_THEME = { midnight: "#1e1e2e", mono: "#121212", sepia: "#f4ecd8", black: "#000000" };
+const COULEURS_PREDEF = ["#ffffff", "rgba(255,255,255,0.75)", "#efe3c8", "rgba(0,0,0,0.9)", "rgba(0,0,0,0.7)"];
+let themeActuel = "midnight";
 function appliquerTheme(nom) {
+  themeActuel = nom;
   document.documentElement.classList.toggle("theme-mono", nom === "mono");
   document.documentElement.classList.toggle("theme-sepia", nom === "sepia");
   document.documentElement.classList.toggle("theme-black", nom === "black");
@@ -1235,6 +1324,7 @@ function appliquerTheme(nom) {
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute("content", COULEURS_THEME[nom] || COULEURS_THEME.midnight);
   try { localStorage.setItem("bookreeder-theme", nom); } catch (e) {}
+  chargerCouleurPoliceDuTheme();   // chaque thème mémorise sa couleur de police
 }
 $("reglage-theme").addEventListener("change", (e) => appliquerTheme(e.target.value));
 (function initTheme() {
@@ -1246,37 +1336,46 @@ $("reglage-afficher-mots").addEventListener("change", (e) => {
   $("bloc-nb-mots").style.display = e.target.checked ? "block" : "none";
 });
 
-// --- Couleur de la police (cases : Blanc 100/85/70 %, Crème, Perso) ---
-function appliquerCouleurPolice(c) {
+// --- Couleur de la police (cases : Blanc 100/75 %, Crème, Noir 70/90 %, Perso) ---
+// La couleur est mémorisée PAR THÈME (clé bookreeder-couleur-police-<thème>).
+// Défaut : Sepia → #874e36, autres thèmes → couleur de texte de base (aucune surcharge).
+function appliquerCouleurPolice(c, sansSauver) {
   if (!c) return;
-  const perso = !["#ffffff", "rgba(255,255,255,0.75)", "#efe3c8", "rgba(0,0,0,0.9)", "rgba(0,0,0,0.7)"].includes(c);
+  const perso = !COULEURS_PREDEF.includes(c);
   document.documentElement.style.setProperty("--couleur-police", c);
-  // Surligne la case correspondante
-  document.querySelectorAll(".case-couleur").forEach((b) => {
-    const v = b.dataset.couleur;
-    b.classList.toggle("active", v === c || (v === "perso" && perso));
+  document.querySelectorAll(".case-couleur:not(.case-perso)").forEach((b) => {
+    b.classList.toggle("active", b.dataset.couleur === c);
   });
-  // La case « Perso » affiche la couleur choisie (remplace le damier)
   const casePerso = document.querySelector(".case-perso");
-  if (perso && casePerso) {
+  if (casePerso) casePerso.classList.toggle("active", perso);
+  if (perso && casePerso) {           // la case « Perso » affiche la couleur choisie
     casePerso.style.backgroundImage = "none";
     casePerso.style.background = c;
     $("couleur-police-perso").value = /^#/.test(c) ? c : "#ffcc66";
   }
-  try { localStorage.setItem("bookreeder-couleur-police", c); } catch (e) {}
+  if (!sansSauver) {
+    try { localStorage.setItem("bookreeder-couleur-police-" + themeActuel, c); } catch (e) {}
+  }
 }
-document.querySelectorAll("#couleurs-police .case-couleur").forEach((b) => {
-  b.addEventListener("click", () => {
-    if (b.dataset.couleur === "perso") $("couleur-police-perso").click();
-    else appliquerCouleurPolice(b.dataset.couleur);
-  });
+// Revient à la couleur de base du thème (pas de surcharge) + cases désélectionnées.
+function effacerCouleurPolice() {
+  document.documentElement.style.removeProperty("--couleur-police");
+  document.querySelectorAll(".case-couleur").forEach((b) => b.classList.remove("active"));
+  const casePerso = document.querySelector(".case-perso");
+  if (casePerso) { casePerso.style.background = ""; casePerso.style.backgroundImage = ""; }
+}
+// Charge la couleur mémorisée du thème courant, sinon son défaut.
+function chargerCouleurPoliceDuTheme() {
+  let c = null;
+  try { c = localStorage.getItem("bookreeder-couleur-police-" + themeActuel); } catch (e) {}
+  if (!c) c = (themeActuel === "sepia") ? "#874e36" : null;
+  if (c) appliquerCouleurPolice(c, true);
+  else effacerCouleurPolice();
+}
+document.querySelectorAll("#couleurs-police .case-couleur:not(.case-perso)").forEach((b) => {
+  b.addEventListener("click", () => appliquerCouleurPolice(b.dataset.couleur));
 });
 $("couleur-police-perso").addEventListener("input", (e) => appliquerCouleurPolice(e.target.value));
-(function initCouleurPolice() {
-  let c = null;
-  try { c = localStorage.getItem("bookreeder-couleur-police"); } catch (e) {}
-  if (c) appliquerCouleurPolice(c);
-})();
 
 // --- Longueur des pauses (coefficient multiplicateur) ---
 function appliquerCoefPause(v) {
@@ -1319,7 +1418,7 @@ const FAMILLE_CSS = {
 };
 // Familles proposées + leurs variantes (poids, ou police de base pour Bionic)
 const POIDS = [{ id: "300", nom: "Léger" }, { id: "400", nom: "Normal" },
-               { id: "700", nom: "Gras" }, { id: "900", nom: "Noir" }];
+               { id: "700", nom: "Gras" }, { id: "900", nom: "Black" }];
 const wn = [POIDS[1], POIDS[2]]; // Normal / Gras
 const FAMILLES = [
   { id: "georgia",  nom: "Georgia",       variantes: wn },

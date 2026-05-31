@@ -1,6 +1,6 @@
 // Service worker : « réseau d'abord » pour toujours charger la dernière
 // version quand on est en ligne, avec repli sur le cache hors-ligne.
-const CACHE = "bookreeder-v104";
+const CACHE = "bookreeder-v115";
 const FICHIERS = [
   "./",
   "./index.html",
@@ -9,6 +9,8 @@ const FICHIERS = [
   "./manifest.webmanifest",
   "./lib/jszip.min.js",
   "./lib/epub.min.js",
+  "./lib/pdf.min.js",
+  "./lib/pdf.worker.min.js",
   "./fonts/merriweather-latin.woff2",
   "./fonts/merriweather-latin-ext.woff2",
   "./fonts/roboto-400.woff2",

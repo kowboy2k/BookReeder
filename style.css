@@ -616,6 +616,10 @@ html, body {
   margin-top: 2rem;
   max-height: 40vh;
   overflow-y: auto;
+  overflow-x: hidden;
+  touch-action: pan-y;                  /* défilement vertical fluide (iOS) */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 .titre-biblio {
   font-family: sans-serif;
@@ -757,7 +761,7 @@ html, body {
   border-radius: 1rem 1rem 0 0;
   font-family: sans-serif;
 }
-.panneau-contenu h2 { margin-bottom: 1.2rem; }
+.panneau-contenu h2 { margin-bottom: 1.2rem; text-align: center; }
 .reglage { margin-bottom: 1.3rem; }
 .reglage label { display: block; margin-bottom: 0.5rem; }
 .reglage input[type="range"] { width: 100%; accent-color: var(--accent); }
@@ -790,12 +794,26 @@ html, body {
 .case-couleur.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
 /* Damier tant qu'aucune couleur perso n'est définie */
 .case-perso {
+  position: relative;
+  overflow: hidden;
   background-color: #fff;
   background-image:
     linear-gradient(45deg, #bbb 25%, transparent 0, transparent 75%, #bbb 0),
     linear-gradient(45deg, #bbb 25%, transparent 0, transparent 75%, #bbb 0);
   background-size: 0.8rem 0.8rem;
   background-position: 0 0, 0.4rem 0.4rem;
+}
+/* L'input couleur recouvre la case (tap natif iOS → ouvre la roue chromatique) */
+.case-perso input[type="color"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  opacity: 0;
+  cursor: pointer;
 }
 .reglage-inline label { margin-bottom: 0; flex: none; }
 .reglage-inline select { flex: 1; min-width: 0; }
