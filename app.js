@@ -1680,13 +1680,18 @@ $("btn-maj").addEventListener("click", async () => {
       statut.textContent = "Nouvelle version trouvée, mise à jour…";
     } else {
       // Date de dernière mise à jour = date de modification du fichier en ligne
-      let dateTxt = "";
+      let detail = "";
+      // Numéro de version (lu sur la balise <script src="app.js?v=N">)
+      const sc = [...document.querySelectorAll("script")].find((x) => /app\.js/.test(x.src));
+      const mv = sc && sc.src.match(/[?&]v=(\d+)/);
+      if (mv) detail = "v" + mv[1];
+      // Date du dernier déploiement (modification du fichier en ligne)
       try {
         const r = await fetch("./app.js?ts=" + Date.now(), { cache: "no-store" });
         const lm = r.headers.get("last-modified");
-        if (lm) dateTxt = "<br>Dernière mise à jour&nbsp;: " + formatDate(new Date(lm).getTime());
+        if (lm) detail += (detail ? " · " : "") + formatDate(new Date(lm).getTime());
       } catch (e) {}
-      statut.innerHTML = "Vous avez déjà la dernière version. ✓" + dateTxt;
+      statut.innerHTML = "Vous avez déjà la dernière version. ✓" + (detail ? "<br>" + detail : "");
     }
   } catch (e) {
     statut.textContent = "Impossible de vérifier (connexion ?).";
