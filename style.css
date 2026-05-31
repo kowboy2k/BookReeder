@@ -149,7 +149,7 @@ html, body {
    remplit l'espace restant, puis la signature, le tout dans la colonne. */
 #ecran-accueil {
   justify-content: flex-start;
-  padding: max(10vh, env(safe-area-inset-top)) 1rem max(5vh, env(safe-area-inset-bottom));
+  padding: max(10vh, env(safe-area-inset-top)) 1rem 0;
 }
 /* Bloc haut : 50% de l'écran, contenu aéré et réparti ; (i) ancré en haut à droite. */
 #accueil-haut {
@@ -206,14 +206,16 @@ html, body {
 }
 .lien-demo:hover { color: var(--texte); }
 
-/* Signature : bande de 5%, plaquée tout en bas (5% de marge sous elle) */
+/* Signature : remplit l'espace restant et plaque le texte tout en bas
+   (robuste sur iOS), avec 5% de marge sous le texte. */
 #signature {
-  flex: 0 0 5%;
-  margin-top: auto;
+  flex: 1 1 auto;
+  min-height: 0;
   width: 100%;
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  padding-bottom: max(5vh, env(safe-area-inset-bottom));
   text-align: center;
   font-style: italic;
   font-size: 0.8rem;

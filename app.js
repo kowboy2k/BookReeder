@@ -51,6 +51,15 @@ function formatDate(ms) {
 //  On stocke le texte déjà découpé + les chapitres pour
 //  reprendre instantanément sans relire l'EPUB.
 // =========================================================
+// Demande au navigateur de NE PAS supprimer le stockage (livres + positions)
+// même quand le cache de l'app change à chaque mise à jour. Évite que la
+// bibliothèque « disparaisse » (éviction iOS/Android sous pression de stockage).
+if (navigator.storage && navigator.storage.persist) {
+  navigator.storage.persisted().then((dejaPersistant) => {
+    if (!dejaPersistant) navigator.storage.persist().catch(() => {});
+  }).catch(() => {});
+}
+
 let baseDonnees = null;
 function ouvrirBase() {
   if (baseDonnees) return Promise.resolve(baseDonnees);
