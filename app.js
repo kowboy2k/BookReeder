@@ -1177,12 +1177,14 @@ $("reglage-pause-chapitre").addEventListener("change", (e) => {
   etat.pauseFinChapitre = e.target.checked;
 });
 
-// --- Thème (Midnight / Dark Mono) ---
+// --- Thème (Midnight / Dark Mono / Sepia) ---
+const COULEURS_THEME = { midnight: "#1e1e2e", mono: "#121212", sepia: "#f4ecd8" };
 function appliquerTheme(nom) {
   document.documentElement.classList.toggle("theme-mono", nom === "mono");
+  document.documentElement.classList.toggle("theme-sepia", nom === "sepia");
   $("reglage-theme").value = nom;
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", nom === "mono" ? "#121212" : "#1e1e2e");
+  if (meta) meta.setAttribute("content", COULEURS_THEME[nom] || COULEURS_THEME.midnight);
   try { localStorage.setItem("bookreeder-theme", nom); } catch (e) {}
 }
 $("reglage-theme").addEventListener("change", (e) => appliquerTheme(e.target.value));

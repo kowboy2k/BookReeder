@@ -100,6 +100,16 @@ html.theme-mono {
   --surface-survol: #3a3a3a;
 }
 
+html.theme-sepia {
+  --fond: #f4ecd8;
+  --texte: #4a3c2c;
+  --accent: #a6612a;
+  --gris: #9c8a6a;
+  --surface: #e9dcc0;
+  --surface-bord: #d8c7a2;
+  --surface-survol: #ddcfae;
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
