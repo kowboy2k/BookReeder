@@ -1172,9 +1172,10 @@ function majProgression() {
   // Infos de lecture du Mode Minimaliste (sous les boutons de vitesse)
   const im = $("infos-minimal");
   if (im) {
-    let t = pctChap.toFixed(1).replace(".", ",") + " % · " + tronquerTitre(chapitreActuel().titre);
-    if (etat.afficherMots) t += " · " + posChap + " / " + lenChap + " mots";
-    im.textContent = t;
+    const esc = (s) => (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    let html = pctChap.toFixed(1).replace(".", ",") + " % · " + esc(tronquerTitre(chapitreActuel().titre));
+    if (etat.afficherMots) html += "<br>" + posChap + " / " + lenChap + " mots";  // 2e ligne
+    im.innerHTML = html;
   }
 
   if (!$("panneau-navigation").classList.contains("cache")) majBarreLivre();
