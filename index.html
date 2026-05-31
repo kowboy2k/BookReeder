@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=182">
+  <link rel="stylesheet" href="style.css?v=184">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -109,6 +109,8 @@
       <span id="ep-vitesse">260</span>
       <button id="ep-plus" class="ic-plus" title="Accélérer" aria-label="Accélérer"></button>
     </div>
+    <!-- Infos de lecture (Mode Minimaliste) : position · chapitre · mots -->
+    <div id="infos-minimal"></div>
   </div>
 
   <!-- Mode contexte : aperçu du texte autour du mot en cours (appui long sur play) -->
@@ -127,7 +129,7 @@
       <h2>Comment ça marche</h2>
       <ul id="liste-infos">
         <li><b>Lecture rapide</b> — les mots défilent un à un ou par groupes, centrés sur la lettre repère (rouge) pour garder l'œil fixe.</li>
-        <li><b>Plein écran épuré</b> — touchez la <b>zone de lecture</b> pour masquer l'interface ; touchez à nouveau pour revenir.</li>
+        <li><b>Mode Minimaliste</b> — touchez la <b>zone de lecture</b> pour masquer l'interface (lecture sans distraction) ; touchez à nouveau pour revenir.</li>
         <li><b>Mode loupe</b> — appui long sur play/pause pour afficher la position du mot dans la lecture en cours et avoir une lecture contextuelle.</li>
         <li><b>Naviguer</b> — touchez les <b>infos de lecture</b> pour ouvrir la navigation pour aller à un chapitre ou se déplacer dans le livre.</li>
         <li><b>Chapitres</b> — les boutons ⏮ / ⏭ sautent au chapitre précédent / suivant ; les flèches reculent / avancent d'une phrase.</li>
@@ -221,6 +223,11 @@
       <div class="reglage reglage-case">
         <label for="reglage-afficher-mots">Afficher le nombre de mots du chapitre</label>
         <input type="checkbox" id="reglage-afficher-mots">
+      </div>
+
+      <div class="reglage reglage-case">
+        <label for="reglage-infos-minimal">Afficher les infos de lecture en Mode Minimaliste</label>
+        <input type="checkbox" id="reglage-infos-minimal">
       </div>
 
       <div class="reglage reglage-inline">
@@ -337,6 +344,6 @@
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="app.js?v=182"></script>
+  <script src="app.js?v=184"></script>
 </body>
 </html>

@@ -720,6 +720,17 @@ html, body {
 }
 #barre-epure-vitesse button:active { transform: scale(0.92); }
 #ep-vitesse { min-width: 2.5rem; text-align: center; font-size: 1.2rem; color: var(--texte); }
+/* Infos de lecture en Mode Minimaliste : visibles seulement si l'option est active */
+#infos-minimal { display: none; }
+#ecran-lecture.epure.infos-min #infos-minimal {
+  display: block;
+  width: 100%;
+  text-align: center;
+  margin-top: 0.6rem;
+  font-family: sans-serif;
+  font-size: 1.2rem;            /* même taille que le chiffre de vitesse */
+  color: var(--texte);          /* même intensité (pleine opacité) */
+}
 #barre-epure button {
   background: var(--surface);
   color: var(--texte);

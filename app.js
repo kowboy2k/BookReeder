@@ -1089,6 +1089,7 @@ function deplacer(pas, continuer) {
   etat.elan = 1;            // nouvelle position : on repart à pleine cadence
   etat.index = Math.min(Math.max(0, etat.index + pas), etat.mots.length - 1);
   afficherChunk();
+  majDureeChapitre();        // recalcule la durée restante après le saut
   if (reprendre) {
     // Reprise différée (réarmée à chaque saut) pour permettre d'enchaîner
     etat.minuteur = setTimeout(tick, DELAI_REPRISE);
@@ -1167,6 +1168,14 @@ function majProgression() {
   $("total-mots").textContent = lenChap;
   $("position-pct").textContent = pctChap.toFixed(1).replace(".", ",");
   $("chapitre-actuel").textContent = tronquerTitre(chapitreActuel().titre);
+
+  // Infos de lecture du Mode Minimaliste (sous les boutons de vitesse)
+  const im = $("infos-minimal");
+  if (im) {
+    let t = pctChap.toFixed(1).replace(".", ",") + " % · " + tronquerTitre(chapitreActuel().titre);
+    if (etat.afficherMots) t += " · " + posChap + " / " + lenChap + " mots";
+    im.textContent = t;
+  }
 
   if (!$("panneau-navigation").classList.contains("cache")) majBarreLivre();
 }
@@ -1406,6 +1415,7 @@ barre.addEventListener("pointerup", (e) => {
   if (!glisse) return;
   glisse = false;
   barre.releasePointerCapture(e.pointerId);
+  majDureeChapitre();
   sauverPosition();
 });
 
@@ -1432,6 +1442,7 @@ barreLivre.addEventListener("pointerup", (e) => {
   if (!glisseLivre) return;
   glisseLivre = false;
   barreLivre.releasePointerCapture(e.pointerId);
+  majDureeChapitre();
   sauverPosition();
 });
 
@@ -1631,8 +1642,23 @@ $("reglage-theme").addEventListener("change", (e) => appliquerTheme(e.target.val
   appliquerTheme(t);
 })();
 $("reglage-afficher-mots").addEventListener("change", (e) => {
+  etat.afficherMots = e.target.checked;
   $("bloc-nb-mots").style.display = e.target.checked ? "block" : "none";
+  majProgression();
 });
+// Afficher les infos de lecture (position · chapitre · mots) en Mode Minimaliste
+$("reglage-infos-minimal").addEventListener("change", (e) => {
+  etat.infosMinimal = e.target.checked;
+  ecranLecture.classList.toggle("infos-min", e.target.checked);
+  try { localStorage.setItem("bookreeder-infos-minimal", e.target.checked ? "1" : "0"); } catch (err) {}
+});
+(function initInfosMinimal() {
+  let on = false;
+  try { on = localStorage.getItem("bookreeder-infos-minimal") === "1"; } catch (e) {}
+  $("reglage-infos-minimal").checked = on;
+  etat.infosMinimal = on;
+  ecranLecture.classList.toggle("infos-min", on);
+})();
 
 // --- Couleur de la police (cases : Blanc 100/75 %, Crème, Noir 70/90 %, Perso) ---
 // La couleur est mémorisée PAR THÈME (clé bookreeder-couleur-police-<thème>).
