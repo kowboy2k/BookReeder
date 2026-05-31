@@ -727,9 +727,8 @@ html, body {
   width: 100%;
   text-align: center;
   margin-top: 0.6rem;
-  font-family: sans-serif;
-  font-size: 1.2rem;            /* même taille que le chiffre de vitesse */
-  color: var(--texte);          /* même intensité (pleine opacité) */
+  font-size: 1.2rem;            /* même police/taille/intensité que le chiffre de vitesse */
+  color: var(--texte);
 }
 #barre-epure button {
   background: var(--surface);
