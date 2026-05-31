@@ -1685,11 +1685,15 @@ $("btn-maj").addEventListener("click", async () => {
       const sc = [...document.querySelectorAll("script")].find((x) => /app\.js/.test(x.src));
       const mv = sc && sc.src.match(/[?&]v=(\d+)/);
       if (mv) detail = "v" + mv[1];
-      // Date du dernier déploiement (modification du fichier en ligne)
+      // Date du dernier déploiement (modification du fichier en ligne), sans les secondes
       try {
         const r = await fetch("./app.js?ts=" + Date.now(), { cache: "no-store" });
         const lm = r.headers.get("last-modified");
-        if (lm) detail += (detail ? "<br>" : "") + formatDate(new Date(lm).getTime());
+        if (lm) {
+          const d = new Date(lm), p = (n) => String(n).padStart(2, "0");
+          const dateStr = `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+          detail += (detail ? " - " : "") + dateStr;
+        }
       } catch (e) {}
       statut.innerHTML = "Vous avez déjà la dernière version. ✓" + (detail ? "<br>" + detail : "");
     }
