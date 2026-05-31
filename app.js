@@ -890,7 +890,7 @@ const MODELES = {
   // (cadence régulière + pause fixe sur ponctuation, sans élan ni planchers).
   hybride: {
     id: "hybride",
-    nom: "Hybride (découpe BookReeder + rythme HotGato)",
+    nom: "Hybride",
     decouper: decouperEnMots,
     chunk: construireChunkDepuis,
     delai: delaiHotGato,
