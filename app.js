@@ -9,7 +9,7 @@ const etat = {
   index: 0,          // position de lecture actuelle
   enLecture: false,
   minuteur: null,
-  vitesse: 300,      // mots/min
+  vitesse: 260,      // mots/min (vitesse par défaut)
   nbMots: 1,         // mots affichés simultanément (max souhaité)
   nbCourant: 1,      // mots réellement affichés dans le chunk courant
   continuerApresSaut: true, // garder la lecture en marche après avance/retour
