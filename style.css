@@ -330,9 +330,9 @@ html, body {
 
 /* Flèches phrase précédente / suivante dessinées en CSS (centrées partout,
    contrairement aux glyphes ⇤/⇥ qui s'affichent bas sur iOS). */
-#nav-rapide .ic-fleche { gap: 0.12em; }
-#nav-rapide .ic-fleche::before,
-#nav-rapide .ic-fleche::after { content: ""; display: block; }
+.ic-fleche { gap: 0.12em; }
+.ic-fleche::before,
+.ic-fleche::after { content: ""; display: block; }
 /* barre verticale (à gauche pour « retour », à droite pour « avance ») */
 .ic-recul::before, .ic-avance::after {
   width: 0.16em; height: 0.95em; background: currentColor; border-radius: 1px;
@@ -402,15 +402,15 @@ html, body {
 }
 /* Icônes dessinées en CSS (currentColor) : nettes et monochromes, contrairement
    aux emojis ⏸/▶ qui s'affichent en couleur sur iOS. */
-#btn-lecture::before { content: ""; display: block; }
-#btn-lecture.icone-play::before {       /* triangle « lecture » */
+.icone-play::before, .icone-pause::before { content: ""; display: block; }
+.icone-play::before {       /* triangle « lecture » */
   width: 0; height: 0;
   border-style: solid;
   border-width: 0.6em 0 0.6em 1em;
   border-color: transparent transparent transparent currentColor;
   margin-left: 0.14em;                  /* recentrage optique du triangle */
 }
-#btn-lecture.icone-pause::before {      /* deux barres « pause » */
+.icone-pause::before {      /* deux barres « pause » */
   width: 0.32em; height: 1.18em;
   box-sizing: content-box;
   border-left: 0.32em solid currentColor;
@@ -419,6 +419,41 @@ html, body {
 /* − et + descendus de 20px par rapport au play */
 #groupe-vitesse #btn-moins,
 #groupe-vitesse #btn-plus { position: relative; top: 10px; }
+
+/* --- Mode épuré (« fullscreen ») : cartouche + 3 boutons seulement --- */
+#barre-epure { display: none; }
+#ecran-lecture.epure #zone-navigation,
+#ecran-lecture.epure #barre-progression,
+#ecran-lecture.epure #nav-rapide,
+#ecran-lecture.epure #controles,
+#ecran-lecture.epure #info-vitesse,
+#ecran-lecture.epure #btn-fermer,
+#ecran-lecture.epure #btn-reglages { display: none !important; }
+#ecran-lecture.epure #barre-epure {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+#barre-epure button {
+  background: #2a2a3a;
+  color: var(--texte);
+  border: none;
+  border-radius: 50%;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#barre-epure .ic-fleche { width: 4rem; height: 4rem; font-size: 1.7rem; }
+#barre-epure #ep-lecture { width: 5rem; height: 5rem; font-size: 1.7rem; }
+#barre-epure button:active { transform: scale(0.92); }
+@media (hover: hover) {
+  #barre-epure button:hover { background: #3a3a4d; box-shadow: 0 0 0 2px rgba(255,255,255,0.08); }
+}
 #info-vitesse {
   width: 100%;
   text-align: center;

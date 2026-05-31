@@ -786,11 +786,15 @@ function lecture() {
   tick();
 }
 
-// Bascule l'icône du bouton : true = en lecture (barres pause), false = play (triangle)
+// Bascule l'icône des boutons play/pause (normal + épuré) :
+// true = en lecture (barres pause), false = play (triangle)
 function iconeLecture(joue) {
-  const b = $("btn-lecture");
-  b.classList.toggle("icone-pause", joue);
-  b.classList.toggle("icone-play", !joue);
+  ["btn-lecture", "ep-lecture"].forEach((id) => {
+    const b = $(id);
+    if (!b) return;
+    b.classList.toggle("icone-pause", joue);
+    b.classList.toggle("icone-play", !joue);
+  });
 }
 
 function pause() {
@@ -891,7 +895,7 @@ function majProgression() {
   $("curseur").style.left = pctChap + "%";
   $("position-actuelle").textContent = posChap;
   $("total-mots").textContent = lenChap;
-  $("position-pct").textContent = pctChap.toFixed(0).replace(".", ",");
+  $("position-pct").textContent = pctChap.toFixed(1).replace(".", ",");
   $("chapitre-actuel").textContent = tronquerTitre(chapitreActuel().titre);
 
   if (!$("panneau-navigation").classList.contains("cache")) majBarreLivre();
@@ -1376,8 +1380,16 @@ document.addEventListener("keydown", (e) => {
   else if (e.code === "ArrowRight") deplacer(phraseSuivante() - etat.index, true);
 });
 
-// Toucher l'écran central = lecture/pause (mobile / Vivlio)
-zoneMot.addEventListener("click", basculerLecture);
+// Toucher le cartouche = bascule l'affichage épuré (« fullscreen »)
+zoneMot.addEventListener("click", () => {
+  ecranLecture.classList.toggle("epure");
+  afficherChunk(); // recentre l'ORP (largeur dispo modifiée)
+});
+
+// Boutons de la barre épurée (réutilisent les mêmes actions)
+$("ep-recul").addEventListener("click", () => deplacer(phrasePrecedente() - etat.index, true));
+$("ep-avance").addEventListener("click", () => deplacer(phraseSuivante() - etat.index, true));
+$("ep-lecture").addEventListener("click", basculerLecture);
 
 // PWA : enregistrement du service worker pour le hors-ligne
 if ("serviceWorker" in navigator) {
