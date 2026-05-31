@@ -11,6 +11,7 @@ const etat = {
   minuteur: null,
   vitesse: 260,      // mots/min (vitesse par défaut)
   nbMots: 1,         // mots affichés simultanément (max souhaité)
+  modeStrict: false, // « 1 (strict) » : 1 mot, sans groupage des noms propres
   nbCourant: 1,      // mots réellement affichés dans le chunk courant
   continuerApresSaut: true, // garder la lecture en marche après avance/retour
   pauseAuto: "fin",         // pause auto : "fin" (fin de chapitre), "suivant" (ouverture du suivant), "off"
@@ -571,6 +572,9 @@ function estHonorifique(mot) {
 //  - on coupe le groupe après tout signe de ponctuation (. , ; : ! ? …),
 //    donc on n'enchaîne jamais par-dessus une ponctuation.
 function construireChunkDepuis(start) {
+  // Mode « 1 (strict) » : un seul mot, on contourne le groupage des noms propres.
+  // (la ponctuation reste collée au mot via les espaces insécables).
+  if (etat.modeStrict) return { texte: etat.mots[start], nb: 1 };
   // Nom propre : titre + nom, ou 2 mots (ou plus) à majuscule consécutifs
   const m0 = etat.mots[start];
   if (estMotMajuscule(m0) && (estHonorifique(m0) || estMotMajuscule(etat.mots[start + 1]))) {
@@ -764,7 +768,7 @@ function delaiChunk() {
   for (let k = 0; k < groupe.length; k++) {
     if (dansDialogue(debut + k)) { enDialogue = true; break; }
   }
-  if (enDialogue) mot = Math.max(mot, base * P.plancherDialogue);
+  if (enDialogue && etat.coefPause > 0) mot = Math.max(mot, base * P.plancherDialogue);
 
   // Noms propres (majuscule en milieu de phrase) : 500 ms mini par nom propre.
   const planNom = plancherNomPropre(debut, fin);
@@ -1523,8 +1527,10 @@ $("reglage-modele").addEventListener("change", (e) => {
   afficherChunk();
 });
 $("reglage-nb-mots").addEventListener("input", (e) => {
-  etat.nbMots = +e.target.value;
-  $("valeur-nb-mots").textContent = etat.nbMots;
+  const v = +e.target.value;
+  etat.modeStrict = (v === 0);            // « 1 (strict) » : 1 mot, sans groupage nom propre
+  etat.nbMots = etat.modeStrict ? 1 : v;
+  $("valeur-nb-mots").textContent = etat.modeStrict ? "1 (strict)" : etat.nbMots;
   ajusterCadre();
   afficherChunk();
 });
