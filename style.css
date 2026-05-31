@@ -594,6 +594,24 @@ html, body {
   border-left: 0.32em solid currentColor;
   border-right: 0.32em solid currentColor;
 }
+/* − et + dessinés en CSS : parfaitement centrés (contrairement aux glyphes) */
+.ic-moins, .ic-plus { position: relative; }
+.ic-moins::before, .ic-plus::before, .ic-plus::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  background: currentColor;
+  border-radius: 2px;
+}
+.ic-moins::before, .ic-plus::before {          /* barre horizontale */
+  width: 0.55em; height: 0.09em;
+  transform: translate(-50%, -50%);
+}
+.ic-plus::after {                               /* barre verticale (du +) */
+  width: 0.09em; height: 0.55em;
+  transform: translate(-50%, -50%);
+}
 /* − et + descendus de 20px par rapport au play */
 #groupe-vitesse #btn-moins,
 #groupe-vitesse #btn-plus { position: relative; top: 10px; }

@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=156">
+  <link rel="stylesheet" href="style.css?v=157">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -73,9 +73,9 @@
     <!-- Barre principale : vitesse (− lecture +) -->
     <div id="controles">
       <div id="groupe-vitesse">
-        <button id="btn-moins" title="Ralentir (−20 mots/min)">−</button>
+        <button id="btn-moins" class="ic-moins" title="Ralentir (−20 mots/min)" aria-label="Ralentir"></button>
         <button id="btn-lecture" class="icone-play" title="Lecture / Pause"></button>
-        <button id="btn-plus" title="Accélérer (+20 mots/min)">+</button>
+        <button id="btn-plus" class="ic-plus" title="Accélérer (+20 mots/min)" aria-label="Accélérer"></button>
       </div>
     </div>
     <!-- Barre du bas : fermer · vitesse · réglages -->
@@ -105,9 +105,9 @@
     </div>
     <!-- Vitesse en mode épuré : − chiffre + -->
     <div id="barre-epure-vitesse">
-      <button id="ep-moins" title="Ralentir">−</button>
+      <button id="ep-moins" class="ic-moins" title="Ralentir" aria-label="Ralentir"></button>
       <span id="ep-vitesse">260</span>
-      <button id="ep-plus" title="Accélérer">+</button>
+      <button id="ep-plus" class="ic-plus" title="Accélérer" aria-label="Accélérer"></button>
     </div>
   </div>
 
@@ -303,6 +303,6 @@
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="app.js?v=156"></script>
+  <script src="app.js?v=157"></script>
 </body>
 </html>
