@@ -1895,7 +1895,7 @@ $("btn-maj").addEventListener("click", async () => {
       // Numéro de version (lu sur la balise <script src="app.js?v=N">)
       const sc = [...document.querySelectorAll("script")].find((x) => /app\.js/.test(x.src));
       const mv = sc && sc.src.match(/[?&]v=(\d+)/);
-      if (mv) detail = "v" + mv[1];
+      if (mv) detail = "v" + (mv[1] / 100).toFixed(2);   // 175 → v1.75
       // Date du dernier déploiement (modification du fichier en ligne), sans les secondes
       try {
         const r = await fetch("./app.js?ts=" + Date.now(), { cache: "no-store" });
