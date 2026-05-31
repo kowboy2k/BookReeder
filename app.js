@@ -518,24 +518,27 @@ function decouperEnMots(texte) {
   const estMot = (s) => /[\p{L}\p{N}]/u.test(s);
   const ouvrante = /^[«“‘"'(\[{¿¡—–―‒*\-]+$/; // jetons à coller au mot SUIVANT
 
+  // Espace INSÉCABLE entre un signe et le mot rattaché : un signe ne passe
+  // jamais seul à la ligne (mode loupe), et la typo française est respectée.
+  const NB = " ";
   const mots = [];
   let enAttente = "";   // ponctuation ouvrante à coller au prochain mot
   for (const brut of bruts) {
     if (!estMot(brut)) {                 // jeton sans lettre ni chiffre
       if (ouvrante.test(brut) || mots.length === 0) {
-        enAttente = enAttente ? enAttente + " " + brut : brut;  // → mot suivant
+        enAttente = enAttente ? enAttente + NB + brut : brut;   // → mot suivant
       } else {
-        mots[mots.length - 1] += " " + brut;                    // → mot précédent
+        mots[mots.length - 1] += NB + brut;                     // → mot précédent
       }
       continue;
     }
-    const mot = enAttente ? enAttente + " " + brut : brut;
+    const mot = enAttente ? enAttente + NB + brut : brut;
     enAttente = "";
     mots.push(mot);
   }
   // Reliquat (texte finissant par de la ponctuation) : on le colle au dernier mot.
   if (enAttente) {
-    if (mots.length > 0) mots[mots.length - 1] += " " + enAttente;
+    if (mots.length > 0) mots[mots.length - 1] += NB + enAttente;
     else mots.push(enAttente);
   }
   return mots;
