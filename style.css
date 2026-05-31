@@ -167,6 +167,7 @@ html, body {
   text-align: center;
 }
 .bouton-ouvrir:active { transform: scale(0.97); }
+.bouton-titre { font-weight: 700; }
 .bouton-formats { font-size: 0.8rem; font-weight: 300; opacity: 0.85; }
 .lien-demo {
   margin-top: 1.2rem;

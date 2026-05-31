@@ -1,6 +1,6 @@
 // Service worker : « réseau d'abord » pour toujours charger la dernière
 // version quand on est en ligne, avec repli sur le cache hors-ligne.
-const CACHE = "bookreeder-v120";
+const CACHE = "bookreeder-v122";
 const FICHIERS = [
   "./",
   "./index.html",
