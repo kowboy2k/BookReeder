@@ -43,7 +43,7 @@ function formatDate(ms) {
   const d = new Date(ms);
   const p = (n) => String(n).padStart(2, "0");
   return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ` +
-         `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+         `${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
 // =========================================================
