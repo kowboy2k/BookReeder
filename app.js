@@ -1499,12 +1499,13 @@ async function afficherBibliotheque() {
 afficherBibliotheque();
 initialiserModeles();
 
-// Numéro de version « parlant » : à incrémenter UNIQUEMENT lors d'une vraie
-// fonctionnalité créée/modifiée et validée (≠ du compteur de cache ?v= qui, lui,
-// change à chaque déploiement pour forcer la mise à jour). Affiché dans la
-// signature et dans « Vérifier les mises à jour ».
-const VERSION_APP = "1.3";
-function versionApp() { return VERSION_APP; }
+// Numéro de version = compteur de déploiement (?v=N de app.js, N/100), bumpé une
+// fois par push. Affiché dans la signature et dans « Vérifier les mises à jour ».
+function versionApp() {
+  const sc = [...document.querySelectorAll("script")].find((x) => /app\.js/.test(x.src));
+  const mv = sc && sc.src.match(/[?&]v=(\d+)/);
+  return mv ? (mv[1] / 100).toFixed(2) : null;
+}
 (function majSignature() {
   const el = $("sig-version");
   const v = versionApp();
