@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=86">
+  <link rel="stylesheet" href="style.css?v=87">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -90,12 +90,11 @@
     <div class="panneau-contenu">
       <h2>Comment ça marche</h2>
       <ul id="liste-infos">
-        <li><b>Lecture rapide</b> — les mots défilent un à un, centrés sur la lettre repère (rouge) pour garder l'œil fixe.</li>
-        <li><b>Plein écran épuré</b> — touchez la <b>zone de lecture</b> (le cartouche du mot) pour masquer l'interface ; ne restent que le mot et les 3 boutons essentiels. Touchez à nouveau pour revenir.</li>
-        <li><b>Naviguer</b> — touchez le <b>texte du milieu</b> (titre / progression) pour ouvrir la navigation : aller à un chapitre ou se déplacer dans le livre.</li>
+        <li><b>Lecture rapide</b> — les mots défilent un à un ou par groupes, centrés sur la lettre repère (rouge) pour garder l'œil fixe.</li>
+        <li><b>Plein écran épuré</b> — touchez la <b>zone de lecture</b> pour masquer l'interface ; touchez à nouveau pour revenir.</li>
+        <li><b>Naviguer</b> — touchez les <b>infos de lecture</b> pour ouvrir la navigation pour aller à un chapitre ou se déplacer dans le livre.</li>
         <li><b>Chapitres</b> — les boutons ⏮ / ⏭ sautent au chapitre précédent / suivant ; les flèches reculent / avancent d'une phrase.</li>
-        <li><b>Vitesse</b> — les boutons − et + ajustent la vitesse ; ▶ démarre ou met en pause.</li>
-        <li><b>Réglages ⚙</b> — modèle de lecture, police, taille, pauses, repères, thème (Midnight / Dark Mono / Sepia / Deep Black) et plus.</li>
+        <li><b>Vitesse</b> — les boutons − et + ajustent la vitesse de lecture.</li>
         <li><b>Bibliothèque</b> — vos livres restent enregistrés et reprennent à la bonne page, même hors-ligne.</li>
       </ul>
       <button id="btn-fermer-infos">Ok</button>
@@ -254,6 +253,6 @@
 
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
-  <script src="app.js?v=86"></script>
+  <script src="app.js?v=87"></script>
 </body>
 </html>
