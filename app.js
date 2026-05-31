@@ -491,8 +491,38 @@ function appliquerCasse(racine) {
   });
 }
 
+// Retire les APPELS de note (exposants « 13 », liens « noteref »…) qui, aplatis
+// en texte simple, viennent polluer la lecture rapide (ex. « 1789 » + « 13 » →
+// « 178913 »). On s'appuie sur le balisage pour ne pas toucher aux exposants
+// légitimes (ordinaux « 1ᵉʳ », « XVIᵉ »… qui contiennent des lettres).
+function retirerAppelsNote(racine) {
+  if (!racine || !racine.querySelectorAll) return;
+  const estNumero = (t) => {
+    const n = (t || "").trim().replace(/[\[\]()]/g, "");
+    return /^\d{1,4}$/.test(n) || /^[*†‡§¶+]+$/.test(n);
+  };
+  // 1) Éléments explicitement marqués comme appels de note (EPUB3 / ARIA).
+  racine.querySelectorAll("*").forEach((el) => {
+    let t = (el.getAttribute("epub:type") || "");
+    try { t += " " + (el.getAttributeNS("http://www.idpf.org/2007/ops", "type") || ""); } catch (e) {}
+    t = (t + " " + (el.getAttribute("role") || "")).toLowerCase();
+    if (/noteref/.test(t)) el.remove();
+  });
+  // 2) Liens vers une ancre dont le texte n'est qu'un nombre/symbole court.
+  racine.querySelectorAll("a[href]").forEach((a) => {
+    const href = a.getAttribute("href") || "";
+    if (href.includes("#") && estNumero(a.textContent)) (a.closest("sup") || a).remove();
+  });
+  // 3) Exposants composés uniquement d'un nombre/symbole (numéro de note sans lien).
+  racine.querySelectorAll("sup").forEach((s) => {
+    const t = (s.textContent || "").trim();
+    if (t === "" || estNumero(t)) s.remove();
+  });
+}
+
 function texteAvecSeparateurs(el) {
   const clone = el.cloneNode(true);
+  retirerAppelsNote(clone);              // enlève les appels de note (exposants 13, liens…)
   clone.querySelectorAll("br").forEach((b) => b.replaceWith(" "));
   appliquerCasse(clone);                 // reproduit les capitales/petites capitales
   clone.querySelectorAll(
