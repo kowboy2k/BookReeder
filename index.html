@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=80">
+  <link rel="stylesheet" href="style.css?v=81">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -32,9 +32,6 @@
 
   <!-- Écran de lecture RSVP -->
   <div id="ecran-lecture" class="ecran cache">
-    <button id="btn-fermer" title="Changer de livre">✖</button>
-    <button id="btn-reglages" title="Réglages">⚙</button>
-
     <div id="zone-mot" class="avec-cadre">
       <div id="cadre"></div>
       <div id="reticule-haut"></div>
@@ -72,7 +69,12 @@
         <button id="btn-plus" title="Accélérer (+20 mots/min)">+</button>
       </div>
     </div>
-    <div id="info-vitesse">Vitesse : <span id="vitesse-actuelle">300</span> mots/min</div>
+    <!-- Barre du bas : fermer · vitesse · réglages -->
+    <div id="barre-bas">
+      <button id="btn-fermer" title="Changer de livre">✖</button>
+      <div id="info-vitesse">Vitesse : <span id="vitesse-actuelle">300</span> mots/min</div>
+      <button id="btn-reglages" title="Réglages">⚙</button>
+    </div>
 
     <!-- Mode épuré : barre minimale (retour phrase · play/pause · avance phrase) -->
     <div id="barre-epure">
@@ -224,6 +226,6 @@
 
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
-  <script src="app.js?v=80"></script>
+  <script src="app.js?v=81"></script>
 </body>
 </html>
