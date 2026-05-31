@@ -389,6 +389,7 @@ html, body {
   flex: none;
   width: 3.2rem;
   height: 3.2rem;
+  margin-bottom: 0.8rem;            /* remonte les boutons par rapport au bas */
   border-radius: 50%;
   background: var(--surface);
   color: var(--texte);
