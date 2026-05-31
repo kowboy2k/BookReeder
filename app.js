@@ -84,7 +84,12 @@ const supprimerLivre = (id) => transaction("readwrite", (s) => s.delete(id));
 async function sauverPosition() {
   if (!etat.idLivre) return;
   const livre = await lireLivre(etat.idLivre);
-  if (livre) { livre.index = etat.index; await sauverLivre(livre); }
+  if (livre) {
+    // Position stockée en fraction (0–1) : indépendante de la tokenisation du modèle
+    livre.progression = etat.mots.length ? etat.index / etat.mots.length : 0;
+    livre.total = etat.mots.length;
+    await sauverLivre(livre);
+  }
 }
 
 // =========================================================
@@ -105,8 +110,9 @@ async function chargerEpub(buffer, nom, taille) {
   try {
     const livre = ePub(buffer);
     await livre.ready;
-    const { mots, chapitres } = await extraireLivre(livre);
-    if (mots.length === 0) throw new Error("Aucun texte trouvé");
+    const { chapitresTexte } = await extraireLivre(livre);
+    const apercu = tokeniserChapitres(chapitresTexte, etat.modele.decouper);
+    if (apercu.mots.length === 0) throw new Error("Aucun texte trouvé");
 
     // Titre et auteur depuis les métadonnées de l'EPUB (sinon nom de fichier).
     // Le champ peut être une chaîne ou un objet ({ name } / { value }) selon l'EPUB.
@@ -128,7 +134,7 @@ async function chargerEpub(buffer, nom, taille) {
     const id = nom + "|" + taille;
     const fiche = {
       id, nom, titre, auteur, dateAjout: Date.now(),
-      mots, chapitres, index: 0, total: mots.length,
+      chapitresTexte, progression: 0, total: apercu.mots.length,
     };
     await sauverLivre(fiche);
     ouvrirFiche(fiche);
@@ -138,15 +144,26 @@ async function chargerEpub(buffer, nom, taille) {
   }
 }
 
+// Reconstruit le texte par chapitre depuis une ancienne fiche (mots + offsets)
+function reconstruireChapitresTexte(fiche) {
+  if (!fiche.mots || !fiche.mots.length) return [{ titre: "Début", texte: "" }];
+  const ch = (fiche.chapitres && fiche.chapitres.length) ? fiche.chapitres : [{ titre: "Début", debut: 0 }];
+  return ch.map((c, i) => ({
+    titre: c.titre,
+    texte: fiche.mots.slice(c.debut, ch[i + 1] ? ch[i + 1].debut : fiche.mots.length).join(" "),
+  }));
+}
+
 // Charge en mémoire une fiche de la bibliothèque et démarre la lecture
 function ouvrirFiche(fiche) {
-  etat.mots = fiche.mots;
-  etat.chapitres = fiche.chapitres && fiche.chapitres.length
-    ? fiche.chapitres : [{ titre: "Début", debut: 0 }];
+  etat.chapitresTexte = fiche.chapitresTexte && fiche.chapitresTexte.length
+    ? fiche.chapitresTexte : reconstruireChapitresTexte(fiche);
   etat.idLivre = fiche.id;
   etat.nomLivre = fiche.nom;
   etat.titreLivre = fiche.titre || fiche.nom;
-  etat.index = Math.min(fiche.index || 0, fiche.mots.length - 1);
+  etat.progression = fiche.progression != null ? fiche.progression
+    : (fiche.total ? (fiche.index || 0) / fiche.total : 0);
+  retokeniser();
   remplirSelectChapitres();
   placerMarqueursChapitres();
   demarrerLecture();
@@ -163,25 +180,23 @@ Il n’avait aucune grâce, à part une mince nageoire qui courait tout le long 
 Lord John se retourna en réprimant une grimace et en affichant un sourire courtois. Il s’inclina devant Edwin Nicholls.`;
 
 $("btn-demo").addEventListener("click", () => {
-  etat.mots = decouperEnMots(TEXTE_DEMO);
-  etat.chapitres = [{ titre: "Texte de démo", debut: 0 }];
+  etat.chapitresTexte = [{ titre: "Texte de démo", texte: TEXTE_DEMO }];
   etat.idLivre = null;
   etat.nomLivre = "Démo";
   etat.titreLivre = "Texte de démo";
-  etat.index = 0;
+  etat.progression = 0;
+  retokeniser();
   remplirSelectChapitres();
   placerMarqueursChapitres();
   demarrerLecture();
 });
 
-// Parcourt toutes les sections, concatène le texte ET repère où commence
-// chaque chapitre (index du mot). La table des matières (TOC) est la
-// source principale : chaque entrée pointe vers une section et parfois vers
-// une ancre précise (#id) à l'intérieur — on calcule alors le nombre de mots
-// avant cette ancre pour situer le chapitre au bon endroit. Sans TOC
-// exploitable : repli sur les sections, puis sur des « Passage N » de 1500 mots.
+// Extrait le livre sous forme de TEXTE BRUT par chapitre : [{ titre, texte }].
+// La tokenisation en mots (et donc les index de chapitre) est faite ENSUITE
+// par le modèle actif (tokeniserChapitres), pour que chaque modèle puisse
+// découper le texte à sa façon. Les chapitres viennent de la TOC (ancres
+// incluses) ; sinon une entrée par section.
 async function extraireLivre(livre) {
-  // TOC à plat, en gardant l'ordre et l'ancre éventuelle (#id)
   const toc = [];
   try {
     const nav = await livre.loaded.navigation;
@@ -190,11 +205,22 @@ async function extraireLivre(livre) {
       if (item.subitems && item.subitems.length) parcourir(item.subitems);
     });
     if (nav && nav.toc) parcourir(nav.toc);
-  } catch (e) { /* pas de TOC : on continuera sans */ }
+  } catch (e) { /* pas de TOC */ }
 
-  const motsTotal = [];
-  const debutSection = {};   // href (sans ancre) -> index du 1er mot
-  const debutAncre = {};     // href complet (#id)   -> index du mot
+  // Texte brut entre deux éléments (ou début/fin de section)
+  const texteEntre = (doc, corps, debutEl, finEl) => {
+    try {
+      const range = doc.createRange();
+      if (debutEl) range.setStartBefore(debutEl); else range.setStart(corps, 0);
+      if (finEl) range.setEndBefore(finEl); else range.setEndAfter(corps);
+      const div = doc.createElement("div");
+      div.appendChild(range.cloneContents());
+      return texteAvecSeparateurs(div).trim();
+    } catch (e) { return ""; }
+  };
+
+  const chapitresTexte = [];   // [{ titre, texte }]
+  let nSection = 0;
 
   for (const section of livre.spine.spineItems) {
     try {
@@ -207,35 +233,47 @@ async function extraireLivre(livre) {
           doc = contenu.ownerDocument || contenu;
         }
       }
+      const fullText = corps ? texteAvecSeparateurs(corps).trim()
+                             : (contenu ? (contenu.textContent || "").trim() : "");
+      if (!fullText) continue;
       const baseHref = (section.href || "").split("#")[0];
-      const txt = corps ? texteAvecSeparateurs(corps)
-                        : (contenu ? contenu.textContent : "");
-      const motsSection = txt && txt.trim() ? decouperEnMots(txt.trim()) : [];
-      const base = motsTotal.length;
+      nSection++;
 
-      if (motsSection.length) {
-        if (debutSection[baseHref] === undefined) debutSection[baseHref] = base;
+      // Entrées TOC de cette section
+      const entriesIci = toc.filter((t) => t.href.split("#")[0] === baseHref);
+      const sansAncre = entriesIci.find((t) => !t.href.includes("#"));
+      const labelSection = (sansAncre && sansAncre.label) ||
+        (entriesIci[0] && !entriesIci[0].href.includes("#") ? entriesIci[0].label : "") ||
+        ("Section " + nSection);
 
-        // Pour chaque entrée TOC avec ancre dans cette section, compter les
-        // mots situés avant l'ancre pour caler le chapitre dessus.
-        if (corps && doc && doc.createRange) {
-          toc.forEach((t) => {
-            const [h, id] = t.href.split("#");
-            if (h !== baseHref || !id || debutAncre[t.href] !== undefined) return;
-            let el = null;
-            try { el = corps.querySelector("#" + cssEchappe(id)); } catch (e) {}
-            if (!el && doc.getElementById) el = doc.getElementById(id);
-            if (!el) return;
-            try {
-              const range = doc.createRange();
-              range.setStart(corps, 0);
-              range.setEndBefore(el);
-              const avant = decouperEnMots(range.toString()).length;
-              debutAncre[t.href] = base + Math.min(avant, motsSection.length - 1);
-            } catch (e) {}
-          });
+      // Ancres présentes, dans l'ordre du document
+      const ancres = [];
+      if (corps && doc && doc.createRange) {
+        entriesIci.forEach((t) => {
+          const id = t.href.split("#")[1];
+          if (!id) return;
+          let el = null;
+          try { el = corps.querySelector("#" + cssEchappe(id)); } catch (e) {}
+          if (!el && doc.getElementById) el = doc.getElementById(id);
+          if (el) ancres.push({ label: t.label, el });
+        });
+        ancres.sort((a, b) =>
+          (a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1);
+      }
+
+      if (ancres.length === 0) {
+        chapitresTexte.push({ titre: labelSection, texte: fullText });
+      } else {
+        // Texte avant la 1re ancre -> rattaché au chapitre précédent, ou "Début"
+        const avant = texteEntre(doc, corps, null, ancres[0].el);
+        if (avant) {
+          if (chapitresTexte.length) chapitresTexte[chapitresTexte.length - 1].texte += "\n" + avant;
+          else chapitresTexte.push({ titre: labelSection || "Début", texte: avant });
         }
-        motsTotal.push(...motsSection);
+        ancres.forEach((a, i) => {
+          const t = texteEntre(doc, corps, a.el, ancres[i + 1] ? ancres[i + 1].el : null);
+          if (t) chapitresTexte.push({ titre: a.label || ("Chapitre " + chapitresTexte.length), texte: t });
+        });
       }
     } catch (e) {
       console.warn("Section illisible ignorée", e);
@@ -244,30 +282,34 @@ async function extraireLivre(livre) {
     }
   }
 
-  // Construction des chapitres depuis la TOC (ordre du livre)
-  let chapitres = [];
-  toc.forEach((t) => {
-    let debut = debutAncre[t.href];
-    if (debut === undefined) debut = debutSection[t.href.split("#")[0]];
-    if (debut !== undefined)
-      chapitres.push({ titre: t.label || ("Chapitre " + (chapitres.length + 1)), debut });
+  if (chapitresTexte.length === 0) chapitresTexte.push({ titre: "Début", texte: "" });
+  return { chapitresTexte };
+}
+
+// Tokenise le texte par chapitre avec le découpage `decouper` du modèle actif,
+// et calcule les index de début de chaque chapitre.
+function tokeniserChapitres(chapitresTexte, decouper) {
+  const mots = [];
+  const chapitres = [];
+  (chapitresTexte || []).forEach((ch) => {
+    const m = decouper(ch.texte || "");
+    if (m.length === 0) return;
+    chapitres.push({ titre: ch.titre || "Chapitre", debut: mots.length });
+    mots.push(...m);
   });
-  chapitres.sort((a, b) => a.debut - b.debut);
-  chapitres = chapitres.filter((c, i) => i === 0 || c.debut > chapitres[i - 1].debut);
-
-  // Repli : pas de TOC -> une entrée par section
-  if (chapitres.length === 0) {
-    Object.keys(debutSection)
-      .sort((a, b) => debutSection[a] - debutSection[b])
-      .forEach((h, i) => chapitres.push({ titre: "Section " + (i + 1), debut: debutSection[h] }));
-  }
-  // Aucun découpage exploitable : un seul repère. Les boutons « chapitre »
-  // basculeront alors sur un saut de 1000 mots (voir allerChapitre).
   if (chapitres.length === 0) chapitres.push({ titre: "Début", debut: 0 });
-  // Garantit un repère au tout début (matière avant le 1er chapitre de la TOC)
-  if (chapitres[0].debut > 0) chapitres.unshift({ titre: "Début", debut: 0 });
+  return { mots, chapitres };
+}
 
-  return { mots: motsTotal, chapitres };
+// (Re)tokenise le livre courant avec le modèle actif, en conservant la
+// position relative (progression) de lecture.
+function retokeniser() {
+  const { mots, chapitres } = tokeniserChapitres(etat.chapitresTexte, etat.modele.decouper);
+  etat.mots = mots;
+  etat.chapitres = chapitres;
+  const total = Math.max(1, etat.mots.length);
+  etat.index = Math.min(Math.round((etat.progression || 0) * (total - 1)), total - 1);
+  if (etat.index < 0 || !isFinite(etat.index)) etat.index = 0;
 }
 
 // Échappe un id pour querySelector (CSS.escape si dispo)
@@ -608,6 +650,11 @@ function delaiHotGato() {
   if (/[\d.,!?;:'"`«»…]/.test(texte)) delai += base * P.pauseFactor * etat.coefPause;
   return Math.max(delai, P.affichageMin);
 }
+// Tokenisation simple façon HotGato : découpe sur les espaces (la ponctuation
+// reste collée au mot, mais aucun traitement français/dialogue particulier).
+function decouperHotGato(texte) {
+  return (texte || "").replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
+}
 function orpHotGato() { return -1; } // HotGato n'a pas de repère ORP
 function grasHotGato(mot) {
   const lettres = [];
@@ -622,6 +669,7 @@ const MODELES = {
     id: "default",
     nom: "BookReeder (default)",
     // Fonctions = règles de découpe / rythme / ORP / bionic
+    decouper: decouperEnMots,
     chunk: construireChunkDepuis,
     delai: delaiChunk,
     orp: calculerOrp,
@@ -646,6 +694,7 @@ const MODELES = {
   hotgato: {
     id: "hotgato",
     nom: "HotGato",
+    decouper: decouperHotGato,
     chunk: chunkHotGato,
     delai: delaiHotGato,
     orp: orpHotGato,
@@ -801,7 +850,7 @@ function majProgression() {
   $("curseur").style.left = pctChap + "%";
   $("position-actuelle").textContent = posChap;
   $("total-mots").textContent = lenChap;
-  $("position-pct").textContent = pctChap.toFixed(2).replace(".", ",");
+  $("position-pct").textContent = pctChap.toFixed(0).replace(".", ",");
   $("chapitre-actuel").textContent = tronquerTitre(chapitreActuel().titre);
 
   if (!$("panneau-navigation").classList.contains("cache")) majBarreLivre();
@@ -812,7 +861,7 @@ function majBarreLivre() {
   const pct = etat.mots.length ? (etat.index / etat.mots.length) * 100 : 0;
   $("remplissage-livre").style.width = pct + "%";
   $("curseur-livre").style.left = pct + "%";
-  $("position-pct-livre").textContent = pct.toFixed(2).replace(".", ",");
+  $("position-pct-livre").textContent = pct.toFixed(1).replace(".", ",");
   // Le menu déroulant suit automatiquement le chapitre courant
   const sel = $("nav-chapitre");
   if (sel.options.length) sel.value = etat.chapitres.indexOf(chapitreActuel());
@@ -821,7 +870,7 @@ function majBarreLivre() {
 // Tronque un titre de chapitre trop long pour la ligne d'info
 function tronquerTitre(t) {
   t = t || "";
-  return t.length > 20 ? t.slice(0, 20).trimEnd() + " [...]" : t;
+  return t.length > 20 ? t.slice(0, 20).trimEnd() + "..." : t;
 }
 
 // Chapitre contenant la position de lecture courante
@@ -877,9 +926,9 @@ function demarrerLecture() {
 // =========================================================
 $("btn-lecture").addEventListener("click", basculerLecture);
 
-// Vitesse : − et + par paliers de 50 mots/min (bornes 200–800)
+// Vitesse : − et + par paliers de 20 mots/min (bornes 100–800)
 function reglerVitesse(v) {
-  etat.vitesse = Math.min(800, Math.max(200, v));
+  etat.vitesse = Math.min(800, Math.max(100, v));
   $("vitesse-actuelle").textContent = etat.vitesse;
 }
 $("btn-moins").addEventListener("click", () => reglerVitesse(etat.vitesse - 20));
@@ -1000,7 +1049,9 @@ async function afficherBibliotheque() {
   conteneur.appendChild(titre);
 
   livres.forEach((livre) => {
-    const pct = livre.total ? Math.round(livre.index / livre.total * 100) : 0;
+    const frac = livre.progression != null ? livre.progression
+      : (livre.total ? (livre.index || 0) / livre.total : 0);
+    const pct = Math.round(frac * 100);
     const item = document.createElement("div");
     item.className = "item-livre";
     item.innerHTML =
@@ -1047,6 +1098,14 @@ $("btn-fermer-reglages").addEventListener("click", () => {
 
 $("reglage-modele").addEventListener("change", (e) => {
   activerModele(e.target.value);
+  // Chaque modèle re-découpe le texte à sa façon (en conservant la position)
+  if (etat.chapitresTexte) {
+    if (etat.mots && etat.mots.length) etat.progression = etat.index / etat.mots.length;
+    retokeniser();
+    remplirSelectChapitres();
+    placerMarqueursChapitres();
+  }
+  etat.elan = 1;
   afficherChunk();
 });
 $("reglage-nb-mots").addEventListener("input", (e) => {
@@ -1057,7 +1116,7 @@ $("reglage-nb-mots").addEventListener("input", (e) => {
 });
 
 // Largeur du cartouche calculée automatiquement selon le nombre de mots
-// affichés (1 à 4) : plus il y a de mots, plus le cadre est large, pour que
+// affichés (1 à 3) : plus il y a de mots, plus le cadre est large, pour que
 // tout tienne sans déborder. La police s'ajuste ensuite si besoin (garde-fou).
 function ajusterCadre() {
   const n = etat.nbMots;

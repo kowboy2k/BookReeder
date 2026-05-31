@@ -142,7 +142,7 @@ html, body {
    puis la barre, les infos et les boutons s'empilent en bas. */
 #ecran-lecture {
   justify-content: flex-start;
-  padding: 0 0 0.8rem;
+  padding: 0 0 2.8rem;
 }
 #zone-mot {
   position: relative;
@@ -272,21 +272,22 @@ html, body {
 #zone-navigation {
   width: 100%;
   padding: 0.7rem 1.5rem;
-  margin-bottom: 1rem;
+  margin-bottom: 2rem;
   text-align: center;
   font-family: sans-serif;
   color: var(--gris);
   cursor: pointer;
+  
 }
 #zone-navigation:hover { color: var(--texte); }
 #titre-livre {
-  font-size: 0.95rem;
+  font-size: 1.4rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-bottom: 0.35rem;
+  margin-bottom: 1.0rem;
 }
-#info-progression { font-size: 0.85rem; }
+#info-progression { font-size: 1rem; }
 
 /* Avance / retour rapide : deux gros boutons */
 #nav-rapide {
@@ -295,7 +296,8 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1.2rem;
+  gap: 2rem;
+  margin-top: 3rem;
 }
 #nav-rapide button {
   background: #2a2a3a;
@@ -304,23 +306,32 @@ html, body {
   width: 5rem;
   height: 5rem;
   border-radius: 50%;
-  font-size: 1.7rem;
+  font-size: 2.7rem;
   cursor: pointer;
 }
 /* Chapitre précédent / suivant : boutons plus petits sur les côtés */
-#nav-rapide .btn-chapitre { width: 3.6rem; height: 3.6rem; font-size: 1.3rem; }
-#nav-rapide button:active { transform: scale(0.93); }
+#nav-rapide .btn-chapitre {
+    line-height: 1;
+    width: 3.6rem;
+    height: 3.6rem;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+ 
+}#nav-rapide button:active { transform: scale(0.93); display: flex; align-items: center; justify-content: center; }
 
 /* Barre principale : groupe vitesse (− lecture +) centré */
 #controles {
   width: 100%;
+  font-size: 2.7rem;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0 1.5rem;
   margin-bottom: 1.6rem; /* place pour le décalage de − / + */
 }
-#groupe-vitesse { display: flex; gap: 0.7rem; }
+#groupe-vitesse { display: flex; gap: 2rem; font-size: 2.7rem;}
 
 /* Effets communs de survol et de clic sur tous les boutons ronds */
 #btn-fermer, #btn-reglages,
@@ -346,20 +357,28 @@ html, body {
   width: 3.6rem;
   height: 3.6rem;
   border-radius: 50%;
-  font-size: 1.3rem;
+  font-size: 2.3rem;
   cursor: pointer;
 }
 #controles button:active { transform: scale(0.92); }
 /* Play/pause aussi grand que les boutons avance/retour rapide */
-#controles #btn-lecture { width: 5rem; height: 5rem; font-size: 1.7rem; }
+#controles #btn-lecture {   
+    width: 5rem;
+    height: 5rem;
+    font-size: 1.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    right: 2px; }
 /* − et + descendus de 20px par rapport au play */
 #groupe-vitesse #btn-moins,
-#groupe-vitesse #btn-plus { position: relative; top: 20px; }
+#groupe-vitesse #btn-plus { position: relative; top: 10px; }
 #info-vitesse {
   width: 100%;
   text-align: center;
   font-family: sans-serif;
-  font-size: 0.85rem;
+  font-size: 1rem;
   color: var(--gris);
 }
 

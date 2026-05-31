@@ -7,15 +7,15 @@
   <title>BookReeder</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="style.css?v=68">
+  <link rel="stylesheet" href="style.css?v=69">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
   <div id="ecran-accueil" class="ecran">
     <h1>BookReeder</h1>
-    <p class="sous-titre">Lecture rapide d'ebooks, hors-ligne</p>
+    <p class="sous-titre">Lecture rapide d'eBooks</p>
     <label class="bouton-ouvrir">
-      Ouvrir un fichier EPUB
+      Ouvrir un fichier ePUB
       <input type="file" id="input-fichier" accept=".epub" hidden>
     </label>
     <button id="btn-demo" class="lien-demo">Essayer avec un texte de démo</button>
@@ -37,11 +37,6 @@
       <div id="reticule-bas"></div>
     </div>
 
-    <div id="barre-progression">
-      <div id="progression-remplissage"></div>
-      <div id="marqueurs-chapitres"></div>
-      <div id="curseur"></div>
-    </div>
     <!-- Zone cliquable (titre + info) qui ouvre la navigation -->
     <div id="zone-navigation" title="Aller à un chapitre / une position">
       <div id="titre-livre">—</div>
@@ -51,9 +46,13 @@
         &nbsp;•&nbsp; <span id="position-actuelle">0</span> / <span id="total-mots">0</span> mots
       </div>
     </div>
-
+    <div id="barre-progression">
+      <div id="progression-remplissage"></div>
+      <div id="marqueurs-chapitres"></div>
+      <div id="curseur"></div>
+    </div>
     <!-- Chapitre précédent · retour rapide · avance rapide · chapitre suivant -->
-    <div id="nav-rapide">
+    <div id="nav-rapide" ;>
       <button id="btn-chap-prec" class="btn-chapitre" title="Chapitre précédent">⏮&#xFE0E;</button>
       <button id="btn-recul" title="Phrase précédente">⇤&#xFE0E;</button>
       <button id="btn-avance" title="Phrase suivante">⇥&#xFE0E;</button>
@@ -198,6 +197,6 @@
 
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
-  <script src="app.js?v=68"></script>
+  <script src="app.js?v=69"></script>
 </body>
 </html>
