@@ -100,6 +100,16 @@ html.theme-mono {
   --surface-survol: #3a3a3a;
 }
 
+html.theme-black {
+  --fond: #000000;
+  --texte: #e6e6e6;
+  --accent: #5a8dd6;
+  --gris: #777;
+  --surface: #161616;
+  --surface-bord: #2a2a2a;
+  --surface-survol: #232323;
+}
+
 html.theme-sepia {
   --fond: #f4ecd8;
   --texte: #4a3c2c;

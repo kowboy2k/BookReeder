@@ -1182,10 +1182,11 @@ $("reglage-pause-chapitre").addEventListener("change", (e) => {
 });
 
 // --- Thème (Midnight / Dark Mono / Sepia) ---
-const COULEURS_THEME = { midnight: "#1e1e2e", mono: "#121212", sepia: "#f4ecd8" };
+const COULEURS_THEME = { midnight: "#1e1e2e", mono: "#121212", sepia: "#f4ecd8", black: "#000000" };
 function appliquerTheme(nom) {
   document.documentElement.classList.toggle("theme-mono", nom === "mono");
   document.documentElement.classList.toggle("theme-sepia", nom === "sepia");
+  document.documentElement.classList.toggle("theme-black", nom === "black");
   $("reglage-theme").value = nom;
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute("content", COULEURS_THEME[nom] || COULEURS_THEME.midnight);
