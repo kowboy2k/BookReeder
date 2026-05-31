@@ -1239,6 +1239,7 @@ function placerMarqueursChapitres() {
 function demarrerLecture() {
   ecranAccueil.classList.add("cache");
   ecranLecture.classList.remove("cache");
+  if (typeof rafraichirBulleLireMoi === "function") rafraichirBulleLireMoi();
   $("titre-livre").textContent = etat.titreLivre || etat.nomLivre || "";
   reglerVitesse(etat.vitesse);
   ajusterCadre();
@@ -1273,8 +1274,17 @@ function construireContexte() {
 }
 function marquerCourant(recentrer) {
   const cont = $("contexte-texte");
-  cont.querySelectorAll(".courant").forEach((s) => s.classList.remove("courant"));
+  cont.querySelectorAll(".courant, .phrase-courante").forEach((s) => s.classList.remove("courant", "phrase-courante"));
   const nb = Math.max(1, (etat.modele.chunk(etat.index) || {}).nb || 1);
+  // Phrase entière contenant le mot courant : du début de phrase au début suivant.
+  const phDebut = debutPhraseAvant(etat.index);
+  let phFin = etat.index + 1;
+  while (phFin < etat.mots.length && !estDebutPhrase(phFin)) phFin++;
+  for (let i = phDebut; i < phFin; i++) {
+    const s = cont.querySelector('span[data-i="' + i + '"]');
+    if (s) s.classList.add("phrase-courante");   // toute la phrase en gras (couleur conservée)
+  }
+  // Mot/groupe en cours : couleur accentuée (repère).
   let prem = null;
   for (let i = etat.index; i < etat.index + nb; i++) {
     const s = cont.querySelector('span[data-i="' + i + '"]');
@@ -1381,6 +1391,7 @@ $("btn-fermer").addEventListener("click", async () => {
   $("input-fichier").value = "";
   $("message-chargement").textContent = "";
   afficherBibliotheque();
+  if (typeof rafraichirBulleLireMoi === "function") rafraichirBulleLireMoi();
 });
 
 // =========================================================
@@ -1560,15 +1571,29 @@ function versionApp() {
 })();
 
 // Info-bulle « Lisez-moi ! » vers le (i) : 1re ouverture ou changement de version.
-function cacherBulleLireMoi() { $("bulle-liremoi").classList.add("cache"); }
-function afficherBulleLireMoi() {
+// Le (i) n'existe que sur l'écran d'accueil → la bulle ne vit que sur l'accueil.
+// Elle reste « active » (réapparaît à chaque retour à l'accueil) tant qu'on n'a
+// pas cliqué dessus ou ouvert le (i).
+let bulleActive = false;
+function positionnerBulle() {
   const btn = $("btn-infos"), bulle = $("bulle-liremoi");
   if (!btn || !bulle) return;
   const r = btn.getBoundingClientRect();
-  bulle.classList.remove("cache");
   bulle.style.top = (r.bottom + 10) + "px";
   bulle.style.right = Math.max(8, window.innerWidth - r.right) + "px";
-  // Se masque uniquement à l'ouverture du (i) ou au clic sur la bulle.
+}
+// Masquage permanent (clic sur la bulle ou ouverture du (i)).
+function cacherBulleLireMoi() {
+  bulleActive = false;
+  $("bulle-liremoi").classList.add("cache");
+}
+// Affiche la bulle si elle est encore active ET qu'on est sur l'accueil.
+function rafraichirBulleLireMoi() {
+  const bulle = $("bulle-liremoi");
+  if (!bulle) return;
+  const surAccueil = !ecranAccueil.classList.contains("cache");
+  if (bulleActive && surAccueil) { positionnerBulle(); bulle.classList.remove("cache"); }
+  else { bulle.classList.add("cache"); }
 }
 $("btn-infos").addEventListener("click", cacherBulleLireMoi);
 $("bulle-liremoi").addEventListener("click", cacherBulleLireMoi);
@@ -1578,7 +1603,8 @@ $("bulle-liremoi").addEventListener("click", cacherBulleLireMoi);
   const v = versionApp();
   if (v && vue !== v) {
     try { localStorage.setItem("bookreeder-vue-version", v); } catch (e) {}
-    setTimeout(afficherBulleLireMoi, 500);   // laisse le temps à la mise en page
+    bulleActive = true;
+    setTimeout(rafraichirBulleLireMoi, 500);   // laisse le temps à la mise en page
   }
 })();
 
@@ -1744,6 +1770,7 @@ function appliquerCoefAccel(v) {
   etat.coefAccel = v;
   $("reglage-accel").value = v;
   $("valeur-accel").textContent = (+v <= 1 ? "1,0 (désactivé)" : (+v).toFixed(1).replace(".", ","));
+  $("btn-fermer-accel").textContent = (+v <= 1 ? "OK" : (+v >= 3 ? "T'es ouf !" : "Zé partiii !"));
   try { localStorage.setItem("bookreeder-coef-accel", v); } catch (e) {}
   majVitesseAffichee();   // accent à jour immédiatement (coef ≠ ×1)
   demarrerAccel();

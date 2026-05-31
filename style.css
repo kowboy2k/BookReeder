@@ -202,9 +202,10 @@ html, body {
 #contexte-texte::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 3px; }
 #contexte-texte .ctx-bloc { margin: 0 0 0.9em; }      /* saut de ligne entre paragraphes */
 #contexte-texte .ctx-titre { font-weight: 900; }       /* titre/chapitre en Black */
+#contexte-texte span[data-i] { opacity: 0.5; }         /* texte atténué (50 %) */
+#contexte-texte span.phrase-courante { opacity: 1; }   /* phrase en cours à 100 % */
 #contexte-texte .courant {
-  color: var(--orp-couleur, var(--accent));
-  font-weight: 700;
+  color: var(--orp-couleur, var(--accent));            /* mot courant : couleur du repère */
 }
 #contexte-barre {
   flex: none;
