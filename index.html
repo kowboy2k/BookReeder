@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=69">
+  <link rel="stylesheet" href="style.css?v=71">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -156,6 +156,11 @@
       </div>
 
       <div class="reglage">
+        <label for="reglage-taille-police">Taille de la police : <span id="valeur-taille-police">100</span> %</label>
+        <input type="range" id="reglage-taille-police" min="20" max="140" step="10" value="100">
+      </div>
+
+      <div class="reglage">
         <label for="reglage-espace-lettres">Espacement des lettres : <span id="valeur-espace-lettres">0</span> px</label>
         <input type="range" id="reglage-espace-lettres" min="-1" max="8" step="0.5" value="0">
       </div>
@@ -202,6 +207,6 @@
 
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
-  <script src="app.js?v=69"></script>
+  <script src="app.js?v=71"></script>
 </body>
 </html>

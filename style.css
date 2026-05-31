@@ -81,6 +81,7 @@
   --ret-longueur: 14px;
   --bio-couleur: inherit; /* couleur du début de mot bionic */
   --orp-couleur: #f25c54; /* couleur du repère central (lettre ORP) */
+  --echelle-police: 1; /* taille de la police de lecture (20%–140%) */
   --cadre-largeur: min(90%, 600px); /* largeur du cartouche */
 }
 
@@ -152,7 +153,7 @@ html, body {
 }
 
 #mot-affiche {
-  font-size: clamp(2rem, 9vw, 5rem);
+  font-size: calc(clamp(2rem, 9vw, 5rem) * var(--echelle-police, 1));
   font-family: var(--police);
   font-weight: var(--graisse);
   letter-spacing: var(--espace-lettres);

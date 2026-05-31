@@ -1289,6 +1289,11 @@ $("reglage-majuscules").addEventListener("change", (e) => {
   motAffiche.classList.toggle("majuscules", e.target.checked);
   afficherChunk(); // recalcule le centrage ORP (largeurs modifiées)
 });
+$("reglage-taille-police").addEventListener("input", (e) => {
+  document.documentElement.style.setProperty("--echelle-police", e.target.value / 100);
+  $("valeur-taille-police").textContent = e.target.value;
+  afficherChunk(); // recalcule l'ajustement au cadre + centrage ORP
+});
 $("reglage-espace-lettres").addEventListener("input", (e) => {
   document.documentElement.style.setProperty("--espace-lettres", e.target.value + "px");
   $("valeur-espace-lettres").textContent = e.target.value;
