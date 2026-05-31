@@ -367,15 +367,30 @@ html, body {
 }
 #controles button:active { transform: scale(0.92); }
 /* Play/pause aussi grand que les boutons avance/retour rapide */
-#controles #btn-lecture {   
-    width: 5rem;
-    height: 5rem;
-    font-size: 1.7rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    right: 2px; }
+#controles #btn-lecture {
+  width: 5rem;
+  height: 5rem;
+  font-size: 1.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Icônes dessinées en CSS (currentColor) : nettes et monochromes, contrairement
+   aux emojis ⏸/▶ qui s'affichent en couleur sur iOS. */
+#btn-lecture::before { content: ""; display: block; }
+#btn-lecture.icone-play::before {       /* triangle « lecture » */
+  width: 0; height: 0;
+  border-style: solid;
+  border-width: 0.6em 0 0.6em 1em;
+  border-color: transparent transparent transparent currentColor;
+  margin-left: 0.14em;                  /* recentrage optique du triangle */
+}
+#btn-lecture.icone-pause::before {      /* deux barres « pause » */
+  width: 0.32em; height: 1.18em;
+  box-sizing: content-box;
+  border-left: 0.32em solid currentColor;
+  border-right: 0.32em solid currentColor;
+}
 /* − et + descendus de 20px par rapport au play */
 #groupe-vitesse #btn-moins,
 #groupe-vitesse #btn-plus { position: relative; top: 10px; }

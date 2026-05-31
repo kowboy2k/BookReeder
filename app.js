@@ -782,14 +782,21 @@ function lecture() {
   etat.enLecture = true;
   etat.elan = 1;            // repart à pleine cadence
   clearTimeout(etat.minuteur); // évite tout minuteur en double
-  $("btn-lecture").textContent = "⏸";
+  iconeLecture(true);
   tick();
+}
+
+// Bascule l'icône du bouton : true = en lecture (barres pause), false = play (triangle)
+function iconeLecture(joue) {
+  const b = $("btn-lecture");
+  b.classList.toggle("icone-pause", joue);
+  b.classList.toggle("icone-play", !joue);
 }
 
 function pause() {
   etat.enLecture = false;
   clearTimeout(etat.minuteur);
-  $("btn-lecture").textContent = "▶";
+  iconeLecture(false);
   sauverPosition();
 }
 
@@ -814,7 +821,7 @@ function deplacer(pas, continuer) {
     etat.minuteur = setTimeout(tick, DELAI_REPRISE);
   } else {
     etat.enLecture = false;
-    $("btn-lecture").textContent = "▶";
+    iconeLecture(false);
   }
   sauverPosition();
 }
