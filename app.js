@@ -17,6 +17,9 @@ const etat = {
   pauseAuto: "fin",         // pause auto : "fin" (fin de chapitre), "suivant" (ouverture du suivant), "off"
   _pauseApresChunk: false,  // drapeau interne pour le mode "suivant"
   coefPause: 1,      // coefficient multiplicateur des temps de pause (0,5–4)
+  coefAccel: 1,      // accélération max visée (×1 = constante, jusqu'à ×4)
+  multAccel: 1,      // multiplicateur d'accélération courant (1 → coefAccel)
+  phrasesAccel: 0,   // phrases lues depuis la dernière hausse d'accélération
   elan: 1,           // « momentum » : <1 juste après une pause, remonte vers 1
   orpActif: true,
   bionic: false,     // lecture bionic (début des mots en gras)
@@ -753,7 +756,7 @@ function dansDialogue(i) {
 
 function delaiChunk() {
   const P = etat.modele.params;                 // recette de rythme du modèle actif
-  const base = 60000 / etat.vitesse;            // ms pour un mot « moyen »
+  const base = 60000 / vitesseEff();            // ms pour un mot « moyen » (avec accélération)
   const debut = etat.index, fin = etat.index + etat.nbCourant;
   const groupe = etat.mots.slice(debut, fin);
 
@@ -844,7 +847,7 @@ function chunkHotGato(start) {
 }
 function delaiHotGato() {
   const P = etat.modele.params;
-  const base = 60000 / etat.vitesse;
+  const base = 60000 / vitesseEff();
   const texte = etat.mots.slice(etat.index, etat.index + etat.nbCourant).join(" ");
   let delai = base * etat.nbCourant;
   // Noms propres (uniquement si le modèle le demande, ex. Hybride) : 500 ms mini par nom.
@@ -962,6 +965,15 @@ function tick() {
     pause();
     return;
   }
+  // Accélération : +0,1× toutes les 2 phrases, jusqu'à la valeur visée (coefAccel).
+  if (etat.coefAccel > 1 && estDebutPhrase(etat.index)) {
+    etat.phrasesAccel++;
+    if (etat.phrasesAccel >= 2 && etat.multAccel < etat.coefAccel) {
+      etat.phrasesAccel = 0;
+      etat.multAccel = Math.min(etat.coefAccel, Math.round((etat.multAccel + 0.1) * 10) / 10);
+    }
+    majVitesseAffichee();
+  }
   afficherChunk();           // calcule etat.nbCourant
   const d = etat.modele.delai();
   const finChap = bornesChapitre().fin;     // fin du chapitre du chunk affiché
@@ -996,6 +1008,9 @@ function lecture() {
   if (etat.index >= etat.mots.length) etat.index = 0;
   etat.enLecture = true;
   etat.elan = 1;            // repart à pleine cadence
+  etat.multAccel = 1;       // l'accélération repart de la vitesse initiale
+  etat.phrasesAccel = 0;
+  majVitesseAffichee();
   etat._pauseApresChunk = false;
   clearTimeout(etat.minuteur); // évite tout minuteur en double
   iconeLecture(true);
@@ -1041,6 +1056,9 @@ function pause() {
   clearTimeout(etat.minuteur);
   clearInterval(etat.minuteurDuree);
   libererVeille();          // l'écran peut de nouveau s'éteindre
+  etat.multAccel = 1;       // toute pause réinitialise l'accélération
+  etat.phrasesAccel = 0;
+  majVitesseAffichee();
   iconeLecture(false);
   majDureeChapitre();
   sauverPosition();
@@ -1309,11 +1327,23 @@ function installerPlayLong(id) {
 }
 installerPlayLong("btn-lecture");
 
+// Vitesse effective = vitesse de base × multiplicateur d'accélération courant
+function vitesseEff() { return etat.vitesse * (etat.multAccel || 1); }
+// Affiche la vitesse effective ; en gras + couleur repère quand on accélère.
+function majVitesseAffichee() {
+  const eff = Math.round(vitesseEff());
+  const accel = (etat.multAccel || 1) > 1.0001;
+  ["vitesse-actuelle", "ep-vitesse"].forEach((id) => {
+    const el = $(id);
+    if (!el) return;
+    el.textContent = eff;
+    el.classList.toggle("accel", accel);
+  });
+}
 // Vitesse : − et + par paliers de 20 mots/min (bornes 100–800)
 function reglerVitesse(v) {
   etat.vitesse = Math.min(800, Math.max(100, v));
-  $("vitesse-actuelle").textContent = etat.vitesse;
-  $("ep-vitesse").textContent = etat.vitesse;
+  majVitesseAffichee();
   majDureeChapitre();   // l'estimation dépend de la vitesse
 }
 $("btn-moins").addEventListener("click", () => reglerVitesse(etat.vitesse - 20));
@@ -1653,6 +1683,26 @@ $("reglage-pauses").addEventListener("input", (e) => appliquerCoefPause(+e.targe
   try { const s = localStorage.getItem("bookreeder-coef-pause"); if (s) v = +s; } catch (e) {}
   appliquerCoefPause(v);
 })();
+
+// --- Accélération (expérimental) : panneau ouvert en touchant l'info de vitesse ---
+function appliquerCoefAccel(v) {
+  etat.coefAccel = v;
+  $("reglage-accel").value = v;
+  $("valeur-accel").textContent = (+v).toFixed(1).replace(".", ",");
+  try { localStorage.setItem("bookreeder-coef-accel", v); } catch (e) {}
+}
+$("reglage-accel").addEventListener("input", (e) => appliquerCoefAccel(+e.target.value));
+(function initCoefAccel() {
+  let v = 1;
+  try { const s = localStorage.getItem("bookreeder-coef-accel"); if (s) v = +s; } catch (e) {}
+  if (!isFinite(v) || v < 1 || v > 4) v = 1;
+  appliquerCoefAccel(v);
+})();
+$("info-vitesse").addEventListener("click", () => {
+  pause();                       // on arrête la lecture pendant le réglage
+  $("panneau-accel").classList.remove("cache");
+});
+$("btn-fermer-accel").addEventListener("click", () => $("panneau-accel").classList.add("cache"));
 $("reglage-orp").addEventListener("change", (e) => {
   etat.orpActif = e.target.checked;
   majVisibiliteOrpCouleur();

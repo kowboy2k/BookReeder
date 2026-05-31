@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=179">
+  <link rel="stylesheet" href="style.css?v=180">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -132,6 +132,7 @@
         <li><b>Naviguer</b> — touchez les <b>infos de lecture</b> pour ouvrir la navigation pour aller à un chapitre ou se déplacer dans le livre.</li>
         <li><b>Chapitres</b> — les boutons ⏮ / ⏭ sautent au chapitre précédent / suivant ; les flèches reculent / avancent d'une phrase.</li>
         <li><b>Vitesse</b> — les boutons − et + ajustent la vitesse de lecture.</li>
+        <li><b>Accélération</b> — appuyez sur la <b>zone de Vitesse</b> et poussez vos limites en accélérant automatiquement votre vitesse de lecture !</li>
         <li><b>Bibliothèque</b> — vos livres restent enregistrés et reprennent à la bonne page, même hors-ligne.</li>
         <li><b>Astuce</b> — pour un meilleur confort, enregistrez la page sur l'écran d'accueil.</li>
       </ul>
@@ -163,6 +164,19 @@
       </div>
 
       <button id="btn-fermer-navigation">Go</button>
+    </div>
+  </div>
+
+  <!-- Panneau d'accélération (expérimental) : touche sur l'info de vitesse -->
+  <div id="panneau-accel" class="cache">
+    <div class="panneau-contenu">
+      <h2>Accélération</h2>
+      <div class="reglage">
+        <label for="reglage-accel">Coefficient d'accélération : x<span id="valeur-accel">1,0</span></label>
+        <input type="range" id="reglage-accel" min="1" max="4" step="0.1" value="1">
+      </div>
+      <p class="aide-accel">Expérimental — à ×1,0 la vitesse est constante. Au-delà, la lecture accélère de 0,1× toutes les 2 phrases jusqu'à la vitesse visée. Chaque pause réinitialise la vitesse.</p>
+      <button id="btn-fermer-accel">OK</button>
     </div>
   </div>
 
@@ -319,6 +333,6 @@
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="app.js?v=179"></script>
+  <script src="app.js?v=180"></script>
 </body>
 </html>
