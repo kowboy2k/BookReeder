@@ -1689,7 +1689,7 @@ $("btn-maj").addEventListener("click", async () => {
       try {
         const r = await fetch("./app.js?ts=" + Date.now(), { cache: "no-store" });
         const lm = r.headers.get("last-modified");
-        if (lm) detail += (detail ? " · " : "") + formatDate(new Date(lm).getTime());
+        if (lm) detail += (detail ? "<br>" : "") + formatDate(new Date(lm).getTime());
       } catch (e) {}
       statut.innerHTML = "Vous avez déjà la dernière version. ✓" + (detail ? "<br>" + detail : "");
     }
