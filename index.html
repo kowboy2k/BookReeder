@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=81">
+  <link rel="stylesheet" href="style.css?v=82">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -220,12 +220,20 @@
         <input type="range" id="reglage-long-reperes" min="4" max="40" step="2" value="14">
       </div>
 
+      <div class="reglage reglage-inline">
+        <label for="reglage-theme">Thème</label>
+        <select id="reglage-theme">
+          <option value="midnight" selected>Midnight</option>
+          <option value="mono">Dark Mono</option>
+        </select>
+      </div>
+
       <button id="btn-fermer-reglages">Fermer</button>
     </div>
   </div>
 
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
-  <script src="app.js?v=81"></script>
+  <script src="app.js?v=82"></script>
 </body>
 </html>

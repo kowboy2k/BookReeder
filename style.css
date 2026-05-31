@@ -67,10 +67,14 @@
 }
 
 :root {
+  /* Thème « Midnight » (par défaut) */
   --fond: #1e1e2e;
   --texte: #e8e8e8;
   --accent: #f25c54;
   --gris: #888;
+  --surface: #2a2a3a;       /* boutons, panneaux */
+  --surface-bord: #3a3a4a;  /* pistes de barres */
+  --surface-survol: #3a3a4d;
   /* Réglages de lecture (modifiés en JS) */
   --police: Georgia, "Times New Roman", serif;
   --graisse: 400;
@@ -83,6 +87,17 @@
   --orp-couleur: #f25c54; /* couleur du repère central (lettre ORP) */
   --echelle-police: 1; /* taille de la police de lecture (20%–140%) */
   --cadre-largeur: min(90%, 600px); /* largeur du cartouche */
+}
+
+/* Thème « Dark Mono » : monochrome, gris neutres, sans couleur d'accent */
+html.theme-mono {
+  --fond: #121212;
+  --texte: #e6e6e6;
+  --accent: #8d8d8d;
+  --gris: #6f6f6f;
+  --surface: #242424;
+  --surface-bord: #3a3a3a;
+  --surface-survol: #3a3a3a;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -228,7 +243,7 @@ html, body {
   width: 3.2rem;
   height: 3.2rem;
   border-radius: 50%;
-  background: #2a2a3a;
+  background: var(--surface);
   color: var(--texte);
   border: none;
   font-size: 1.2rem;
@@ -244,7 +259,7 @@ html, body {
   width: 84%;
   height: 4px;
   margin: 0 auto 0.4rem;
-  background: #3a3a4a;
+  background: var(--surface-bord);
   border-radius: 2px;
   touch-action: none;
   cursor: pointer;
@@ -319,7 +334,7 @@ html, body {
   margin-top: 3rem;
 }
 #nav-rapide button {
-  background: #2a2a3a;
+  background: var(--surface);
   color: var(--texte);
   border: none;
   width: 5rem;
@@ -382,7 +397,7 @@ html, body {
   #btn-fermer:hover, #btn-reglages:hover,
   #nav-rapide button:hover,
   #controles button:hover {
-    background: #3a3a4d;
+    background: var(--surface-survol);
     box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08);
   }
 }
@@ -390,7 +405,7 @@ html, body {
 #nav-rapide button:active,
 #controles button:active { transform: scale(0.9); }
 #controles button {
-  background: #2a2a3a;
+  background: var(--surface);
   color: var(--texte);
   border: none;
   width: 3.6rem;
@@ -445,7 +460,7 @@ html, body {
   margin-bottom: 0.5rem;
 }
 #barre-epure button {
-  background: #2a2a3a;
+  background: var(--surface);
   color: var(--texte);
   border: none;
   border-radius: 50%;
@@ -459,7 +474,7 @@ html, body {
 #barre-epure #ep-lecture { width: 5rem; height: 5rem; font-size: 1.7rem; }
 #barre-epure button:active { transform: scale(0.92); }
 @media (hover: hover) {
-  #barre-epure button:hover { background: #3a3a4d; box-shadow: 0 0 0 2px rgba(255,255,255,0.08); }
+  #barre-epure button:hover { background: var(--surface-survol); box-shadow: 0 0 0 2px rgba(255,255,255,0.08); }
 }
 #info-vitesse {
   width: 100%;
@@ -486,7 +501,7 @@ html, body {
 .item-livre {
   display: flex;
   align-items: center;
-  background: #2a2a3a;
+  background: var(--surface);
   border-radius: 0.5rem;
   padding: 0.7rem 0.9rem;
   margin-bottom: 0.6rem;
@@ -582,7 +597,7 @@ html, body {
   width: 100%;
   height: 6px;
   margin: 2.2rem 0 1.4rem;
-  background: #3a3a4a;
+  background: var(--surface-bord);
   border-radius: 3px;
   touch-action: none;
   cursor: pointer;
@@ -607,7 +622,7 @@ html, body {
   transform: translate(-50%, -50%);
 }
 .panneau-contenu {
-  background: #2a2a3a;
+  background: var(--surface);
   width: 100%;
   max-width: 500px;
   padding: 1.5rem;
@@ -621,7 +636,7 @@ html, body {
 .reglage select {
   width: 100%;
   padding: 0.5rem;
-  background: #1e1e2e;
+  background: var(--fond);
   color: var(--texte);
   border: 1px solid #444;
   border-radius: 0.4rem;

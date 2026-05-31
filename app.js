@@ -1176,6 +1176,21 @@ $("reglage-continuer").addEventListener("change", (e) => {
 $("reglage-pause-chapitre").addEventListener("change", (e) => {
   etat.pauseFinChapitre = e.target.checked;
 });
+
+// --- Thème (Midnight / Dark Mono) ---
+function appliquerTheme(nom) {
+  document.documentElement.classList.toggle("theme-mono", nom === "mono");
+  $("reglage-theme").value = nom;
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", nom === "mono" ? "#121212" : "#1e1e2e");
+  try { localStorage.setItem("bookreeder-theme", nom); } catch (e) {}
+}
+$("reglage-theme").addEventListener("change", (e) => appliquerTheme(e.target.value));
+(function initTheme() {
+  let t = "midnight";
+  try { t = localStorage.getItem("bookreeder-theme") || "midnight"; } catch (e) {}
+  appliquerTheme(t);
+})();
 $("reglage-afficher-mots").addEventListener("change", (e) => {
   $("bloc-nb-mots").style.display = e.target.checked ? "block" : "none";
 });
