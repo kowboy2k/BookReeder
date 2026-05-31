@@ -154,6 +154,7 @@ async function finaliserChargement(chapitresTexte, nom, taille, titre, auteur) {
 // --- Fichier texte (.txt) ---
 async function chargerTexteBrut(texte, nom, taille) {
   const msg = $("message-chargement");
+  carteCasse = null;
   msg.textContent = "Lecture du fichier…";
   const chapitresTexte = chapitresDepuisTexte(texte);
   await finaliserChargement(chapitresTexte, nom, taille, nom.replace(/\.txt$/i, ""), "");
@@ -180,6 +181,7 @@ function nettoyerTextePdf(t) {
 }
 async function chargerPdf(buffer, nom, taille) {
   const msg = $("message-chargement");
+  carteCasse = null;
   msg.textContent = "Lecture du PDF…";
   if (!window.pdfjsLib) throw new Error("Moteur PDF indisponible");
   pdfjsLib.GlobalWorkerOptions.workerSrc = "lib/pdf.worker.min.js";
@@ -206,6 +208,17 @@ async function chargerEpub(buffer, nom, taille) {
   try {
     const livre = ePub(buffer);
     await livre.ready;
+    // Lit le CSS du livre pour reproduire les transformations de casse
+    // (titres en petites capitales / majuscules), fidèlement au rendu d'origine.
+    carteCasse = null;
+    try {
+      if (window.JSZip) {
+        const zip = await JSZip.loadAsync(buffer);
+        const fcss = Object.keys(zip.files).filter((f) => /\.css$/i.test(f));
+        const css = (await Promise.all(fcss.map((f) => zip.files[f].async("string")))).join("\n");
+        carteCasse = construireCarteCasse(css);
+      }
+    } catch (e) { carteCasse = null; }
     const { chapitresTexte } = await extraireLivre(livre);
     const apercu = tokeniserChapitres(chapitresTexte, etat.modele.decouper);
     if (apercu.mots.length === 0) throw new Error("Aucun texte trouvé");
@@ -416,9 +429,55 @@ function cssEchappe(id) {
 
 // Extrait le texte d'un élément en insérant des espaces entre les blocs,
 // sinon "titre" et "paragraphe" se collent ("premierLa").
+// Carte des classes/balises qui changent la CASSE des lettres affichées
+// (text-transform / font-variant: small-caps), lue dans le CSS de l'EPUB.
+let carteCasse = null;
+function construireCarteCasse(cssText) {
+  const carte = { upper: new Set(), lower: new Set(), cap: new Set() };
+  if (!cssText) return carte;
+  cssText = cssText.replace(/\/\*[\s\S]*?\*\//g, "");      // enlève les commentaires
+  const re = /([^{}]+)\{([^}]*)\}/g; let m;
+  while ((m = re.exec(cssText))) {
+    const corps = m[2];
+    let mode = null;
+    const tt = /text-transform\s*:\s*(uppercase|lowercase|capitalize)/i.exec(corps);
+    if (tt) mode = tt[1].toLowerCase() === "uppercase" ? "upper"
+                 : tt[1].toLowerCase() === "lowercase" ? "lower" : "cap";
+    if (/font-variant(-caps)?\s*:\s*[^;]*(small-caps|petite-caps)/i.test(corps)) mode = "upper";
+    if (!mode) continue;
+    m[1].split(",").forEach((s) => {
+      s = s.trim();
+      const cls = s.match(/\.[-\w]+/g);          // sélecteurs de classe
+      if (cls) cls.forEach((c) => carte[mode].add(c));
+      else if (/^[a-zA-Z][\w-]*$/.test(s)) carte[mode].add(s.toLowerCase()); // sélecteur de balise
+    });
+  }
+  return carte;
+}
+// Applique les transformations de casse sur les éléments correspondants.
+function appliquerCasse(racine) {
+  const c = carteCasse;
+  if (!c) return;
+  [["cap", c.cap], ["lower", c.lower], ["upper", c.upper]].forEach(([mode, set]) => {
+    if (!set.size) return;
+    let els;
+    try { els = racine.querySelectorAll([...set].join(",")); } catch (e) { return; }
+    els.forEach((el) => {
+      const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      let n;
+      while ((n = w.nextNode())) {
+        if (mode === "upper") n.nodeValue = n.nodeValue.toUpperCase();
+        else if (mode === "lower") n.nodeValue = n.nodeValue.toLowerCase();
+        else n.nodeValue = n.nodeValue.replace(/(^|\s)(\p{L})/gu, (x, a, b) => a + b.toUpperCase());
+      }
+    });
+  });
+}
+
 function texteAvecSeparateurs(el) {
   const clone = el.cloneNode(true);
   clone.querySelectorAll("br").forEach((b) => b.replaceWith(" "));
+  appliquerCasse(clone);                 // reproduit les capitales/petites capitales
   clone.querySelectorAll(
     "p, div, h1, h2, h3, h4, h5, h6, li, blockquote, tr, section, article, figcaption"
   ).forEach((b) => b.append("\n"));
@@ -723,7 +782,7 @@ function commenceMajuscule(mot) {
 // Durée plancher (ms) pour les noms propres (majuscule en milieu de phrase).
 // Modèles concernés via params.nomPropreMs (BookReeder & Hybride).
 // Chaque nom propre du groupe ajoute `nomPropreMs`, modulé par le slider « Longueur
-// des pauses » (coefPause) avec 2,0× comme référence : 1,0×→250 ms, 2,0×→500 ms, 4,0×→1000 ms.
+// des pauses » (coefPause) avec 2,0× comme référence : 1,0×→375 ms, 2,0×→750 ms, 4,0×→1500 ms.
 // Cumulé si plusieurs noms consécutifs (John William Woodhouse → 3×).
 function plancherNomPropre(debut, fin) {
   const unite = etat.modele.params.nomPropreMs;
@@ -805,7 +864,7 @@ const MODELES = {
       pauseVirgule: 1,         // pause après , ; : (× base)
       pauseReplique: 3,        // pause avant une réplique de dialogue (× base)
       plancherDialogue: 1.6,   // durée mini d'un mot en dialogue (× base)
-      nomPropreMs: 500,        // 500 ms mini par nom propre (cumulés si consécutifs)
+      nomPropreMs: 750,        // 750 ms mini par nom propre @2,0× (cumulés si consécutifs)
       elanGrossePause: 0.65,   // élan après une grosse pause (reprise douce)
       elanPauseMoyenne: 0.82,  // élan après une pause moyenne
       elanAccel: 0.1,          // accélération de l'élan par mot (vers 1), graduelle
@@ -842,7 +901,7 @@ const MODELES = {
       affichageMin: 90,
       motLongMax: 12,   // utilisés par construireChunkDepuis (découpe BookReeder)
       lettresMax: 16,
-      nomPropreMs: 500,       // 500 ms mini par nom propre (cumulés si consécutifs)
+      nomPropreMs: 750,       // 750 ms mini par nom propre @2,0× (cumulés si consécutifs)
     },
   },
 };
