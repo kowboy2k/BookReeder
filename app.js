@@ -920,13 +920,16 @@ function delaiChunk() {
   if (planNom > 0) mot = Math.max(mot, planNom);
   const majuscule = planNom > 0;   // sert aussi à la reprise d'élan plus bas
 
-  // 3) Respirations ajoutées : ponctuation de fin de groupe + ouverture de réplique
+  // 3) Respirations : ponctuation de fin de groupe OU ouverture de réplique.
+  //    On ne CUMULE pas fin de phrase + entrée en dialogue (sinon pause très
+  //    longue) : on garde la plus longue des deux.
   const dernier = groupe[groupe.length - 1] || "";
-  let pause = 0;
-  if (/[.!?…]["»”'’)\]]*$/.test(dernier)) pause += base * P.pauseFinPhrase;  // fin de phrase
-  else if (/[,;:]["»”'’)\]]*$/.test(dernier)) pause += base * P.pauseVirgule; // virgule, etc.
+  let pausePonct = 0;
+  if (/[.!?…]["»”'’)\]]*$/.test(dernier)) pausePonct = base * P.pauseFinPhrase;  // fin de phrase
+  else if (/[,;:]["»”'’)\]]*$/.test(dernier)) pausePonct = base * P.pauseVirgule; // virgule, etc.
   const suivant = etat.mots[fin];
-  if (suivant && DEBUT_REPLIQUE.test(suivant)) pause += base * P.pauseReplique; // entre échanges
+  const pauseRep = (suivant && DEBUT_REPLIQUE.test(suivant)) ? base * P.pauseReplique : 0; // échanges
+  let pause = Math.max(pausePonct, pauseRep);
   // Respiration de fin de bloc/paragraphe (titre sans ponctuation, etc.)
   if (pause === 0 && etat.debutsPhrase && etat.debutsPhrase.has(fin)) pause += base * P.pauseFinPhrase;
 
