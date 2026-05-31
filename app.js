@@ -958,7 +958,7 @@ function majDureeChapitre() {
   // Sous 1 h, on n'affiche que les minutes ; au-delà, format XhYYm.
   let txt;
   if (h > 0) txt = `${h}h${String(m).padStart(2, "0")}m`;
-  else if (m === 0) txt = "<0m";          // moins d'une minute
+  else if (m === 0) txt = "< 0m";         // moins d'une minute
   else txt = `${m}m`;
   el.textContent = `Durée chapitre : ${txt}`;
 }
