@@ -144,6 +144,35 @@ html, body {
 
 .cache { display: none !important; }
 
+/* Info-bulle « Lisez-moi ! » pointant vers le (i) */
+#bulle-liremoi {
+  position: fixed;
+  z-index: 30;
+  background: var(--accent);
+  color: #fff;
+  padding: 0.5rem 0.85rem;
+  border-radius: 0.6rem;
+  font-family: sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  animation: bulle-pop 1.4s ease-in-out infinite;
+}
+#bulle-liremoi::after {              /* flèche pointant vers le haut (le bouton) */
+  content: "";
+  position: absolute;
+  top: -6px;
+  right: 16px;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 6px solid var(--accent);
+}
+@keyframes bulle-pop {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
 /* --- Mode contexte (aperçu du texte autour du mot en cours) --- */
 #ecran-contexte {
   position: fixed;

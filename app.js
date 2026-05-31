@@ -1559,6 +1559,30 @@ function versionApp() {
   if (el && v) el.textContent = v;
 })();
 
+// Info-bulle « Lisez-moi ! » vers le (i) : 1re ouverture ou changement de version.
+function cacherBulleLireMoi() { $("bulle-liremoi").classList.add("cache"); }
+function afficherBulleLireMoi() {
+  const btn = $("btn-infos"), bulle = $("bulle-liremoi");
+  if (!btn || !bulle) return;
+  const r = btn.getBoundingClientRect();
+  bulle.classList.remove("cache");
+  bulle.style.top = (r.bottom + 10) + "px";
+  bulle.style.right = Math.max(8, window.innerWidth - r.right) + "px";
+  clearTimeout(etat._bulleTimer);
+  etat._bulleTimer = setTimeout(cacherBulleLireMoi, 9000);   // disparaît seule après 9 s
+  setTimeout(() => document.addEventListener("click", cacherBulleLireMoi, { once: true }), 0);
+}
+$("btn-infos").addEventListener("click", cacherBulleLireMoi);
+(function initBulleLireMoi() {
+  let vue = null;
+  try { vue = localStorage.getItem("bookreeder-vue-version"); } catch (e) {}
+  const v = versionApp();
+  if (v && vue !== v) {
+    try { localStorage.setItem("bookreeder-vue-version", v); } catch (e) {}
+    setTimeout(afficherBulleLireMoi, 500);   // laisse le temps à la mise en page
+  }
+})();
+
 // Réglages : on met en pause et on fait monter la zone de lecture en aperçu (1/3
 // haut) pendant que le panneau occupe les 2/3 du bas ; à la fermeture, on
 // ré-affiche le chunk pour appliquer proprement tous les réglages.
