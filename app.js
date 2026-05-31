@@ -1397,6 +1397,7 @@ barreLivre.addEventListener("pointerup", (e) => {
 //  Panneau de navigation (chapitre + position %)
 // =========================================================
 function ouvrirNavigation() {
+  pause();   // on arrête la lecture pendant la navigation
   $("nav-chapitre").value = etat.chapitres.indexOf(chapitreActuel());
   $("panneau-navigation").classList.remove("cache");
   majBarreLivre();
