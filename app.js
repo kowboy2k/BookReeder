@@ -784,6 +784,9 @@ function lecture() {
   clearTimeout(etat.minuteur); // évite tout minuteur en double
   iconeLecture(true);
   majDureeChapitre();
+  // Rafraîchit l'estimation chaque minute réelle de lecture
+  clearInterval(etat.minuteurDuree);
+  etat.minuteurDuree = setInterval(majDureeChapitre, 60000);
   tick();
 }
 
@@ -801,6 +804,7 @@ function iconeLecture(joue) {
 function pause() {
   etat.enLecture = false;
   clearTimeout(etat.minuteur);
+  clearInterval(etat.minuteurDuree);
   iconeLecture(false);
   majDureeChapitre();
   sauverPosition();
@@ -992,6 +996,7 @@ function reglerVitesse(v) {
   etat.vitesse = Math.min(800, Math.max(100, v));
   $("vitesse-actuelle").textContent = etat.vitesse;
   $("ep-vitesse").textContent = etat.vitesse;
+  majDureeChapitre();   // l'estimation dépend de la vitesse
 }
 $("btn-moins").addEventListener("click", () => reglerVitesse(etat.vitesse - 20));
 $("btn-plus").addEventListener("click", () => reglerVitesse(etat.vitesse + 20));
