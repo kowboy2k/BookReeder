@@ -1679,7 +1679,14 @@ $("btn-maj").addEventListener("click", async () => {
     if (swRegistration.installing || swRegistration.waiting) {
       statut.textContent = "Nouvelle version trouvée, mise à jour…";
     } else {
-      statut.textContent = "Vous avez déjà la dernière version. ✓";
+      // Date de dernière mise à jour = date de modification du fichier en ligne
+      let dateTxt = "";
+      try {
+        const r = await fetch("./app.js?ts=" + Date.now(), { cache: "no-store" });
+        const lm = r.headers.get("last-modified");
+        if (lm) dateTxt = "<br>Dernière mise à jour&nbsp;: " + formatDate(new Date(lm).getTime());
+      } catch (e) {}
+      statut.innerHTML = "Vous avez déjà la dernière version. ✓" + dateTxt;
     }
   } catch (e) {
     statut.textContent = "Impossible de vérifier (connexion ?).";
