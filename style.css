@@ -130,6 +130,7 @@ html, body {
   overflow: hidden;
   -webkit-user-select: none;
   user-select: none;
+  touch-action: manipulation;        /* coupe le zoom au double-tap (iOS) */
 }
 
 .ecran {
