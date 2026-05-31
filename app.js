@@ -626,8 +626,9 @@ function commenceMajuscule(mot) {
 
 // Durée plancher (ms) pour les noms propres (majuscule en milieu de phrase).
 // Modèles concernés via params.nomPropreMs (BookReeder & Hybride).
-// Chaque nom propre du groupe ajoute `nomPropreMs` : 1 nom → 500 ms,
-// 2 noms consécutifs (John Woodhouse) → 1000 ms, 3 (John William Woodhouse) → 1500 ms…
+// Chaque nom propre du groupe ajoute `nomPropreMs`, modulé par le slider « Longueur
+// des pauses » (coefPause) avec 2,0× comme référence : 1,0×→250 ms, 2,0×→500 ms, 4,0×→1000 ms.
+// Cumulé si plusieurs noms consécutifs (John William Woodhouse → 3×).
 function plancherNomPropre(debut, fin) {
   const unite = etat.modele.params.nomPropreMs;
   if (!unite) return 0;
@@ -635,7 +636,7 @@ function plancherNomPropre(debut, fin) {
   for (let k = debut; k < fin; k++) {
     if (!estDebutPhrase(k) && commenceMajuscule(etat.mots[k])) n++;
   }
-  return n * unite;
+  return n * unite * (etat.coefPause / 2);
 }
 
 // =========================================================
