@@ -1306,9 +1306,30 @@ function ouvrirContexte() {
 function fermerContexte() { $("ecran-contexte").classList.add("cache"); }
 $("ctx-recul").addEventListener("click", () => { etat.index = phrasePrecedente(); rafraichirContexte(true); });
 $("ctx-avance").addEventListener("click", () => { etat.index = phraseSuivante(); rafraichirContexte(true); });
-// Clic sur un mot : choisit le point de reprise (sans recentrer la vue).
+// Trouve le mot le plus proche d'un point (x, y) — pour ne pas avoir à viser
+// précisément : on privilégie un mot sur la même ligne, sinon le plus proche.
+function spanProche(cont, x, y) {
+  const spans = cont.querySelectorAll("span[data-i]");
+  let surLigne = null, distLigne = Infinity, partout = null, distPartout = Infinity;
+  for (const s of spans) {
+    const r = s.getBoundingClientRect();
+    if (!r.width && !r.height) continue;
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    // même ligne = le point est dans la hauteur de la ligne du mot
+    if (y >= r.top && y <= r.bottom) {
+      const d = Math.abs(x - cx);
+      if (d < distLigne) { distLigne = d; surLigne = s; }
+    }
+    const d2 = (x - cx) * (x - cx) + (y - cy) * (y - cy);
+    if (d2 < distPartout) { distPartout = d2; partout = s; }
+  }
+  return surLigne || partout;
+}
+// Clic/appui : choisit le point de reprise (sans recentrer la vue). On accepte
+// un clic approximatif sur la ligne → on prend le mot le plus proche.
 $("contexte-texte").addEventListener("click", (e) => {
-  const s = e.target.closest("span[data-i]");
+  let s = e.target.closest("span[data-i]");
+  if (!s) s = spanProche($("contexte-texte"), e.clientX, e.clientY);
   if (!s) return;
   etat.index = debutPhraseAvant(+s.dataset.i);   // début de la phrase cliquée
   marquerCourant(false);
