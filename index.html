@@ -12,11 +12,12 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=83">
+  <link rel="stylesheet" href="style.css?v=84">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
   <div id="ecran-accueil" class="ecran">
+    <button id="btn-infos" title="Aide / fonctionnalités" aria-label="Aide">ⓘ</button>
     <h1>BookReeder</h1>
     <p class="sous-titre">Lecture rapide d'eBooks</p>
     <label class="bouton-ouvrir">
@@ -81,6 +82,23 @@
       <button id="ep-recul" class="ic-fleche ic-recul" title="Phrase précédente"></button>
       <button id="ep-lecture" class="icone-play" title="Lecture / Pause"></button>
       <button id="ep-avance" class="ic-fleche ic-avance" title="Phrase suivante"></button>
+    </div>
+  </div>
+
+  <!-- Panneau d'aide / fonctionnalités -->
+  <div id="panneau-infos" class="cache">
+    <div class="panneau-contenu">
+      <h2>Comment ça marche</h2>
+      <ul id="liste-infos">
+        <li><b>Lecture rapide</b> — les mots défilent un à un, centrés sur la lettre repère (rouge) pour garder l'œil fixe.</li>
+        <li><b>Plein écran épuré</b> — touchez la <b>zone de lecture</b> (le cartouche du mot) pour masquer l'interface ; ne restent que le mot et les 3 boutons essentiels. Touchez à nouveau pour revenir.</li>
+        <li><b>Naviguer</b> — touchez le <b>texte du milieu</b> (titre / progression) pour ouvrir la navigation : aller à un chapitre ou se déplacer dans le livre.</li>
+        <li><b>Chapitres</b> — les boutons ⏮ / ⏭ sautent au chapitre précédent / suivant ; les flèches reculent / avancent d'une phrase.</li>
+        <li><b>Vitesse</b> — les boutons − et + ajustent la vitesse ; ▶ démarre ou met en pause.</li>
+        <li><b>Réglages ⚙</b> — modèle de lecture, police, taille, pauses, repères, thème (Midnight / Dark Mono / Sepia) et plus.</li>
+        <li><b>Bibliothèque</b> — vos livres restent enregistrés et reprennent à la bonne page, même hors-ligne.</li>
+      </ul>
+      <button id="btn-fermer-infos">Ok</button>
     </div>
   </div>
 
@@ -235,6 +253,6 @@
 
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
-  <script src="app.js?v=83"></script>
+  <script src="app.js?v=84"></script>
 </body>
 </html>

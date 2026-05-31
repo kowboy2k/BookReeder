@@ -161,6 +161,63 @@ html, body {
   cursor: pointer;
 }
 .lien-demo:hover { color: var(--texte); }
+
+/* Bouton ⓘ en haut à droite de l'accueil */
+#btn-infos {
+  position: fixed;
+  top: max(1rem, env(safe-area-inset-top));
+  right: max(1rem, env(safe-area-inset-right));
+  width: 2.6rem;
+  height: 2.6rem;
+  border: none;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--texte);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 5;
+}
+#btn-infos:active { transform: scale(0.95); }
+
+/* Panneau d'aide : centré, défilable */
+#panneau-infos {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  padding: 1rem;
+}
+#panneau-infos .panneau-contenu {
+  border-radius: 1rem;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+#liste-infos {
+  list-style: none;
+  margin-bottom: 1.4rem;
+  line-height: 1.45;
+}
+#liste-infos li {
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--surface-bord);
+  font-size: 0.95rem;
+}
+#liste-infos li:last-child { border-bottom: none; }
+#liste-infos b { color: var(--accent); }
+#btn-fermer-infos {
+  width: 100%;
+  padding: 0.9rem;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 0.6rem;
+  font-size: 1rem;
+  cursor: pointer;
+}
 .message { margin-top: 1.5rem; color: var(--gris); font-family: sans-serif; min-height: 1.2em; }
 
 /* --- Lecture RSVP --- */

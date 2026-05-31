@@ -1067,6 +1067,10 @@ function ouvrirNavigation() {
   majBarreLivre();
 }
 $("zone-navigation").addEventListener("click", ouvrirNavigation);
+
+// Panneau d'aide / fonctionnalités (accueil)
+$("btn-infos").addEventListener("click", () => $("panneau-infos").classList.remove("cache"));
+$("btn-fermer-infos").addEventListener("click", () => $("panneau-infos").classList.add("cache"));
 $("btn-fermer-navigation").addEventListener("click", () => {
   $("panneau-navigation").classList.add("cache");
   sauverPosition();
