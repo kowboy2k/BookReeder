@@ -143,7 +143,14 @@ html, body {
    puis la barre, les infos et les boutons s'empilent en bas. */
 #ecran-lecture {
   justify-content: flex-start;
-  padding: 0 0 2.8rem;
+  /* Hauteur visible réelle (gère la barre d'outils Safari iOS) au lieu de la
+     hauteur « large » qui décalait tout. Repli en 100vh pour les vieux nav. */
+  height: 100vh;
+  height: 100dvh;
+  bottom: auto;
+  /* Espace en haut pour dégager les boutons ✖/⚙ du cartouche ; bas réduit
+     (avec marge de sécurité pour l'encoche/barre iOS). */
+  padding: 4rem 0 max(0.6rem, env(safe-area-inset-bottom));
 }
 #zone-mot {
   position: relative;
@@ -308,19 +315,16 @@ html, body {
   height: 5rem;
   border-radius: 50%;
   font-size: 2.7rem;
+  line-height: 1;
   cursor: pointer;
+  /* Centre le glyphe (⇤ ⇥ ⏮ ⏭) dans le bouton, quelles que soient ses métriques */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 /* Chapitre précédent / suivant : boutons plus petits sur les côtés */
-#nav-rapide .btn-chapitre {
-    line-height: 1;
-    width: 3.6rem;
-    height: 3.6rem;
-    font-size: 1.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
- 
-}#nav-rapide button:active { transform: scale(0.93); display: flex; align-items: center; justify-content: center; }
+#nav-rapide .btn-chapitre { width: 3.6rem; height: 3.6rem; font-size: 1.5rem; }
+#nav-rapide button:active { transform: scale(0.93); }
 
 /* Barre principale : groupe vitesse (− lecture +) centré */
 #controles {
