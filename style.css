@@ -535,7 +535,10 @@ html, body {
   gap: 2rem;
   width: 100%;
   margin-bottom: 0.5rem;
+  opacity: 0.1;                /* à peine visibles en plein écran épuré */
+  transition: opacity 0.25s;
 }
+#barre-epure:active { opacity: 1; }   /* réapparaissent au toucher */
 #barre-epure button {
   background: var(--surface);
   color: var(--texte);
