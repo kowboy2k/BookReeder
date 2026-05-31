@@ -175,7 +175,7 @@ html, body {
 /* Bouton ⓘ en haut à droite de l'accueil */
 #btn-infos {
   position: fixed;
-  top: max(1rem, env(safe-area-inset-top));
+  top: calc(50px + max(1rem, env(safe-area-inset-top)));
   right: max(1rem, env(safe-area-inset-right));
   width: 2.6rem;
   height: 2.6rem;
