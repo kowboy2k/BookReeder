@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=163">
+  <link rel="stylesheet" href="style.css?v=168">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -83,7 +83,7 @@
       <button id="btn-fermer" title="Changer de livre">✖</button>
       <div id="info-vitesse">
         <div>Vitesse : <span id="vitesse-actuelle">260</span> mots/min</div>
-        <div id="duree-chapitre">Durée chapitre : 0h00m</div>
+        <div id="duree-chapitre">Durée du chapitre : 0h00m</div>
       </div>
       <button id="btn-reglages" title="Réglages" aria-label="Réglages">
         <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -111,6 +111,16 @@
     </div>
   </div>
 
+  <!-- Mode contexte : aperçu du texte autour du mot en cours (appui long sur play) -->
+  <div id="ecran-contexte" class="cache">
+    <div id="contexte-texte"></div>
+    <div id="contexte-barre">
+      <button id="ctx-recul" class="ic-fleche ic-recul" title="Phrase précédente" aria-label="Phrase précédente"></button>
+      <button id="ctx-play" class="icone-play" title="Reprendre la lecture" aria-label="Reprendre"></button>
+      <button id="ctx-avance" class="ic-fleche ic-avance" title="Phrase suivante" aria-label="Phrase suivante"></button>
+    </div>
+  </div>
+
   <!-- Panneau d'aide / fonctionnalités -->
   <div id="panneau-infos" class="cache">
     <div class="panneau-contenu">
@@ -118,6 +128,7 @@
       <ul id="liste-infos">
         <li><b>Lecture rapide</b> — les mots défilent un à un ou par groupes, centrés sur la lettre repère (rouge) pour garder l'œil fixe.</li>
         <li><b>Plein écran épuré</b> — touchez la <b>zone de lecture</b> pour masquer l'interface ; touchez à nouveau pour revenir.</li>
+        <li><b>Mode loupe</b> — appui long sur <b>play/pause</b> : met en pause et affiche le texte autour du mot en cours (contexte avant/après). Reculez/avancez d'une phrase, puis ▶ pour reprendre.</li>
         <li><b>Naviguer</b> — touchez les <b>infos de lecture</b> pour ouvrir la navigation pour aller à un chapitre ou se déplacer dans le livre.</li>
         <li><b>Chapitres</b> — les boutons ⏮ / ⏭ sautent au chapitre précédent / suivant ; les flèches reculent / avancent d'une phrase.</li>
         <li><b>Vitesse</b> — les boutons − et + ajustent la vitesse de lecture.</li>
@@ -286,6 +297,11 @@
         <input type="range" id="reglage-long-reperes" min="4" max="40" step="2" value="14">
       </div>
 
+      <div class="reglage">
+        <label for="reglage-taille-loupe">Taille de la police Mode Loupe : <span id="valeur-taille-loupe">100</span> %</label>
+        <input type="range" id="reglage-taille-loupe" min="50" max="200" step="10" value="100">
+      </div>
+
       <div class="reglage reglage-inline">
         <label for="reglage-theme">Thème</label>
         <select id="reglage-theme">
@@ -303,6 +319,6 @@
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="app.js?v=163"></script>
+  <script src="app.js?v=168"></script>
 </body>
 </html>

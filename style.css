@@ -144,6 +144,62 @@ html, body {
 
 .cache { display: none !important; }
 
+/* --- Mode contexte (aperçu du texte autour du mot en cours) --- */
+#ecran-contexte {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: var(--fond);
+  color: var(--texte);
+  display: flex;
+  flex-direction: column;
+  padding: max(env(safe-area-inset-top), 0.8rem) 0 max(env(safe-area-inset-bottom), 0.8rem);
+}
+#contexte-texte {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 1.2rem 1.4rem;
+  font-family: var(--police);
+  font-size: calc(1.4rem * var(--echelle-loupe, 1));   /* 100% = taille du titre, 50–200% */
+  line-height: 1.8;
+  text-align: justify;
+  color: var(--couleur-police, var(--texte));
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.18) transparent;
+}
+#contexte-texte::-webkit-scrollbar { width: 5px; }
+#contexte-texte::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 3px; }
+#contexte-texte .ctx-bloc { margin: 0 0 0.9em; }      /* saut de ligne entre paragraphes */
+#contexte-texte .ctx-titre { font-weight: 900; }       /* titre/chapitre en Black */
+#contexte-texte .courant {
+  color: var(--orp-couleur, var(--accent));
+  font-weight: 700;
+}
+#contexte-barre {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2.4rem;
+  padding-top: 0.6rem;
+}
+#contexte-barre button {
+  width: 3.6rem;
+  height: 3.6rem;
+  border: none;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--texte);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#contexte-barre #ctx-play { width: 4.6rem; height: 4.6rem; }
+#contexte-barre button:active { transform: scale(0.92); }
+
 /* --- Accueil --- */
 /* Découpage relatif (en flux, sans chevauchement) : bloc haut ~50%, liste qui
    remplit l'espace restant, puis la signature, le tout dans la colonne. */

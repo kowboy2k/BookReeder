@@ -400,22 +400,35 @@ async function extraireLivre(livre) {
 function tokeniserChapitres(chapitresTexte, decouper) {
   const mots = [];
   const chapitres = [];
+  const debuts = new Set();   // index des mots qui commencent un bloc/paragraphe
   (chapitresTexte || []).forEach((ch) => {
-    const m = decouper(ch.texte || "");
-    if (m.length === 0) return;
-    chapitres.push({ titre: ch.titre || "Chapitre", debut: mots.length });
-    mots.push(...m);
+    // Chaque bloc (séparé par un saut de ligne) est traité comme un paragraphe :
+    // son 1er mot devient un « début de phrase » (respiration + pas de fusion
+    // d'un titre avec le paragraphe suivant).
+    const paras = String(ch.texte || "").split(/\n+/);
+    let chapAjoute = false;
+    paras.forEach((para) => {
+      const m = decouper(para);
+      if (m.length === 0) return;
+      if (!chapAjoute) {
+        chapitres.push({ titre: ch.titre || "Chapitre", debut: mots.length });
+        chapAjoute = true;
+      }
+      debuts.add(mots.length);
+      mots.push(...m);
+    });
   });
   if (chapitres.length === 0) chapitres.push({ titre: "Début", debut: 0 });
-  return { mots, chapitres };
+  return { mots, chapitres, debuts };
 }
 
 // (Re)tokenise le livre courant avec le modèle actif, en conservant la
 // position relative (progression) de lecture.
 function retokeniser() {
-  const { mots, chapitres } = tokeniserChapitres(etat.chapitresTexte, etat.modele.decouper);
+  const { mots, chapitres, debuts } = tokeniserChapitres(etat.chapitresTexte, etat.modele.decouper);
   etat.mots = mots;
   etat.chapitres = chapitres;
+  etat.debutsPhrase = debuts || new Set();
   const total = Math.max(1, etat.mots.length);
   etat.index = Math.min(Math.round((etat.progression || 0) * (total - 1)), total - 1);
   if (etat.index < 0 || !isFinite(etat.index)) etat.index = 0;
@@ -565,6 +578,7 @@ function construireChunkDepuis(start) {
       if (estHonorifique(mot)) continue;              // un titre ne coupe jamais
       if (parts.length >= 3) break;                   // jamais plus de 3 mots groupés
       if (PONCT_COUPE.test(mot)) break;               // ponctuation finale -> fin du nom
+      if (estDebutPhrase(i + 1)) break;               // nouveau bloc/phrase -> ne pas happer
       if (!estMotMajuscule(etat.mots[i + 1])) break;  // mot suivant pas en majuscule -> fin
     }
     return { texte: parts.join(" "), nb: parts.length };
@@ -579,9 +593,9 @@ function construireChunkDepuis(start) {
     const mot = etat.mots[i];
     const lg = longueurVisible(mot);
     const longMot = lg > motLongMax;
-    // Un mot long démarre un nouveau groupe ; et un groupe ne dépasse jamais
-    // `lettresMax` lettres (au-delà, on réduit à moins de mots / 1 mot).
-    if (parts.length > 0 && (longMot || lettres + lg > lettresMax)) break;
+    // Un mot long démarre un nouveau groupe ; un groupe ne dépasse jamais
+    // `lettresMax` lettres ; et on ne fusionne pas par-dessus un début de bloc.
+    if (parts.length > 0 && (longMot || lettres + lg > lettresMax || estDebutPhrase(i))) break;
     parts.push(mot);
     lettres += lg;
     if (longMot || PONCT_COUPE.test(mot)) break;   // mot long seul, ou coupe après ponctuation
@@ -761,6 +775,8 @@ function delaiChunk() {
   else if (/[,;:]["»”'’)\]]*$/.test(dernier)) pause += base * P.pauseVirgule; // virgule, etc.
   const suivant = etat.mots[fin];
   if (suivant && DEBUT_REPLIQUE.test(suivant)) pause += base * P.pauseReplique; // entre échanges
+  // Respiration de fin de bloc/paragraphe (titre sans ponctuation, etc.)
+  if (pause === 0 && etat.debutsPhrase && etat.debutsPhrase.has(fin)) pause += base * P.pauseFinPhrase;
 
   // 4) Mise à jour de l'élan pour le PROCHAIN groupe : après une vraie pause on
   //    repart doucement, sinon on accélère par paliers (pas d'à-coup).
@@ -977,8 +993,27 @@ function lecture() {
   // Rafraîchit l'estimation chaque minute réelle de lecture
   clearInterval(etat.minuteurDuree);
   etat.minuteurDuree = setInterval(majDureeChapitre, 60000);
+  activerVeille();          // garde l'écran allumé pendant la lecture
   tick();
 }
+
+// --- Empêcher l'écran de s'éteindre pendant la lecture (Wake Lock) ---
+let verrouEcran = null;
+async function activerVeille() {
+  try {
+    if (navigator.wakeLock && !verrouEcran) {
+      verrouEcran = await navigator.wakeLock.request("screen");
+      verrouEcran.addEventListener("release", () => { verrouEcran = null; });
+    }
+  } catch (e) { /* non supporté ou refusé : on ignore */ }
+}
+async function libererVeille() {
+  try { if (verrouEcran) { await verrouEcran.release(); verrouEcran = null; } } catch (e) {}
+}
+// Le verrou saute quand l'app passe en arrière-plan : on le reprend au retour si on lit.
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && etat.enLecture) activerVeille();
+});
 
 // Bascule l'icône des boutons play/pause (normal + épuré) :
 // true = en lecture (barres pause), false = play (triangle)
@@ -995,6 +1030,7 @@ function pause() {
   etat.enLecture = false;
   clearTimeout(etat.minuteur);
   clearInterval(etat.minuteurDuree);
+  libererVeille();          // l'écran peut de nouveau s'éteindre
   iconeLecture(false);
   majDureeChapitre();
   sauverPosition();
@@ -1019,7 +1055,7 @@ function majDureeChapitre() {
   if (h > 0) txt = `${h}h${String(m).padStart(2, "0")}m`;
   else if (m === 0) txt = "< 0m";         // moins d'une minute
   else txt = `${m}m`;
-  el.textContent = `Durée chapitre : ${txt}`;
+  el.textContent = `Durée du chapitre : ${txt}`;
 }
 
 // =========================================================
@@ -1048,6 +1084,7 @@ function deplacer(pas, continuer) {
 // Un mot commence une phrase si le mot précédent terminait la précédente.
 function estDebutPhrase(i) {
   if (i <= 0) return true;
+  if (etat.debutsPhrase && etat.debutsPhrase.has(i)) return true;  // début de bloc/paragraphe
   const prec = etat.mots[i - 1] || "";
   // Le point d'un titre (M., Mme…) n'est pas une fin de phrase.
   return FIN_PHRASE.test(prec) && !estHonorifique(prec);
@@ -1184,7 +1221,83 @@ function demarrerLecture() {
 // =========================================================
 //  Contrôles UI
 // =========================================================
-$("btn-lecture").addEventListener("click", basculerLecture);
+// --- Mode loupe : tout le chapitre, scrollable ; clic = point de reprise ---
+let ctxRange = null;                          // bornes de mots rendues {a, b}
+function construireContexte() {
+  const cont = $("contexte-texte");
+  const { debut, fin } = bornesChapitre();
+  ctxRange = { a: debut, b: fin };
+  const echap = (s) => (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  // Index de début de chapitre (le 1er bloc du chapitre = son titre → en Black).
+  const debutsChap = new Set(etat.chapitres.map((c) => c.debut));
+  let html = "", ouvert = false;
+  for (let i = debut; i < fin; i++) {
+    if (i === debut || (etat.debutsPhrase && etat.debutsPhrase.has(i))) {  // nouveau bloc/paragraphe
+      if (ouvert) html += "</p>";
+      html += `<p class="ctx-bloc${debutsChap.has(i) ? " ctx-titre" : ""}">`;
+      ouvert = true;
+    }
+    html += `<span data-i="${i}">${echap(etat.mots[i])}</span> `;
+  }
+  if (ouvert) html += "</p>";
+  cont.innerHTML = html;
+}
+function marquerCourant(recentrer) {
+  const cont = $("contexte-texte");
+  cont.querySelectorAll(".courant").forEach((s) => s.classList.remove("courant"));
+  const nb = Math.max(1, (etat.modele.chunk(etat.index) || {}).nb || 1);
+  let prem = null;
+  for (let i = etat.index; i < etat.index + nb; i++) {
+    const s = cont.querySelector('span[data-i="' + i + '"]');
+    if (s) { s.classList.add("courant"); if (!prem) prem = s; }
+  }
+  if (recentrer && prem) prem.scrollIntoView({ block: "center" });
+}
+function rafraichirContexte(recentrer) {
+  if (!ctxRange || etat.index < ctxRange.a || etat.index >= ctxRange.b) construireContexte();
+  marquerCourant(recentrer);
+}
+function ouvrirContexte() {
+  if (!etat.mots.length) return;
+  if (etat.enLecture) pause();
+  $("ecran-contexte").classList.remove("cache");
+  construireContexte();
+  marquerCourant(true);
+}
+function fermerContexte() { $("ecran-contexte").classList.add("cache"); }
+$("ctx-recul").addEventListener("click", () => { etat.index = phrasePrecedente(); rafraichirContexte(true); });
+$("ctx-avance").addEventListener("click", () => { etat.index = phraseSuivante(); rafraichirContexte(true); });
+// Clic sur un mot : choisit le point de reprise (sans recentrer la vue).
+$("contexte-texte").addEventListener("click", (e) => {
+  const s = e.target.closest("span[data-i]");
+  if (!s) return;
+  etat.index = debutPhraseAvant(+s.dataset.i);   // début de la phrase cliquée
+  marquerCourant(false);
+  sauverPosition();
+});
+// Play : referme, affiche la position puis relance la lecture après 1 s.
+$("ctx-play").addEventListener("click", () => {
+  fermerContexte();
+  afficherChunk();
+  clearTimeout(etat.minuteur);
+  etat.minuteur = setTimeout(lecture, 1000);
+});
+
+// Clic court = play/pause ; appui long (≈0,5 s) = ouvre le mode contexte.
+function installerPlayLong(id) {
+  const btn = $(id);
+  if (!btn) return;
+  let timer = null, declenche = false;
+  const debut = () => { declenche = false; timer = setTimeout(() => { declenche = true; ouvrirContexte(); }, 500); };
+  const fin = () => clearTimeout(timer);
+  btn.addEventListener("pointerdown", debut);
+  ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => btn.addEventListener(ev, fin));
+  btn.addEventListener("click", (e) => {
+    if (declenche) { declenche = false; e.preventDefault(); e.stopImmediatePropagation(); return; }
+    basculerLecture();
+  });
+}
+installerPlayLong("btn-lecture");
 
 // Vitesse : − et + par paliers de 20 mots/min (bornes 100–800)
 function reglerVitesse(v) {
@@ -1666,6 +1779,20 @@ $("reglage-taille-police").addEventListener("input", (e) => {
   $("valeur-taille-police").textContent = e.target.value;
   afficherChunk(); // recalcule l'ajustement au cadre + centrage ORP
 });
+// Taille de la police du Mode Loupe (50–200 %, 100 % = taille du titre, mémorisée)
+function appliquerTailleLoupe(v) {
+  document.documentElement.style.setProperty("--echelle-loupe", v / 100);
+  $("reglage-taille-loupe").value = v;
+  $("valeur-taille-loupe").textContent = v;
+  try { localStorage.setItem("bookreeder-taille-loupe", v); } catch (e) {}
+}
+$("reglage-taille-loupe").addEventListener("input", (e) => appliquerTailleLoupe(+e.target.value));
+(function initTailleLoupe() {
+  let v = 100;
+  try { const s = localStorage.getItem("bookreeder-taille-loupe"); if (s) v = +s; } catch (e) {}
+  if (!isFinite(v) || v < 50 || v > 200) v = 100;   // ignore les valeurs hors plage
+  appliquerTailleLoupe(v);
+})();
 $("reglage-espace-lettres").addEventListener("input", (e) => {
   document.documentElement.style.setProperty("--espace-lettres", e.target.value + "px");
   $("valeur-espace-lettres").textContent = e.target.value;
@@ -1710,7 +1837,7 @@ zoneMot.addEventListener("click", () => {
 // Boutons de la barre épurée (réutilisent les mêmes actions)
 $("ep-recul").addEventListener("click", () => deplacer(phrasePrecedente() - etat.index, true));
 $("ep-avance").addEventListener("click", () => deplacer(phraseSuivante() - etat.index, true));
-$("ep-lecture").addEventListener("click", basculerLecture);
+installerPlayLong("ep-lecture");
 
 // PWA : enregistrement du service worker (hors-ligne + mise à jour auto)
 let swRegistration = null;
