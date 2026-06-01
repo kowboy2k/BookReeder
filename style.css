@@ -1279,6 +1279,8 @@ html, body {
 
 /* Cases « Couleur de la police » */
 .cases-couleur { display: flex; gap: 0.5rem; margin-left: auto; }
+/* Pastilles d'accentuation décalées de 5px vers la gauche */
+#couleurs-orp { margin-right: 5px; }
 .case-couleur {
   width: 1.6rem;
   height: 1.6rem;
