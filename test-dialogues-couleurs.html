@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test — Sets de couleurs de dialogues</title>
+<style>
+  :root {
+    /* Midnight (défaut) */
+    --fond: #1e1e2e; --texte: #e8e8e8; --accent: #f25c54; --surface: #2a2a3a; --surface-bord: #3a3a4a;
+  }
+  html.theme-mono  { --fond:#121212; --texte:#e6e6e6; --accent:#8d8d8d; --surface:#242424; --surface-bord:#3a3a3a; }
+  html.theme-black { --fond:#000000; --texte:#e6e6e6; --accent:#5a8dd6; --surface:#161616; --surface-bord:#2a2a2a; }
+  html.theme-sepia { --fond:#f4ecd8; --texte:#4a3c2c; --accent:#a6612a; --surface:#e9dcc0; --surface-bord:#d8c7a2; }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: var(--fond); color: var(--texte);
+    font-family: Georgia, "Times New Roman", serif; transition: background .2s, color .2s;
+  }
+  /* Barre thème */
+  #barre-theme {
+    position: sticky; top: 0; z-index: 5; display: flex; align-items: center; justify-content: center;
+    gap: 1rem; padding: 1rem; background: var(--surface); border-bottom: 1px solid var(--surface-bord);
+    font-family: sans-serif;
+  }
+  #barre-theme button {
+    width: 2.6rem; height: 2.6rem; border-radius: 50%; border: 1px solid var(--surface-bord);
+    background: var(--fond); color: var(--texte); font-size: 1.3rem; cursor: pointer;
+  }
+  #nom-theme { font-size: 1.2rem; font-weight: 700; min-width: 9rem; text-align: center; }
+
+  .wrap { max-width: 760px; margin: 0 auto; padding: 1.4rem 1rem 4rem; }
+  h2 { font-family: sans-serif; font-size: 1rem; opacity: .6; margin: 1.6rem 0 .6rem; font-weight: 600; }
+
+  .set {
+    border: 1px solid var(--surface-bord); border-radius: .8rem; padding: 1rem 1.1rem; margin-bottom: 1rem;
+    background: color-mix(in srgb, var(--surface) 50%, transparent);
+  }
+  .set-titre { display: flex; align-items: center; gap: .6rem; font-family: sans-serif; font-size: .95rem; margin-bottom: .8rem; }
+  .pastilles { display: flex; gap: .4rem; margin-left: auto; }
+  .pastille { width: 1.2rem; height: 1.2rem; border-radius: 50%; border: 1px solid rgba(128,128,128,.4); }
+
+  /* Aperçu : un échange « ping-pong » à 3 personnages */
+  .dial { font-size: 1.5rem; line-height: 1.9; }
+  .dial p { margin: .15rem 0; }
+  .p0 { color: var(--c0); } .p1 { color: var(--c1); } .p2 { color: var(--c2); }
+  .narr { opacity: .8; }
+  /* L'ORP (repère) reprend la couleur du dialogue quand la réplique est colorée */
+  .orp { color: var(--orp, var(--accent)); font-weight: 700; }
+  .dial .p0 .orp, .dial .p1 .orp, .dial .p2 .orp { color: inherit; }
+</style>
+</head>
+<body>
+  <div id="barre-theme">
+    <button id="prec" aria-label="Thème précédent">‹</button>
+    <span id="nom-theme">Midnight</span>
+    <button id="suiv" aria-label="Thème suivant">›</button>
+  </div>
+  <div class="wrap">
+    <h2>Sets de couleurs — fais défiler les thèmes avec ‹ › et compare</h2>
+    <div id="liste-sets"></div>
+  </div>
+
+<script>
+// --- Thèmes (ordre de défilement) ---
+const THEMES = [
+  { id: "",            nom: "Midnight",   classe: "" },
+  { id: "theme-mono",  nom: "Dark Mono",  classe: "theme-mono" },
+  { id: "theme-black", nom: "Deep Black", classe: "theme-black" },
+  { id: "theme-sepia", nom: "Sépia",      classe: "theme-sepia" },
+];
+
+// --- Sets de 3 couleurs [principal, secondaire1, secondaire2] par thème ---
+// Pensés pour bien contraster avec le fond du thème (sombres = couleurs vives
+// mais douces ; Sépia = teintes plus profondes pour contraster sur le beige).
+const SETS = {
+  "Midnight": [
+    { nom: "Vergers",       c: ["#7ec850", "#e0853d", "#d75f9a"] },
+    { nom: "Lagon",         c: ["#56c2b8", "#e0a64b", "#b07be0"] },
+    { nom: "Pastel doux",   c: ["#9fd17a", "#e89b7a", "#c79be0"] },
+    // --- 20 sets supplémentaires (du plus subtil au plus tranché) ---
+    { nom: "Brume (subtil)",   c: ["#cdd2dc", "#b9c2cf", "#a7b2c2"] },
+    { nom: "Ardoise (subtil)", c: ["#c6cfd6", "#aab8c4", "#8ea2b3"] },
+    { nom: "Sable doux",       c: ["#dcd2b8", "#c9bd9a", "#b3a67e"] },
+    { nom: "Lin & ciel",       c: ["#d8cdb4", "#aebfce", "#c2b2cf"] },
+    { nom: "Tilleul tendre",   c: ["#bcd99a", "#d9c79a", "#c79ab0"] },
+    { nom: "Glacier",          c: ["#9fd0d6", "#9fb8d6", "#b3a9d6"] },
+    { nom: "Macaron",          c: ["#a8d8a0", "#f0c08a", "#e8a0c0"] },
+    { nom: "Aquarelle",        c: ["#8fcfc4", "#e8b48a", "#cf9fcf"] },
+    { nom: "Prairie",          c: ["#86c44e", "#d0a93e", "#c266a0"] },
+    { nom: "Méditerranée",     c: ["#3fb8a8", "#e8923c", "#5a8dd6"] },
+    { nom: "Agrumes",          c: ["#9bcf3f", "#ff9f43", "#ff6f9f"] },
+    { nom: "Tropiques",        c: ["#42c98f", "#ffb13d", "#e85fae"] },
+    { nom: "Joyaux",           c: ["#3fc4c9", "#d9913f", "#b06fd9"] },
+    { nom: "Forêt & feu",      c: ["#6fbf4f", "#e0652f", "#c0408f"] },
+    { nom: "Néon",             c: ["#5fe070", "#ff8a3d", "#ff5fae"] },
+    { nom: "Pop",              c: ["#46d96a", "#ff7a45", "#c46fff"] },
+    { nom: "Vitrail",          c: ["#36c0e0", "#ffaf36", "#ff5f8f"] },
+    { nom: "Arc-en-ciel",      c: ["#5fd06f", "#ffc23d", "#6f9fff"] },
+    { nom: "Carnaval",         c: ["#3fd0b0", "#ff8f3f", "#ff5fbf"] },
+    { nom: "Contraste max",    c: ["#5fe060", "#ff9040", "#ff60c0"] },
+    { nom: "Trio froid",       c: ["#4fd0c8", "#5f9fe0", "#a87fe0"] },
+    { nom: "Trio chaud",       c: ["#e0c040", "#e87840", "#e0608f"] },
+    { nom: "Terre & menthe",   c: ["#5fc9a0", "#cf9a5f", "#b06f9f"] },
+  ],
+  "Dark Mono": [
+    { nom: "Original",     c: ["#74a228", "#aa4521", "#a22878"] },
+    { nom: "Terres",       c: ["#a8a35e", "#b07a4e", "#9c6f86"] },
+    { nom: "Froid sobre",  c: ["#7fa0b8", "#b89a7f", "#9a8fb0"] },
+    { nom: "Doux neutre",  c: ["#9bb36e", "#c08f6c", "#b083a0"] },
+  ],
+  "Deep Black": [
+    { nom: "Original",     c: ["#74a228", "#aa4521", "#a22878"] },
+    { nom: "Néon doux",    c: ["#86d94e", "#ff8e54", "#e96aae"] },
+    { nom: "Bleu signé",   c: ["#6fb6e0", "#e0a14b", "#cf72c0"] },
+    { nom: "Contraste +",  c: ["#9be05a", "#ff9d61", "#ff7ec0"] },
+  ],
+  "Sépia": [
+    { nom: "Original",     c: ["#74a228", "#aa4521", "#a22878"] },
+    { nom: "Encre & bois", c: ["#3f6b2f", "#9c3b22", "#7a2e5e"] },
+    { nom: "Profond",      c: ["#2f6b5a", "#a8501f", "#7d3168"] },
+    { nom: "Classique",    c: ["#4a6e2a", "#8f3b2a", "#6e3a64"] },
+  ],
+};
+
+// Aperçu : un vrai extrait — narration + dialogue à 2 puis 3 personnages.
+// (Pas de repère ORP ici : on visualise uniquement les COULEURS de dialogue.)
+function apercuHTML() {
+  return `<div class="dial">
+    <p class="narr">Le soir tombait sur la vallée quand Margaret poussa la porte de l'auberge.</p>
+    <p class="p0">— Vous voilà enfin ! lança-t-elle. On vous attendait.</p>
+    <p class="p1">— Le chemin était long, répondit Paul en ôtant son manteau trempé.</p>
+    <p class="p0">— Peu importe, vous êtes là.</p>
+    <p class="narr">Elle l'entraîna vers le feu, où un troisième convive patientait déjà.</p>
+    <p class="p2">— Alors, demanda Jacques sans lever les yeux, avez-vous trouvé ce que vous cherchiez ?</p>
+    <p class="p1">— Pas encore.</p>
+    <p class="p0">— Mais nous brûlons, ajouta Margaret avec un sourire.</p>
+  </div>`;
+}
+
+function rendreSets() {
+  const theme = THEMES[idx].nom;
+  const liste = SETS[theme] || SETS["Midnight"];
+  const cont = document.getElementById("liste-sets");
+  cont.innerHTML = liste.map((s) => `
+    <div class="set" style="--c0:${s.c[0]};--c1:${s.c[1]};--c2:${s.c[2]}">
+      <div class="set-titre">
+        <b>${s.nom}</b>
+        <span class="pastilles">
+          <span class="pastille" style="background:${s.c[0]}"></span>
+          <span class="pastille" style="background:${s.c[1]}"></span>
+          <span class="pastille" style="background:${s.c[2]}"></span>
+        </span>
+      </div>
+      ${apercuHTML()}
+    </div>`).join("");
+}
+
+let idx = 0;
+function appliquerTheme() {
+  document.documentElement.className = THEMES[idx].classe;
+  document.getElementById("nom-theme").textContent = THEMES[idx].nom;
+  rendreSets();
+}
+document.getElementById("prec").addEventListener("click", () => { idx = (idx - 1 + THEMES.length) % THEMES.length; appliquerTheme(); });
+document.getElementById("suiv").addEventListener("click", () => { idx = (idx + 1) % THEMES.length; appliquerTheme(); });
+appliquerTheme();
+</script>
+</body>
+</html>

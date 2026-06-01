@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=208">
+  <link rel="stylesheet" href="style.css?v=211">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -120,12 +120,38 @@
   <div id="ecran-contexte" class="cache">
     <div id="contexte-texte"></div>
     <div id="contexte-barre">
-      <button id="ctx-recul" class="ic-fleche ic-recul" title="Phrase précédente" aria-label="Phrase précédente"></button>
-      <button id="ctx-play" class="icone-play" title="Reprendre la lecture" aria-label="Reprendre"></button>
-      <button id="ctx-avance" class="ic-fleche ic-avance" title="Phrase suivante" aria-label="Phrase suivante"></button>
+      <button id="ctx-notes" title="Annotations du chapitre" aria-label="Annotations">
+        <svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Bulle de dialogue arrondie avec petite queue en bas à gauche -->
+          <path d="M5 4h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-4 4v-4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"></path>
+        </svg>
+      </button>
+      <div id="ctx-centre">
+        <button id="ctx-recul" class="ic-fleche ic-recul" title="Phrase précédente" aria-label="Phrase précédente"></button>
+        <button id="ctx-play" class="icone-play" title="Reprendre la lecture" aria-label="Reprendre"></button>
+        <button id="ctx-avance" class="ic-fleche ic-avance" title="Phrase suivante" aria-label="Phrase suivante"></button>
+      </div>
+      <button id="ctx-recherche" title="Rechercher dans le livre" aria-label="Rechercher">
+        <svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Loupe « rechercher dans le texte » : lignes de texte dans la lentille -->
+          <circle cx="10.5" cy="10.5" r="7.5"></circle>
+          <line x1="21" y1="21" x2="16" y2="16"></line>
+          <line x1="7.3" y1="8.5" x2="13.7" y2="8.5"></line>
+          <line x1="7.3" y1="11" x2="13.7" y2="11"></line>
+          <line x1="7.3" y1="13.5" x2="11.5" y2="13.5"></line>
+        </svg>
+      </button>
     </div>
     <!-- Infos de lecture (Mode Loupe) : position · chapitre · mots, sous les boutons -->
     <div id="contexte-infos"></div>
+  </div>
+
+  <!-- Panneau « toutes les annotations » du chapitre (bouton message en mode loupe) -->
+  <div id="panneau-annotations" class="cache">
+    <div class="panneau-contenu">
+      <h2>Annotations</h2>
+      <div id="annot-resultats"></div>
+    </div>
   </div>
 
   <!-- Panneau de recherche dans le livre (double-tap dans la zone de texte du mode loupe) -->
@@ -357,7 +383,7 @@
       </div>
 
       <div class="reglage reglage-inline">
-        <label for="reglage-dialogues">Dialogues</label>
+        <label for="reglage-dialogues">Dialogues dynamiques</label>
         <select id="reglage-dialogues">
           <option value="aucun">Aucun effet</option>
           <option value="elocution">Élocution</option>
@@ -404,6 +430,6 @@
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="app.js?v=208"></script>
+  <script src="app.js?v=211"></script>
 </body>
 </html>

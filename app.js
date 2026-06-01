@@ -297,18 +297,65 @@ Il n’avait aucune grâce, à part une mince nageoire qui courait tout le long 
 — Un poète? dit une voix amusée derrière eux. Les talents de notre galant major ne connaissent-ils donc aucune limite?
 Lord John se retourna en réprimant une grimace et en affichant un sourire courtois. Il s’inclina devant Edwin Nicholls.`;
 
+// Chapitre 2 inventé, riche en dialogues (test chapitrage + annotations).
+const TEXTE_DEMO2 = `Le lendemain matin, une brume épaisse montait de la Tamise et noyait les quais d’un voile gris. Lord John remonta le col de son manteau et pressa le pas vers Whitehall.
+— Vous êtes en retard, lança Caroline sans même se retourner.
+— La faute à ce brouillard, répondit-il. On n’y voit pas à dix pas.
+— Toujours une excuse !
+— Ce n’est pas une excuse, c’est un fait.
+Elle finit par lui faire face, un sourire moqueur au coin des lèvres.
+— Et que comptez-vous faire de votre fameuse anguille ? demanda-t-elle.
+— L’étudier, dit-il simplement. La comprendre.
+— La comprendre ? ricana un homme adossé contre le mur. Vous perdez votre temps, major.
+Lord John ne releva pas l’impertinence. Il savait que la curiosité valait toujours mieux que le mépris.
+— Peut-être, concéda-t-il enfin. Mais le temps perdu à chercher n’est jamais tout à fait perdu.
+Caroline le regarda un long moment, puis éclata de rire.
+— Vous êtes incorrigible !
+— C’est ce qu’on me dit souvent, avoua-t-il en souriant.`;
+
 $("btn-demo").addEventListener("click", () => {
-  etat.chapitresTexte = [{ titre: "Texte de démo", texte: TEXTE_DEMO }];
+  etat.chapitresTexte = [
+    { titre: "Chapitre 1 - L'anguille", texte: TEXTE_DEMO },
+    { titre: "Chapitre 2 - La brume", texte: TEXTE_DEMO2 },
+  ];
   etat.notes = [];
   etat.idLivre = null;
   etat.nomLivre = "Démo";
   etat.titreLivre = "Texte de démo";
   etat.progression = 0;
   retokeniser();
+  injecterNotesDemo();   // 2 annotations d'exemple : Londres¹, Lord John²
   remplirSelectChapitres();
   placerMarqueursChapitres();
   demarrerLecture();
 });
+
+// Ajoute 2 annotations d'exemple à la démo (Londres, Lord John), rattachées au
+// dernier mot de chaque occurrence, pour illustrer l'exposant + la bulle.
+function injecterNotesDemo() {
+  const notes = [
+    { num: "1", cle: /^londres/i, texte: "Londres : capitale du Royaume-Uni, sur la Tamise ; cœur politique et culturel de l'Angleterre." },
+    // Sur « John » (de « Lord John ») pour que l'exposant tombe après le nom complet.
+    { num: "2", cle: /^john/i,    texte: "Lord John Grey : officier britannique, personnage élégant et perspicace, narrateur de plusieurs récits de Diana Gabaldon." },
+    // Chapitre 2 :
+    { num: "3", cle: /^tamise/i,    texte: "La Tamise : fleuve traversant Londres, long de 346 km, bordé par les grands monuments de la capitale." },
+    { num: "4", cle: /^whitehall/i, texte: "Whitehall : avenue de Londres concentrant les ministères ; par extension, le siège du gouvernement britannique." },
+  ];
+  etat.notes = notes.map((n) => ({ num: n.num, texte: n.texte }));
+  const map = new Map();
+  const place = notes.map(() => false);   // une seule occurrence par note
+  for (let i = 0; i < etat.mots.length; i++) {
+    const motNet = (etat.mots[i] || "").replace(/[^\p{L}]/gu, "");
+    notes.forEach((n, id) => {
+      if (!place[id] && n.cle.test(motNet)) {
+        place[id] = true;
+        if (!map.has(i)) map.set(i, []);
+        map.get(i).push(etat.notes[id]);
+      }
+    });
+  }
+  etat.noteParMot = map;
+}
 
 // Extrait le livre sous forme de TEXTE BRUT par chapitre : [{ titre, texte }].
 // La tokenisation en mots (et donc les index de chapitre) est faite ENSUITE
@@ -1136,14 +1183,12 @@ function afficherChunk() {
 // Applique les effets de dialogue (italique / fondu / couleur du locuteur) au
 // cartouche, selon que le mot courant fait partie d'une réplique.
 function appliquerEffetsDialogue() {
-  const enDial = dansDialogue(etat.index);
+  // Un mot « de dialogue » = il a une couleur de locuteur (multicolore) OU il est
+  // dans une réplique (pour italique/fondu, indépendants du multicolore).
+  const couleur = effetDialogue("multicolore") && etat.couleurParMot
+    ? (etat.couleurParMot.get(etat.index) || "") : "";
+  const enDial = !!couleur || dansDialogue(etat.index);
   motAffiche.classList.toggle("dlg-italique", enDial && effetDialogue("italique"));
-  // Couleur du locuteur (multicolore) : posée sur le conteneur ; l'ORP garde sa
-  // priorité (couleur du repère) via sa propre règle CSS.
-  let couleur = "";
-  if (enDial && effetDialogue("multicolore") && etat.couleurParMot) {
-    couleur = etat.couleurParMot.get(etat.index) || "";
-  }
   motAffiche.style.setProperty("--couleur-dialogue", couleur || "");
   motAffiche.classList.toggle("dlg-couleur", !!couleur);
   // Fondu : on relance l'animation à chaque chunk (retire/rajoute la classe).
@@ -1260,6 +1305,15 @@ function dansDialogue(i) {
 // Verbes de parole courants (incise : « dit Margaret », « Margaret s'écria »).
 const VERBES_PAROLE = /^(dit|dis|dirent|r[ée]pond(it|irent)|r[ée]pliqu(a|èrent)|s[' ]?[ée]cri(a|èrent)|demand(a|èrent)|murmur(a|èrent)|souffl(a|èrent)|lan[çc](a|èrent)|ajout(a|èrent)|repr(it|irent)|s[' ]?exclam(a|èrent)|s[' ]?[ée]tonn(a|èrent)|soupir(a|èrent)|cri(a|èrent)|fit|firent|insist(a|èrent)|pours(uivit|uivirent)|chuchot(a|èrent)|gémit|grogn(a|èrent)|interrog(ea|èrent)|questionn(a|èrent)|conclu(t|rent)|affirm(a|èrent)|d[ée]clar(a|èrent)|expliqu(a|èrent)|raill(a|èrent)|ordonn(a|èrent)|protest(a|èrent)|balbut(ia|ièrent)|annon[çc](a|èrent)|rétorqu(a|èrent)|tonn(a|èrent))$/i;
 function motNu(m) { return (m || "").replace(/[^\p{L}'-]/gu, ""); }
+// Suffixe pronominal d'inversion (« répondit-il », « demanda-t-elle », « dit-on »…).
+const SUFFIXE_PRON = /-(t-)?(il|elle|on|je|tu|nous|vous|ils|elles|le|la|les|moi|toi|lui|leur)$/i;
+// Le mot est-il un verbe de parole, même avec un sujet inversé accolé ?
+function estVerbeParole(mot) {
+  let m = (mot || "").replace(/[^\p{L}'’-]/gu, "").replace(/[’]/g, "'");
+  if (VERBES_PAROLE.test(m)) return true;
+  const radical = m.replace(SUFFIXE_PRON, "");
+  return radical !== m && VERBES_PAROLE.test(radical);
+}
 // Cherche le nom propre associé à une réplique commençant au mot `deb`.
 //   - APRÈS : juste après la fin de la réplique, un verbe de parole + nom propre
 //     (« … ? » s'étonna Margaret) ou (nom propre + verbe) ;
@@ -1299,13 +1353,19 @@ function calculerLocuteurs() {
   const map = new Map();
   if (!mots || !mots.length) { etat.couleurParMot = map; return; }
 
+  // Début de PARAGRAPHE (bloc), pour délimiter une réplique entière même si elle
+  // contient plusieurs phrases ou une incise médiane.
+  const debutBloc = (i) => i <= 0 || (etat.debutsPhrase && etat.debutsPhrase.has(i));
+
   // 1) Liste des répliques + locuteur détecté (si incise) ; compte global des noms.
+  //    Une réplique va du tiret jusqu'au prochain DÉBUT DE PARAGRAPHE → elle peut
+  //    donc englober plusieurs phrases (incise médiane + suite de la réplique).
   const repliques = [];   // { deb, fin, nom }
   const compte = {};
   for (let i = 0; i < mots.length; i++) {
-    const estRep = estDebutPhrase(i) && DEBUT_REPLIQUE.test((mots[i] || "").trimStart());
+    const estRep = debutBloc(i) && DEBUT_REPLIQUE.test((mots[i] || "").trimStart());
     if (!estRep) continue;
-    let fin = i + 1; while (fin < mots.length && !estDebutPhrase(fin)) fin++;
+    let fin = i + 1; while (fin < mots.length && !debutBloc(fin)) fin++;
     const nom = normTitre(locuteurDeReplique(i));
     if (nom) compte[nom] = (compte[nom] || 0) + 1;
     repliques.push({ deb: i, fin, nom });
@@ -1339,11 +1399,56 @@ function calculerLocuteurs() {
     };
     for (let k = b; k <= e; k++) {
       const c = couleurSlot((k - b) % 2);
-      for (let w = repliques[k].deb; w < repliques[k].fin; w++) map.set(w, c);
+      const r = repliques[k];
+      // Colore toute la réplique, SAUF les phrases-incises internes (« dit une
+      // voix amusée derrière eux. ») : une phrase qui n'est pas le tout début de
+      // la réplique et qui commence par un verbe de parole reste en couleur normale.
+      const inc = zonesIncise(r.deb, r.fin);     // mots à NE PAS colorer (incises)
+      for (let x = r.deb; x < r.fin; x++) if (!inc.has(x)) map.set(x, c);
     }
     b = e + 1;
   }
   etat.couleurParMot = map;
+}
+// Renvoie l'ensemble des indices de mots [deb, fin) qui appartiennent à une
+// INCISE de narration (à NE PAS colorer), au sein d'une réplique. On découpe la
+// réplique en SEGMENTS sur 3 frontières : début de phrase, fin forte (? ! …) et
+// VIRGULE. Un segment est une incise s'il commence par un verbe de parole
+// (« lança Caroline », « répondit-il »), ou s'il suit une fin forte en minuscule.
+function zonesIncise(deb, fin) {
+  const set = new Set();
+  const finSegment = (i) => {
+    const m = (etat.mots[i] || "").trim();
+    return /[?!…][”»"')\]]*$/.test(m) || /,$/.test(m.replace(/[”»"')\]]+$/, ""));
+  };
+  let s = deb;                       // début du segment courant
+  while (s < fin) {
+    // Avance jusqu'à : un début de phrase (exclu du segment) ou un mot à
+    // ponctuation forte/virgule (inclus, il termine le segment).
+    let e = s;
+    while (e < fin) {
+      if (e > s && estDebutPhrase(e)) { e--; break; }   // début de phrase → segment = [s..e-1]
+      if (finSegment(e)) break;                          // ? ! … , → ce mot termine le segment
+      e++;
+    }
+    if (e >= fin) e = fin - 1;
+    // Le segment [s..e] est-il une incise ?
+    const prem = (etat.mots[s] || "").replace(/^[^\p{L}]+/u, "");
+    const motPrec = s > deb ? (etat.mots[s - 1] || "").trim() : "";
+    const apresVirgule = /,$/.test(motPrec.replace(/[”»"')\]]+$/, ""));
+    const apresFinForte = /[?!…][”»"')\]]*$/.test(motPrec);
+    let incise = false;
+    // (a) verbe de parole dans les 3 premiers mots du segment (« lança Caroline »)
+    for (let k = s; k <= Math.min(e, s + 2); k++) { if (estVerbeParole(etat.mots[k])) { incise = true; break; } }
+    // (b) RÈGLE TYPO : segment NON initial qui démarre en MINUSCULE juste après
+    //     une FIN FORTE (? ! …) → c'est forcément une incise (« ricana un homme… »),
+    //     même si le verbe est inconnu. (Après une simple virgule c'est ambigu —
+    //     « , c'est un fait » n'est pas une incise — donc on exige le verbe, cas (a).)
+    if (!incise && s > deb && apresFinForte && prem && /\p{Ll}/u.test(prem[0])) incise = true;
+    if (incise) for (let x = s; x <= e; x++) set.add(x);
+    s = e + 1;
+  }
+  return set;
 }
 
 // Décélération d'élocution (DIALOGUES) : on ralentit progressivement les derniers
@@ -1907,17 +2012,25 @@ function construireContexte() {
   // Index de début de chapitre (le 1er bloc du chapitre = son titre → en Black).
   const debutsChap = new Set(etat.chapitres.map((c) => c.debut));
   const notesMot = etat.noteParMot || new Map();
+  // Longueur (en mots) de chaque bloc, pour ne mettre en gras (ctx-titre) que les
+  // VRAIS titres courts — pas un long 1er paragraphe qui commence un chapitre.
+  const finBloc = (i) => { let j = i + 1; while (j < fin && !(etat.debutsPhrase && etat.debutsPhrase.has(j))) j++; return j; };
   let html = "", ouvert = false;
   for (let i = debut; i < fin; i++) {
     if (i === debut || (etat.debutsPhrase && etat.debutsPhrase.has(i))) {  // nouveau bloc/paragraphe
       if (ouvert) html += "</p>";
-      html += `<p class="ctx-bloc${debutsChap.has(i) ? " ctx-titre" : ""}">`;
+      const estTitre = debutsChap.has(i) && (finBloc(i) - i) <= 8;   // titre = début de chapitre ET court
+      html += `<p class="ctx-bloc${estTitre ? " ctx-titre" : ""}">`;
       ouvert = true;
     }
     const ns = notesMot.get(i);
     const sup = (ns && ns.length)
       ? `<sup class="ctx-note">${echap(ns.map((n) => n.num).join(","))}</sup>` : "";
-    html += `<span data-i="${i}"${(ns && ns.length) ? ' class="a-note"' : ""}>${echap(etat.mots[i])}${sup}</span> `;
+    // Couleur du locuteur (multicolore) si l'effet est actif et le mot est dans un dialogue.
+    const coul = (effetDialogue("multicolore") && etat.couleurParMot) ? etat.couleurParMot.get(i) : "";
+    const cls = (ns && ns.length ? "a-note" : "") + (coul ? " ctx-dlg" : "");
+    const styleCoul = coul ? ` style="--c-dlg:${coul}"` : "";
+    html += `<span data-i="${i}"${cls ? ` class="${cls.trim()}"` : ""}${styleCoul}>${echap(etat.mots[i])}${sup}</span> `;
   }
   if (ouvert) html += "</p>";
   cont.innerHTML = html;
@@ -2121,37 +2234,81 @@ $("rech-resultats").addEventListener("click", (e) => {
 $("panneau-recherche").addEventListener("click", (e) => {
   if (e.target.id === "panneau-recherche") fermerRecherche();  // clic sur le fond
 });
-// Bouton Play de la loupe : CLIC COURT = reprendre la lecture ; APPUI LONG
-// (≈0,5 s) = ouvrir la recherche dans le livre.
-function reprendreDepuisLoupe() {
+// Bouton Play de la loupe :
+//  - CLIC COURT = ferme la loupe et REPREND la lecture rapide (après 1 s) ;
+//  - APPUI PROLONGÉ (≈0,5 s) = ferme la loupe SANS relancer la lecture.
+function fermerLoupe(relancer) {
   fermerBulleNote();
   fermerContexte();
   afficherChunk();
-  clearTimeout(etat.minuteur);
-  etat.minuteur = setTimeout(lecture, 1000);
+  if (relancer) { clearTimeout(etat.minuteur); etat.minuteur = setTimeout(lecture, 1000); }
 }
-(function installerRechercheLong() {
+(function installerCtxPlay() {
   const btn = $("ctx-play");
   if (!btn) return;
-  let timer = null, pret = false, declenche = false;
-  const debut = () => {
-    pret = false; declenche = false;
-    timer = setTimeout(() => { pret = true; }, 500);   // seuil atteint : appui « long »
-  };
-  const annuler = () => { clearTimeout(timer); pret = false; };
-  btn.addEventListener("pointerdown", debut);
-  // Au RELÂCHEMENT : si le seuil long est atteint, on ouvre la recherche ICI,
-  // dans le geste utilisateur → iOS autorise l'ouverture automatique du clavier.
-  btn.addEventListener("pointerup", () => {
-    clearTimeout(timer);
-    if (pret) { declenche = true; pret = false; ouvrirRecherche(); }
-  });
-  ["pointerleave", "pointercancel"].forEach((ev) => btn.addEventListener(ev, annuler));
-  btn.addEventListener("click", (e) => {
-    if (declenche) { declenche = false; e.preventDefault(); e.stopImmediatePropagation(); return; }
-    reprendreDepuisLoupe();
-  });
+  let timer = null, long = false;
+  btn.addEventListener("pointerdown", () => { long = false; timer = setTimeout(() => { long = true; }, 500); });
+  ["pointerleave", "pointercancel"].forEach((ev) => btn.addEventListener(ev, () => clearTimeout(timer)));
+  btn.addEventListener("pointerup", () => clearTimeout(timer));
+  btn.addEventListener("click", () => { fermerLoupe(!long); long = false; });
 })();
+// Bouton loupe (droite) : ouvre la recherche dans le livre.
+$("ctx-recherche").addEventListener("click", ouvrirRecherche);
+// Bouton message (gauche) : liste toutes les annotations du chapitre.
+$("ctx-notes").addEventListener("click", ouvrirAnnotations);
+
+// Panneau « Annotations » : recense les mots du chapitre courant porteurs d'une
+// note (exposant), avec le texte de la note. Clic = saut au mot (+ ouvre la bulle).
+function ouvrirAnnotations() {
+  const cont = $("annot-resultats");
+  const { debut, fin } = bornesChapitre();
+  const items = [];
+  const indices = [];                          // index du mot de chaque item
+  if (etat.noteParMot) {
+    for (let i = debut; i < fin; i++) {
+      const ns = etat.noteParMot.get(i);
+      if (!ns || !ns.length) continue;
+      const motVisible = coeurMot(etat.mots[i]) || etat.mots[i].replace(/ /g, " ").trim();
+      ns.forEach((n) => {
+        const txt = n.texte ? echHtml(n.texte) : "<i>(annotation introuvable)</i>";
+        items.push('<button class="annot-item" data-i="' + i + '">' +
+          '<span class="annot-num">' + echHtml(n.num) + ".</span>" +
+          "<b>" + echHtml(motVisible) + "</b> — " + txt + "</button>");
+        indices.push(i);
+      });
+    }
+  }
+  cont.innerHTML = items.length ? items.join("")
+    : '<p class="annot-vide">Aucune annotation dans ce chapitre.</p>';
+  $("panneau-annotations").classList.remove("cache");
+  // Amène en vue la note la plus proche de la position de lecture courante
+  // (utile quand le chapitre comporte beaucoup de notes).
+  cont.scrollTop = 0;
+  if (indices.length) {
+    let best = 0, dmin = Infinity;
+    for (let k = 0; k < indices.length; k++) {
+      const d = Math.abs(indices[k] - etat.index);
+      if (d < dmin) { dmin = d; best = k; }
+    }
+    const el = cont.querySelectorAll(".annot-item")[best];
+    if (el) el.scrollIntoView({ block: "center" });
+  }
+}
+function fermerAnnotations() { $("panneau-annotations").classList.add("cache"); }
+$("annot-resultats").addEventListener("click", (e) => {
+  const it = e.target.closest(".annot-item");
+  if (!it) return;
+  const i = Math.min(Math.max(0, +it.dataset.i), etat.mots.length - 1);
+  fermerAnnotations();
+  etat.index = i;
+  rafraichirContexte(true);          // recentre la loupe sur le mot annoté
+  const s = ctxSpans.get(i);
+  if (s) ouvrirBulleNote(i, s);      // ouvre directement la bulle de la note
+  sauverPosition();
+});
+$("panneau-annotations").addEventListener("click", (e) => {
+  if (e.target.id === "panneau-annotations") fermerAnnotations();  // clic sur le fond
+});
 
 // Clic court = play/pause ; appui long (≈0,5 s) = ouvre le mode contexte.
 function installerPlayLong(id) {

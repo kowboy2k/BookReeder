@@ -209,9 +209,14 @@ html, body {
 #contexte-texte .ctx-titre { font-weight: 900; }       /* titre/chapitre en Black */
 #contexte-texte span[data-i] { opacity: 0.5; }         /* texte atténué (50 %) */
 #contexte-texte span.phrase-courante { opacity: 1; }   /* phrase en cours à 100 % */
+/* Couleur du locuteur (multicolore) sur les mots de dialogue. */
+#contexte-texte span.ctx-dlg { color: var(--c-dlg); }
 #contexte-texte .courant {
   color: var(--orp-couleur, var(--accent));            /* mot courant : couleur du repère */
 }
+/* EXCEPTION : un mot courant qui est aussi un dialogue coloré garde la couleur du
+   locuteur (et non la couleur d'accentuation du repère). */
+#contexte-texte span.ctx-dlg.courant { color: var(--c-dlg); }
 /* Repère d'annotation en lecture rapide : petit caractère en exposant.
    Discret (couleur de la police) ou « accentué » (.accent → couleur
    d'accentuation en cours). Signale un contenu consultable en mode loupe. */
@@ -270,9 +275,15 @@ html, body {
   flex: none;
   display: flex;
   align-items: center;
+  justify-content: space-between;   /* message à gauche · centre · loupe à droite */
+  padding: 0.6rem 1.2rem 0;
+}
+/* Les 3 boutons de lecture restent groupés et centrés (rapprochés). */
+#ctx-centre {
+  display: flex;
+  align-items: center;
   justify-content: center;
-  gap: 2.4rem;
-  padding-top: 0.6rem;
+  gap: 1.4rem;
 }
 #contexte-barre button {
   width: 3.6rem;
@@ -287,7 +298,31 @@ html, body {
   justify-content: center;
 }
 #contexte-barre #ctx-play { width: 4.6rem; height: 4.6rem; }
+/* Boutons latéraux (message / loupe) un peu plus discrets. */
+#ctx-notes, #ctx-recherche { background: transparent; color: var(--gris); }
 #contexte-barre button:active { transform: scale(0.92); }
+
+/* Panneau « toutes les annotations » du chapitre */
+#panneau-annotations {
+  position: fixed; inset: 0; z-index: 70;
+  background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center;
+  padding: max(10dvh, env(safe-area-inset-top)) 1rem max(10dvh, env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+#panneau-annotations.cache { display: none; }
+#panneau-annotations .panneau-contenu {
+  border-radius: 1rem; max-height: 80dvh; display: flex; flex-direction: column;
+}
+#annot-resultats { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+.annot-item {
+  display: block; width: 100%; text-align: left;
+  background: var(--fond); color: var(--texte); border: none;
+  border-radius: 0.5rem; padding: 0.6rem 0.7rem; margin-bottom: 0.5rem;
+  cursor: pointer; font-family: var(--police); font-size: 1rem; line-height: 1.4;
+}
+.annot-num { color: var(--orp-couleur, var(--accent)); font-weight: 700; margin-right: 0.4rem; }
+.annot-vide { opacity: 0.6; font-style: italic; }
 
 /* --- Accueil --- */
 /* Découpage relatif (en flux, sans chevauchement) : bloc haut ~50%, liste qui
@@ -554,7 +589,12 @@ html, body {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(calc(-1 * var(--decalage-orp, 0px)), -50%);
+  /* translateZ(0) = couche de composition isolée (GPU) : évite les « fantômes »
+     d'affichage (résidus du mot précédent mal effacés) sur certains navigateurs
+     mobiles, car le mot bouge en transform à chaque changement. */
+  transform: translate(calc(-1 * var(--decalage-orp, 0px)), -50%) translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 #mot-affiche.majuscules { text-transform: uppercase; }
@@ -571,6 +611,9 @@ html, body {
 #mot-affiche .bio { font-weight: 900; color: var(--bio-couleur, inherit); }
 /* Le pivot ORP reste prioritaire en couleur, même dans un début gras */
 #mot-affiche .orp { color: var(--orp-couleur, var(--accent)); }
+/* Dans un dialogue coloré, la lettre repère adopte la couleur du locuteur
+   (au lieu de la couleur d'accentuation). */
+#mot-affiche.dlg-couleur .orp { color: var(--couleur-dialogue, inherit); }
 
 /* Réticules verticaux qui encadrent l'ORP, façon Spritz.
    Positionnés par rapport au centre vertical de la zone (= le mot). */
