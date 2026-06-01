@@ -1182,12 +1182,12 @@ body.roue-ouverte #panneau-reglages .panneau-contenu { background: transparent; 
 /* Réglages : feuille du bas (≈ 2/3) laissant voir l'aperçu de lecture en haut */
 #panneau-reglages { background: transparent; align-items: flex-end; }
 #panneau-reglages .panneau-contenu {
-  height: 67vh;                                /* hauteur fixe : OK toujours visible */
+  max-height: 85vh;                            /* s'ajuste au contenu, défile si trop long */
   display: flex;
   flex-direction: column;                      /* entête fixe · pages défilables · OK fixe */
   overflow: hidden;
-  /* Marge basse pour que « OK » ne passe pas sous la barre d'accueil iPhone (+25px) */
-  padding-bottom: calc(1.5rem + env(safe-area-inset-bottom) + 25px);
+  /* « OK » aligné à 2% au-dessus du bord visible (zone de sécurité iPhone incluse) */
+  padding-bottom: calc(env(safe-area-inset-bottom) + 2vh);
 }
 /* Entête : flèches ‹ › + titre, toujours visible */
 #reglages-entete { flex: none; display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1rem; }
@@ -1235,11 +1235,13 @@ body.roue-ouverte #panneau-reglages .panneau-contenu { background: transparent; 
 #panneau-navigation .panneau-contenu { padding: 1.8rem 1.5rem 2.4rem; }
 #panneau-navigation .reglage { margin-bottom: 2rem; }
 /* Boutons chapitre précédent / suivant dans le panneau Navigation */
-#nav-chap-boutons { display: flex; justify-content: center; gap: 1.6rem; }
+/* Marges négatives : resserre l'espace vertical au-dessus / en dessous */
+#nav-chap-boutons { display: flex; justify-content: center; gap: 2rem; margin: -0.8rem 0; }
+/* Boutons ×2, cercle resserré autour du glyphe + fond visible */
 #nav-chap-boutons .btn-chapitre {
-  flex: none; width: min(10rem, 38vw); aspect-ratio: 1; border-radius: 50%;
-  border: none; cursor: pointer; background: var(--surface); color: var(--texte);
-  font-size: min(3.4rem, 13vw); line-height: 1;
+  flex: none; width: min(5rem, 20vw); aspect-ratio: 1; border-radius: 50%;
+  border: none; cursor: pointer; background: var(--fond); color: var(--texte);
+  font-size: min(2.3rem, 9vw); line-height: 1;
   display: flex; align-items: center; justify-content: center;
 }
 #nav-chap-boutons .btn-chapitre:active { transform: scale(0.93); }
