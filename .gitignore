@@ -5,3 +5,4 @@ __pycache__/
 Thumbs.db
 # EPUB de test local
 test*.epub
+ebooks/

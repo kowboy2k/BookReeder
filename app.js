@@ -311,6 +311,180 @@ $("btn-demo").addEventListener("click", () => {
 // par le modèle actif (tokeniserChapitres), pour que chaque modèle puisse
 // découper le texte à sa façon. Les chapitres viennent de la TOC (ancres
 // incluses) ; sinon une entrée par section.
+// Pages de garde / annexes à exclure du menu des chapitres (couverture,
+// copyright, table des matières, « du même auteur »…). Comparé au titre nettoyé.
+const RE_PAGE_GARDE = /^\s*(couverture|cover|page de titre|faux[- ]?titre|titre|copyright|page\s+l[ée]gale|mentions?\s+l[ée]gales?|achev[ée]\s+d[' ]?imprim\w*|d[ée]p[ôo]t\s+l[ée]gal|colophon|ours|du\s+m[êe]me\s+auteure?|de\s+la\s+m[êe]me\s+auteure?|dans\s+la\s+m[êe]me\s+(s[ée]rie|collection)|table\s+des\s+mati[èe]res|table|sommaire|index|remerciements?|cr[ée]dits?|[àa]\s+propos\s+de\s+l['' ]auteure?|biographie|pr[ée]sentation|exergue|[ée]pigraphe|d[ée]dicace|sch[ée]mas?|illustrations?|page\s+titre|page\s+de\s+garde|quatri[èe]me\s+de\s+couverture|title\s+page|half[- ]?title|table\s+of\s+contents|contents|acknowledge?ments?|about\s+the\s+author|also\s+by|by\s+the\s+same\s+author|dedication|imprint|frontispiece|back\s+cover|notes?)\s*[.:]?\s*$/i;
+function estPageGarde(titre) { return RE_PAGE_GARDE.test((titre || "").replace(/\s+/g, " ").trim()); }
+// Normalise un titre pour comparaison (sans casse/accents/espaces multiples).
+function normTitre(s) {
+  return (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+// Un titre qui n'est qu'un NUMÉRO de chapitre (chiffre, romain, ordinal écrit) —
+// sert à fusionner « I » + « Une petite ville » → « I · Une petite ville ».
+function estNumeroChap(t) {
+  t = (t || "").replace(/\s+/g, " ").trim();
+  if (!t || t.length > 40) return false;
+  if (/^(chap(itre)?|chapter)?\.?\s*(\d{1,3}|[IVXLCDM]{1,8})\.?$/i.test(t)) return true;
+  return /^(chap(itre)?|chapter)?\.?\s*(premier|premi[èe]re|deuxi[èe]me|second[e]?|troisi[èe]me|quatri[èe]me|cinqui[èe]me|sixi[èe]me|septi[èe]me|huiti[èe]me|neuvi[èe]me|dixi[èe]me|first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|one|two|three|four|five|six|seven|eight|nine|ten)$/i.test(t);
+}
+
+// Titre d'une section déduit de ses balises : 1er titre (h1–h6, sinon classes
+// chap/titre/title), en fusionnant un numéro suivi de son intitulé.
+function titreDepuisSection(corps) {
+  if (!corps || !corps.querySelectorAll) return "";
+  const net = (s) => (s || "").replace(/\s+/g, " ").trim();
+  let els = [];
+  try { els = [...corps.querySelectorAll("h1,h2,h3,h4,h5,h6")]; } catch (e) {}
+  if (!els.length) {
+    try { els = [...corps.querySelectorAll("[class*='chap_title'],[class*='chapitre'],[class*='titre'],[class*='title']")]; } catch (e) {}
+  }
+  const cand = [];
+  for (const el of els) {
+    const t = net(el.textContent);
+    if (t && t.length <= 90) cand.push(t);
+    if (cand.length >= 2) break;
+  }
+  if (!cand.length) return "";
+  if (cand.length >= 2 && estNumeroChap(cand[0]) && !estNumeroChap(cand[1]))
+    return cand[0] + " · " + cand[1];
+  return cand[0];
+}
+
+// Motifs de titre candidats. Chaque motif teste une LIGNE (déjà compactée) et
+// dit si elle a la forme d'un en-tête de division. On les confirme ensuite sur
+// l'ensemble du livre (récurrence régulière) avant de s'en servir.
+// Numéros écrits : chiffres, romains, ordinaux FR et EN (« deuxième », « second »).
+const NUM_MOT = "(\\d{1,3}|[IVXLCDM]{1,8}" +
+  "|premi[eè]re?|deuxi[eè]me|troisi[eè]me|quatri[eè]me|cinqui[eè]me|sixi[eè]me|septi[eè]me|huiti[eè]me|neuvi[eè]me|dixi[eè]me|onzi[eè]me|douzi[eè]me|treizi[eè]me|quatorzi[eè]me|quinzi[eè]me|second[e]?" +
+  "|first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|one|two|three|four|five|six|seven|eight|nine|ten)";
+// En-tête de division : « (Première) Partie/Livre/Tome » FR, « Part/Book » EN.
+const DIV_HAUT = "(partie|livre|tome|part|book)";
+// Chapitre : « Chapitre N » FR, « Chapter N » EN.
+const DIV_CHAP = "(chap(itre)?|chapter)";
+const MOTIFS_TITRE = [
+  { id: "partie",   niveau: 0, re: new RegExp("^(" + NUM_MOT + "\\s+)?" + DIV_HAUT + "\\b", "i") },
+  { id: "partie2",  niveau: 0, re: new RegExp("^" + DIV_HAUT + "\\s+" + NUM_MOT + "\\b", "i") },
+  { id: "section",  niveau: 0, re: new RegExp("^(prologue|epilogue|[ée]pilogue|pr[ée]face|avant[- ]?propos|introduction|conclusion|foreword|preface|prologue)\\b", "i") },
+  { id: "chapitre", niveau: 1, re: new RegExp("^" + DIV_CHAP + "\\.?\\s*" + NUM_MOT + "\\b", "i") },
+  // Numéro SUIVI d'un séparateur net (point, tiret, parenthèse) puis éventuel
+  // intitulé : « 12. », « IV. Le titre », « 3 - … », « 3 — … », « 3) … ». Le
+  // séparateur lève l'ambiguïté avec un nombre de contexte ou le « I » anglais.
+  { id: "numsep",   niveau: 1, re: new RegExp(String.raw`^(\d{1,3}|[IVXLCDM]{1,8})\s*([.)\-\u2013\u2014]\s*\S?|\s{2,}\S)`) },
+  // Nombre seul sur sa ligne (« 12 », « IV ») — accepté mais plus faible.
+  { id: "numseul",  niveau: 1, re: /^(\d{1,3}|[IVXLCDM]{1,8})$/ },
+  // « maj » (ligne tout en majuscules) n'est PAS un motif de chapitre autonome
+  // (trop bruité : « FIN », noms d'éditeur…). Il sert seulement d'INTITULÉ fusionné
+  // après un en-tête numéroté (« PREMIÈRE PARTIE » + « LA PEUR »).
+];
+function compacter(s) { return (s || "").replace(/\s+/g, " ").trim(); }
+function estLigneMaj(t) {
+  const lettres = t.replace(/[^\p{L}]/gu, "");
+  return lettres.length >= 2 && lettres === lettres.toUpperCase() &&
+         lettres.toUpperCase() !== lettres.toLowerCase();
+}
+// Quel(s) motif(s) une ligne valide-t-elle ? (ligne courte, pas une phrase)
+// Si un motif de NIVEAU 0 (partie/livre) matche, on n'ajoute pas « maj » : une
+// ligne « PREMIÈRE PARTIE » est une partie, pas un simple intitulé majuscule.
+function motifsDeLigne(ligne) {
+  const t = compacter(ligne);
+  if (!t || t.length > 60) return [];
+  if (/[.!?…,;:]$/.test(t) && !/^(\d{1,3}|[IVXLCDM]{1,8})\s*\.$/.test(t)) return [];
+  const ids = [];
+  for (const m of MOTIFS_TITRE) {
+    if (m.re && m.re.test(t)) ids.push(m);
+  }
+  return ids;
+}
+
+// Redécoupe les livres FAIBLEMENT chapitrés (« Section N ») d'après les titres
+// « visuels » du texte, en deux temps : (1) APPRENTISSAGE — on relève tous les
+// motifs candidats et leurs occurrences ; (2) CONFIRMATION — on ne retient que les
+// motifs RÉCURRENTS (strict ≥5, repli souple ≥3 pour les livres courts), puis on
+// garde au plus 2 niveaux (parties + chapitres). Évite les faux positifs (une
+// ligne en capitales isolée n'est pas retenue si le motif ne se répète pas).
+function redecouperParTitresVisuels(chapitres) {
+  const estFaible = (c) => /^section\s+\d+$/i.test((c.titre || "").trim());
+  if (chapitres.filter(estFaible).length < chapitres.length * 0.5) return chapitres;
+
+  // Aplatissement en lignes (en gardant la frontière des chapitres faibles, qui
+  // ne doivent PAS couper le flux : ce sont des fichiers Calibre intermédiaires).
+  const SEP = String.fromCharCode(0);   // sentinel de frontière de section
+  const lignes = [];
+  chapitres.forEach((c) => {
+    String(c.texte || "").split(/\n/).forEach((b) => lignes.push(b));
+    lignes.push(SEP);   // séparateur de section (neutralisé ensuite)
+  });
+
+  // (1) Apprentissage : occurrences de chaque motif (lignes « isolées » = précédées d'un blanc).
+  const occ = {};   // motifId -> [indices de ligne]
+  for (let i = 0; i < lignes.length; i++) {
+    const raw = lignes[i]; if (raw === SEP || !raw.trim()) continue;
+    const prec = i > 0 ? lignes[i - 1] : "";
+    const isole = i === 0 || prec === SEP || prec.trim() === "";
+    if (!isole) continue;
+    for (const m of motifsDeLigne(raw)) (occ[m.id] = occ[m.id] || []).push(i);
+  }
+
+  // (2) Confirmation : un motif est valide s'il récurre. Niveau 1 (chapitres) :
+  // strict ≥5 (repli ≥3 sur livres courts). Niveau 0 (parties) : par nature rare,
+  // on accepte dès ≥2 occurrences.
+  const total = chapitres.length;
+  const SEUIL1 = total <= 6 ? 3 : 5;            // chapitres
+  const SEUIL0 = 2;                             // parties
+  const niveauDe = {}; MOTIFS_TITRE.forEach((m) => { niveauDe[m.id] = m.niveau; });
+  const seuilDe = (id) => (niveauDe[id] === 0 ? SEUIL0 : SEUIL1);
+  const valides = Object.keys(occ).filter((id) => occ[id].length >= seuilDe(id));
+  if (!valides.length) return chapitres;        // aucune structure fiable → on ne touche pas
+
+  // Garde au plus 2 niveaux : 1 motif de niveau 0 (parties, le plus rare) + 1 de
+  // niveau 1 (chapitres, le plus fréquent).
+  const parNiveau = (n) => valides.filter((id) => niveauDe[id] === n)
+    .sort((a, b) => occ[b].length - occ[a].length);
+  const motNiv0 = parNiveau(0)[0];              // parties : on prend le plus présent
+  const motNiv1 = parNiveau(1)[0];              // chapitres : idem
+  const retenus = new Set([motNiv0, motNiv1].filter(Boolean));
+  const estTitre = new Set();
+  retenus.forEach((id) => occ[id].forEach((i) => estTitre.add(i)));
+  if (!estTitre.size) return chapitres;
+
+  // Découpe finale, en fusionnant un en-tête (« PREMIÈRE PARTIE ») avec l'intitulé
+  // en MAJUSCULES qui suit (« LA PEUR ») → « PREMIÈRE PARTIE · LA PEUR ».
+  const out = [];
+  let courant = { titre: chapitres[0] ? chapitres[0].titre : "Début", texte: [] };
+  const pousser = () => {
+    const txt = courant.texte.join("\n").replace(/\n{2,}/g, "\n\n").trim();
+    if (txt || out.length === 0) out.push({ titre: courant.titre, texte: txt });
+  };
+  for (let i = 0; i < lignes.length; i++) {
+    const raw = lignes[i]; if (raw === SEP) continue;
+    if (estTitre.has(i)) {
+      let titre = compacter(raw);
+      // Fusion « 2 lignes » : un en-tête qui n'est qu'un NUMÉRO/division (« IV »,
+      // « Chapitre 3 », « PREMIÈRE PARTIE ») suivi d'une 2e ligne courte ISOLÉE qui
+      // est l'intitulé (« Les 3 petits chats », « LA PEUR ») → « IV · Les 3 … ».
+      // L'intitulé peut être en minuscules : on exige juste une ligne courte, non
+      // marquée titre, et qui n'est pas une phrase (pas de ponctuation finale).
+      const enteteNum = /(partie|livre|tome|part|book)\b/i.test(titre) ||
+        new RegExp("^(" + DIV_CHAP + "\\.?\\s*)?" + NUM_MOT + "[.)\\-\\u2013\\u2014]?$", "i").test(titre);
+      let j = i + 1; while (j < lignes.length && (lignes[j] === SEP || lignes[j].trim() === "")) j++;
+      const suite = j < lignes.length ? compacter(lignes[j]) : "";
+      const intituleOk = suite && suite.length <= 60 && !estTitre.has(j) &&
+        !/[.!?…]$/.test(suite) && /\p{L}/u.test(suite);
+      if (enteteNum && intituleOk) {
+        titre += " · " + suite;
+        for (let k = i + 1; k <= j; k++) lignes[k] = SEP;
+      }
+      pousser();
+      courant = { titre: titre, texte: [] };
+    } else {
+      courant.texte.push(raw);
+    }
+  }
+  pousser();
+  return out;
+}
+
 async function extraireLivre(livre) {
   const toc = [];
   try {
@@ -321,6 +495,45 @@ async function extraireLivre(livre) {
     });
     if (nav && nav.toc) parcourir(nav.toc);
   } catch (e) { /* pas de TOC */ }
+
+  // TOC « fiable » ? Au moins 3 entrées avec un vrai libellé (hors « Démarrer »,
+  // couverture, sommaire…). Sinon on reconstruira le chapitrage via les balises
+  // (1 fichier du spine = 1 chapitre, titre tiré des <h>/classes).
+  const RE_TOC_BIDON = /^(d[ée]marrer|start|begin|texte|content|cover)$/i;
+  const labelsUtiles = toc.filter((t) => {
+    const l = (t.label || "").trim();
+    return l && !RE_TOC_BIDON.test(l) && !estPageGarde(l);
+  });
+  const tocFiable = labelsUtiles.length >= 3;
+
+  // Titre du livre (pour reconnaître les pages de titre répétées).
+  let titreLivre = "";
+  try {
+    const meta = (await livre.loaded.metadata) || {};
+    titreLivre = normTitre(typeof meta.title === "string" ? meta.title : (meta.title && (meta.title.name || meta.title.value)) || "");
+  } catch (e) {}
+  // Une section est-elle une « garde » (à fusionner, pas un vrai chapitre) ?
+  // Pages connues, page de titre (= titre du livre), ou titre généré « Section N »
+  // pour une section courte (couverture, page sans contenu).
+  function estGarde(titre, texte) {
+    if (estPageGarde(titre)) return true;
+    const tt = (titre || "").replace(/\s+/g, " ").trim();
+    // Colophon / mentions d'imprimeur en fin de livre (ex. « PARIS – 22, RUE… »,
+    // « (G. O. : 31.2348) », « TABLE DES-MATIÈRES »).
+    if (/^table\s+des[-\s]+mati[èe]res/i.test(tt)) return true;
+    if (/^\(?\s*g\.?\s*o\.?\s*[:.]/i.test(tt)) return true;
+    if (/\b(rue|imprim|achev|d[ée]p[ôo]t\s+l[ée]gal)\b/i.test(tt) && tt.length < 60) return true;
+    // Ligne de table des matières résiduelle : « … Partie … <numéro de page> ».
+    if (/\bpartie\b/i.test(tt) && /\s\d{1,4}\s*$/.test(tt)) return true;
+    // Page de titre = titre du livre (comparaison sans espaces, car un <br> dans
+    // le titre peut coller les mots : « Le cercledes sept pierres »).
+    const compact = (s) => normTitre(s).replace(/\s+/g, "");
+    if (titreLivre && compact(titre) === compact(titreLivre)) return true;
+    // Section au titre générique (« Section N ») et au contenu court = garde
+    // (couverture, page de titre, schémas, etc. sans vrai chapitrage).
+    if (/^section\s+\d+$/i.test((titre || "").trim()) && (texte || "").length < 600) return true;
+    return false;
+  }
 
   // Texte brut entre deux éléments (ou début/fin de section)
   const texteEntre = (doc, corps, debutEl, finEl) => {
@@ -358,11 +571,14 @@ async function extraireLivre(livre) {
       const baseHref = (section.href || "").split("#")[0];
       nSection++;
 
-      // Entrées TOC de cette section
-      const entriesIci = toc.filter((t) => t.href.split("#")[0] === baseHref);
+      // Entrées TOC de cette section (ignorées si la TOC n'est pas fiable)
+      const entriesIci = tocFiable ? toc.filter((t) => t.href.split("#")[0] === baseHref) : [];
       const sansAncre = entriesIci.find((t) => !t.href.includes("#"));
+      // Titre de la section : libellé TOC si fiable, sinon déduit des balises,
+      // sinon « Section N ». (1 fichier du spine = 1 chapitre quand pas de TOC.)
       const labelSection = (sansAncre && sansAncre.label) ||
         (entriesIci[0] && !entriesIci[0].href.includes("#") ? entriesIci[0].label : "") ||
+        titreDepuisSection(corps) ||
         ("Section " + nSection);
 
       // Ancres présentes, dans l'ordre du document
@@ -381,17 +597,17 @@ async function extraireLivre(livre) {
       }
 
       if (ancres.length === 0) {
-        chapitresTexte.push({ titre: labelSection, texte: fullText });
+        chapitresTexte.push({ titre: labelSection, texte: fullText, garde: estGarde(labelSection, fullText) });
       } else {
         // Texte avant la 1re ancre -> rattaché au chapitre précédent, ou "Début"
         const avant = texteEntre(doc, corps, null, ancres[0].el);
         if (avant) {
           if (chapitresTexte.length) chapitresTexte[chapitresTexte.length - 1].texte += "\n" + avant;
-          else chapitresTexte.push({ titre: labelSection || "Début", texte: avant });
+          else chapitresTexte.push({ titre: labelSection || "Début", texte: avant, garde: estGarde(labelSection, avant) });
         }
         ancres.forEach((a, i) => {
           const t = texteEntre(doc, corps, a.el, ancres[i + 1] ? ancres[i + 1].el : null);
-          if (t) chapitresTexte.push({ titre: a.label || ("Chapitre " + chapitresTexte.length), texte: t });
+          if (t) chapitresTexte.push({ titre: a.label || ("Chapitre " + chapitresTexte.length), texte: t, garde: estGarde(a.label, t) });
         });
       }
     } catch (e) {
@@ -402,11 +618,110 @@ async function extraireLivre(livre) {
   }
 
   if (chapitresTexte.length === 0) chapitresTexte.push({ titre: "Début", texte: "" });
+
+  // Numéros de page « parasites » (folios de l'édition papier aplatis en texte)
+  retirerFolios(chapitresTexte);
+
+  // Livres faiblement chapitrés (« Section N » faute de TOC/balises) : on tente
+  // un redécoupage d'après les titres « visuels » présents dans le texte
+  // (PARTIE / CHAPITRE / chiffres romains / lignes en MAJUSCULES).
+  const reparti = redecouperParTitresVisuels(chapitresTexte);
+  // Ré-évalue le drapeau « garde » sur les chapitres (re)produits (le redécoupage
+  // peut faire apparaître une table/colophon de fin comme chapitre).
+  reparti.forEach((c) => { c.garde = estGarde(c.titre, c.texte); });
+
+  // Pages de garde (couverture, copyright, dédicace, table…) : on ne les montre
+  // PAS comme chapitres, mais on garde leur texte en le fusionnant dans le
+  // chapitre de contenu voisin (les pages de tête → 1er vrai chapitre ; celles
+  // de fin → dernier). Le menu des chapitres ne liste alors que le contenu réel.
+  const fusionne = fusionnerPagesGarde(reparti);
+  // Nettoyage du drapeau interne avant stockage
+  fusionne.forEach((c) => { delete c.garde; });
+
   // Résolution des notes pointant vers une autre section (endnotes regroupées).
   attente.forEach((p) => {
     if (!notesArr[p.noteId].texte && idMap[p.fragId]) notesArr[p.noteId].texte = nettoyerNote(idMap[p.fragId]);
   });
-  return { chapitresTexte, notes: notesArr };
+  return { chapitresTexte: fusionne, notes: notesArr };
+}
+
+// Retire les NUMÉROS DE PAGE (folios de l'édition papier) aplatis dans le texte.
+// Deux formes : un bloc ne contenant qu'un nombre (« 30 ») ; un nombre détaché en
+// fin/début de bloc au fil du texte (« …nécessité 39 » puis suite). On n'agit QUE
+// si l'ensemble des nombres isolés forme une suite LARGEMENT CROISSANTE (signature
+// d'une pagination) — sinon on ne touche à rien (zéro risque sur les vrais nombres
+// et sur les appels de note, déjà traités en amont).
+function retirerFolios(chapitres) {
+  // 1) Recense tous les « nombres isolés » (un bloc = juste un entier 1–4 chiffres)
+  //    dans l'ordre du livre, pour tester la monotonie croissante.
+  const isoles = [];
+  const reBlocNum = /^\s*\d{1,4}\s*$/;
+  chapitres.forEach((c) => {
+    String(c.texte || "").split(/\n+/).forEach((b) => {
+      if (reBlocNum.test(b)) isoles.push(parseInt(b, 10));
+    });
+  });
+  if (isoles.length < 8) return;                 // trop peu pour conclure : on s'abstient
+  let croissants = 0;
+  for (let i = 1; i < isoles.length; i++) if (isoles[i] >= isoles[i - 1]) croissants++;
+  if (croissants / (isoles.length - 1) < 0.8) return;   // pas une pagination → on ne touche à rien
+
+  // 2) Filtrage bloc par bloc.
+  const reFinNum = /\s+(\d{1,4})\s*$/;            // « …phrase 39 »
+  const reDebutNum = /^\s*(\d{1,4})\s+/;          // « 39 phrase… »
+  chapitres.forEach((c) => {
+    const blocs = String(c.texte || "").split(/\n/);
+    const out = [];
+    for (let i = 0; i < blocs.length; i++) {
+      let b = blocs[i];
+      if (reBlocNum.test(b)) continue;            // bloc = un folio seul → supprimé
+      // Folio collé en fin de bloc, suivi (après blocs vides) d'un bloc qui
+      // CONTINUE la phrase (commence par une minuscule) → on retire le nombre et
+      // on RECOLLE les deux morceaux. Garde-fou : le bloc courant ne finit pas par
+      // une ponctuation forte (sinon le nombre pourrait être légitime).
+      const mFin = b.match(reFinNum);
+      if (mFin && !/[.!?…:]$/.test(b.replace(reFinNum, "").trimEnd())) {
+        let j = i + 1;
+        while (j < blocs.length && blocs[j].trim() === "") j++;
+        const suite = blocs[j];
+        if (suite && /^\s*[a-zàâäéèêëîïôöùûüç]/.test(suite)) {
+          b = b.replace(reFinNum, "");            // enlève le folio
+          out.push(b.trimEnd() + " " + suite.trimStart());  // recolle la phrase
+          blocs[j] = "";                          // la suite est consommée
+          continue;
+        }
+      }
+      out.push(b);
+    }
+    c.texte = out.join("\n").replace(/\n{2,}/g, "\n\n").trim();
+  });
+}
+
+// Fusionne les pages de garde/annexes (drapeau `garde`) dans le chapitre de
+// contenu voisin pour qu'elles ne polluent pas le menu des chapitres, sans
+// perdre leur texte. S'il n'y a aucun « vrai » chapitre, on ne touche à rien.
+function fusionnerPagesGarde(chs) {
+  const reels = chs.filter((c) => !c.garde);
+  if (!reels.length || reels.length === chs.length) return chs;
+  const out = [];
+  for (const c of chs) {
+    if (c.garde) {
+      const cible = out.length ? out[out.length - 1]   // rattache au précédent (réel)
+                               : null;
+      if (cible && !cible.garde) { cible.texte += "\n" + c.texte; continue; }
+      // garde de tête (aucun réel avant) : on la met en attente sur le prochain réel
+      out.push(c);
+    } else {
+      // absorbe d'éventuelles gardes de tête accumulées juste avant
+      while (out.length && out[out.length - 1].garde) {
+        const g = out.pop();
+        c.texte = g.texte + "\n" + c.texte;
+      }
+      out.push(c);
+    }
+  }
+  // S'il reste des gardes (livre tout en garde au début) : on les garde telles quelles
+  return out;
 }
 
 // Tokenise le texte par chapitre avec le découpage `decouper` du modèle actif,
@@ -911,6 +1226,39 @@ function dansDialogue(i) {
   return DEBUT_REPLIQUE.test((etat.mots[debut] || "").trimStart());
 }
 
+// Décélération d'élocution (DIALOGUES) : on ralentit progressivement les derniers
+// mots AVANT une ponctuation, pour imiter le débit parlé.
+//   virgule , ; : → 2 derniers mots : +20%, +40%
+//   point .        → 3 derniers mots : +20%, +40%, +60%
+//   interrogation ?→ 2 derniers mots : +20%, +40%
+//   suspension …   → 3 derniers mots : +20%, +40%, +60%
+//   exclamation !  → aucun (débit direct)
+// Renvoie le facteur multiplicateur (1 = normal) pour le mot d'index i.
+const RE_FIN_NETTE = /["»”'’)\]]*$/;
+function coefElocution(i) {
+  if (i < 0 || i >= etat.mots.length) return 1;
+  if (!dansDialogue(i)) return 1;               // narration : rythme inchangé
+  // Cherche, à partir de i, le 1er mot porteur d'une ponctuation de fin de groupe.
+  let j = i, signe = "";
+  for (let k = 0; k < 6 && j < etat.mots.length; k++, j++) {
+    const m = (etat.mots[j] || "").replace(RE_FIN_NETTE, "");
+    const c = m.slice(-1);
+    if ("…".indexOf(c) >= 0 || /[.,;:!?]/.test(c)) { signe = c; break; }
+    if (estDebutPhrase(j + 1)) { j = -1; break; }   // fin de phrase atteinte sans ponctuation
+  }
+  if (j < 0 || !signe) return 1;
+  // Paliers rangés du mot PORTEUR de la ponctuation (le plus ralenti) vers les
+  // précédents : index 0 = mot ponctué (+40% ou +60%), 1 = mot d'avant, etc.
+  let paliers;
+  if (signe === "!") paliers = [];                        // direct
+  else if (signe === "?") paliers = [0.4, 0.2];           // 2 mots
+  else if (signe === "," || signe === ";" || signe === ":") paliers = [0.4, 0.2]; // 2 mots
+  else paliers = [0.6, 0.4, 0.2];                         // . ou … : 3 mots
+  const dist = j - i;                            // 0 = le mot porteur de la ponctuation
+  if (dist < 0 || dist >= paliers.length) return 1;
+  return 1 + paliers[dist];
+}
+
 function delaiChunk() {
   const P = etat.modele.params;                 // recette de rythme du modèle actif
   const base = 60000 / vitesseEff();            // ms pour un mot « moyen » (avec accélération)
@@ -954,9 +1302,16 @@ function delaiChunk() {
   else if (pause > 0 || majuscule) etat.elan = P.elanPauseMoyenne;      // pause moyenne
   else etat.elan = Math.min(1, etat.elan + P.elanAccel);                // accélération
 
+  // Décélération d'élocution (dialogues) : on applique le plus fort coefficient
+  // parmi les mots du groupe (en pratique, le dernier proche d'une ponctuation).
+  let coefElo = 1;
+  for (let k = debut; k < fin; k++) coefElo = Math.max(coefElo, coefElocution(k));
+  mot *= coefElo;
+
   // Le temps de pause est modulé par le coefficient réglable (0,5–4).
   // Plancher absolu : aucun mot ne s'affiche moins de ~Nms (anti-télescopage).
-  return Math.max(mot + pause * etat.coefPause, P.affichageMin);
+  // Plafond : un mot ne dépasse jamais 2 s, même cumul élocution + pause.
+  return Math.min(Math.max(mot + pause * etat.coefPause, P.affichageMin), 2000);
 }
 
 // Le mot commence-t-il par une lettre MAJUSCULE (en ignorant tiret/guillemet) ?
