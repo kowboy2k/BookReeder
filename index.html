@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=235">
+  <link rel="stylesheet" href="style.css?v=236">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -412,6 +412,7 @@
       <div class="reglage reglage-inline" id="bloc-orp-couleur">
         <label>Couleur d'accentuation</label>
         <div id="couleurs-orp" class="cases-couleur">
+          <button type="button" class="case-couleur case-aucune" data-couleur="aucune" title="Aucune (couleur de la police)"></button>
           <button type="button" class="case-couleur" data-couleur="#f25c54" title="Corail" style="background:#f25c54"></button>
           <button type="button" class="case-couleur" data-couleur="#a6de7a" title="Anis" style="background:#a6de7a"></button>
           <button type="button" class="case-couleur" data-couleur="#ffd359" title="Moutarde" style="background:#ffd359"></button>
@@ -462,14 +463,12 @@
 
       </div><!-- /page 2 -->
       </div><!-- /reglages-pages -->
-
-      <button id="btn-fermer-reglages">OK</button>
     </div>
   </div>
 
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="app.js?v=235"></script>
+  <script src="app.js?v=236"></script>
 </body>
 </html>

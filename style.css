@@ -1289,6 +1289,15 @@ html, body {
   flex: none;
 }
 .case-couleur.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+/* Case « Aucune » : pastille de la couleur de police actuelle, barrée d'un trait
+   (= pas d'accentuation, le repère garde la couleur de la police). */
+.case-aucune {
+  background-color: var(--couleur-police, var(--texte));
+  background-image: linear-gradient(
+    to top right,
+    transparent calc(50% - 1.4px), var(--surface) calc(50% - 1.4px),
+    var(--surface) calc(50% + 1.4px), transparent calc(50% + 1.4px));
+}
 /* Damier tant qu'aucune couleur perso n'est définie */
 .case-perso {
   position: relative;

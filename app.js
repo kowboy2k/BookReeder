@@ -2898,10 +2898,14 @@ $("btn-reglages").addEventListener("click", () => {
   $("panneau-reglages").classList.remove("cache");
   afficherChunk();
 });
-$("btn-fermer-reglages").addEventListener("click", () => {
+function fermerReglages() {
   $("panneau-reglages").classList.add("cache");
   ecranLecture.classList.remove("apercu");
   afficherChunk(); // re-rendu complet avec les réglages finaux
+}
+// Toucher la zone au-dessus du panneau (hors de la carte) valide et referme.
+$("panneau-reglages").addEventListener("click", (e) => {
+  if (e.target === $("panneau-reglages")) fermerReglages();
 });
 
 $("reglage-modele")?.addEventListener("change", (e) => {
