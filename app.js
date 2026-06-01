@@ -1314,33 +1314,53 @@ function estVerbeParole(mot) {
   const radical = m.replace(SUFFIXE_PRON, "");
   return radical !== m && VERBES_PAROLE.test(radical);
 }
-// Cherche le nom propre associé à une réplique commençant au mot `deb`.
-//   - APRÈS : juste après la fin de la réplique, un verbe de parole + nom propre
-//     (« … ? » s'étonna Margaret) ou (nom propre + verbe) ;
-//   - AVANT : à la fin de la phrase précédant la réplique (« Margaret s'écria : »).
+// Article INDÉFINI introduisant un NOUVEAU personnage (« un homme », « une voix »,
+// « des soldats ») → locuteur tiers. À ne pas confondre avec un pronom de reprise
+// (« il », « elle ») ou un défini/possessif (« le », « son »…) qui désignent un
+// personnage déjà présent (on garde alors sa couleur).
+const ARTICLE_INDEFINI = /^(un|une|des|d')$/i;
+// Cherche le locuteur d'une réplique commençant au mot `deb`. Renvoie un objet
+// { nom, tiers } : `nom` = identifiant du locuteur ; `tiers` = true si c'est un
+// locuteur DESCRIPTIF (« un homme », « une voix » → intervenant de passage), false
+// pour un nom propre (personnage récurrent).
+//   - APRÈS la réplique : verbe de parole + nom propre/groupe descriptif ;
+//   - AVANT : à la fin de la phrase précédente (« Margaret s'écria : »).
 function locuteurDeReplique(deb) {
   const mots = etat.mots;
-  // fin de la réplique = jusqu'au prochain début de phrase
   let fin = deb + 1; while (fin < mots.length && !estDebutPhrase(fin)) fin++;
-  // APRÈS la réplique : scanne quelques mots pour un couple nom propre + verbe.
-  for (let k = fin; k < Math.min(fin + 8, mots.length); k++) {
+  // Le mot précédent finit-il par une fin forte ? (l'incise qui suit démarre en minuscule)
+  const finForte = /[?!…][”»"')\]]*$/.test((mots[fin - 1] || "").trim());
+  // APRÈS la réplique : un nom propre, sinon un groupe descriptif (déterminant + nom).
+  const limite = Math.min(fin + 8, mots.length);
+  for (let k = fin; k < limite; k++) {
     const a = motNu(mots[k]), b = motNu(mots[k + 1] || "");
-    if (VERBES_PAROLE.test(a) && /\p{Lu}/u.test((b[0] || ""))) return b;     // « dit Margaret »
-    if (/\p{Lu}/u.test((a[0] || "")) && VERBES_PAROLE.test(b)) return a;     // « Margaret dit »
-    if (estDebutPhrase(k + 1) && k > fin + 1) break;
+    if (VERBES_PAROLE.test(a) && /\p{Lu}/u.test((b[0] || ""))) return { nom: b, tiers: false };   // « dit Margaret »
+    if (/\p{Lu}/u.test((a[0] || "")) && VERBES_PAROLE.test(b)) return { nom: a, tiers: false };   // « Margaret dit »
+    // Locuteur descriptif : un VERBE DE PAROLE (connu, ou inconnu juste après une
+    // fin forte ? ! …) immédiatement suivi d'un déterminant + nom commun
+    // (« ricana un homme », « lança une voix »). On n'accepte ce cas que SUR LA
+    // CONTINUATION de la réplique courante (k = fin), pas dans une réplique suivante.
+    if (k === fin) {
+      const estV = VERBES_PAROLE.test(a) || (finForte && estVerbeParole(mots[k]) === false && /^\p{Ll}/u.test(a));
+      // Tiers UNIQUEMENT si le verbe est suivi d'un ARTICLE INDÉFINI (« un homme »).
+      // « il/elle » ou un défini → reprise d'un personnage connu, pas un tiers.
+      if (estV && ARTICLE_INDEFINI.test((mots[k + 1] || "").replace(/[^\p{L}']/gu, ""))) {
+        const nomCommun = motNu(mots[k + 2] || "");
+        if (nomCommun) return { nom: (a + " " + nomCommun).toLowerCase(), tiers: true };
+      }
+    }
+    if (estDebutPhrase(k + 1) && k > fin) break;       // on ne déborde pas sur la réplique suivante
   }
-  // AVANT la réplique : derniers mots de la phrase précédente (« Margaret s'écria : »).
+  // AVANT la réplique : nom propre autour d'un verbe de parole.
   let p = deb - 1; while (p >= 0 && !estDebutPhrase(p)) p--;
   for (let k = deb - 1; k >= Math.max(0, p); k--) {
-    const a = motNu(mots[k]);
-    if (VERBES_PAROLE.test(a)) {
-      // nom propre juste avant ou juste après le verbe
+    if (VERBES_PAROLE.test(motNu(mots[k]))) {
       const av = motNu(mots[k - 1] || ""), ap = motNu(mots[k + 1] || "");
-      if (/\p{Lu}/u.test((av[0] || ""))) return av;
-      if (/\p{Lu}/u.test((ap[0] || ""))) return ap;
+      if (/\p{Lu}/u.test((av[0] || ""))) return { nom: av, tiers: false };
+      if (/\p{Lu}/u.test((ap[0] || ""))) return { nom: ap, tiers: false };
     }
   }
-  return "";
+  return { nom: "", tiers: false };
 }
 // Couleurs des dialogues : principal #74a228, secondaires #aa4521 puis #a22878.
 const COUL_PRINCIPAL = "#74a228", COUL_SEC1 = "#aa4521", COUL_SEC2 = "#a22878";
@@ -1366,9 +1386,10 @@ function calculerLocuteurs() {
     const estRep = debutBloc(i) && DEBUT_REPLIQUE.test((mots[i] || "").trimStart());
     if (!estRep) continue;
     let fin = i + 1; while (fin < mots.length && !debutBloc(fin)) fin++;
-    const nom = normTitre(locuteurDeReplique(i));
-    if (nom) compte[nom] = (compte[nom] || 0) + 1;
-    repliques.push({ deb: i, fin, nom });
+    const loc = locuteurDeReplique(i);
+    const nom = normTitre(loc.nom);
+    if (nom && !loc.tiers) compte[nom] = (compte[nom] || 0) + 1;   // seuls les noms propres comptent pour « principal »
+    repliques.push({ deb: i, fin, nom, tiers: loc.tiers });
     i = fin - 1;
   }
   if (!repliques.length) { etat.couleurParMot = map; return; }
@@ -1384,21 +1405,29 @@ function calculerLocuteurs() {
   while (b < repliques.length) {
     let e = b;
     while (e + 1 < repliques.length && repliques[e + 1].deb - repliques[e].fin <= GAP_MAX) e++;
+    // Alternance ping-pong entre 2 interlocuteurs ; les répliques « tierces »
+    // (locuteur descriptif : « un homme », « une voix ») sont mises À PART et ne
+    // comptent pas dans l'alternance (sinon elles décaleraient les couleurs).
     const slotNom = ["", ""];
+    let par = 0;
+    const parite = [];                          // parité (0/1) de chaque réplique non-tierce
     for (let k = b; k <= e; k++) {
-      const par = (k - b) % 2;
+      if (repliques[k].tiers) { parite[k] = -1; continue; }   // -1 = tiers
+      parite[k] = par;
       if (repliques[k].nom && !slotNom[par]) slotNom[par] = repliques[k].nom;
+      par = 1 - par;                            // alterne au tour suivant
     }
     const slot0Princ = slotNom[0] && slotNom[0] === principal;
     const slot1Princ = slotNom[1] && slotNom[1] === principal;
-    const couleurSlot = (par) => {
-      if (slotNom[par] && slotNom[par] === principal) return COUL_PRINCIPAL;
-      const autrePrinc = par === 0 ? slot1Princ : slot0Princ;
+    const couleurSlot = (p) => {
+      if (p === -1) return COUL_SEC2;                       // tiers → 3e couleur
+      if (slotNom[p] && slotNom[p] === principal) return COUL_PRINCIPAL;
+      const autrePrinc = p === 0 ? slot1Princ : slot0Princ;
       if (autrePrinc) return COUL_SEC1;                    // l'autre est le principal
-      return par === 0 ? COUL_SEC1 : COUL_SEC2;            // 2 secondaires en alternance
+      return p === 0 ? COUL_SEC1 : COUL_SEC2;              // 2 secondaires en alternance
     };
     for (let k = b; k <= e; k++) {
-      const c = couleurSlot((k - b) % 2);
+      const c = couleurSlot(parite[k]);
       const r = repliques[k];
       // Colore toute la réplique, SAUF les phrases-incises internes (« dit une
       // voix amusée derrière eux. ») : une phrase qui n'est pas le tout début de
@@ -1619,7 +1648,7 @@ function grasHotGato(mot) {
 const MODELES = {
   default: {
     id: "default",
-    nom: "BookReeder (default)",
+    nom: "BookReeder",
     // Fonctions = règles de découpe / rythme / ORP / bionic
     decouper: decouperEnMots,
     chunk: construireChunkDepuis,
@@ -2451,11 +2480,21 @@ barreLivre.addEventListener("pointerup", (e) => {
 // =========================================================
 function ouvrirNavigation() {
   pause();   // on arrête la lecture pendant la navigation
+  navDepuisLoupe = false;
   $("nav-chapitre").value = etat.chapitres.indexOf(chapitreActuel());
   $("panneau-navigation").classList.remove("cache");
   majBarreLivre();
 }
 $("zone-navigation").addEventListener("click", ouvrirNavigation);
+// En Mode Loupe : toucher la ligne d'infos du chapitre ouvre la navigation SANS
+// quitter la loupe (on y revient après le choix).
+let navDepuisLoupe = false;
+$("contexte-infos").addEventListener("click", () => {
+  navDepuisLoupe = true;
+  $("nav-chapitre").value = etat.chapitres.indexOf(chapitreActuel());
+  $("panneau-navigation").classList.remove("cache");
+  majBarreLivre();
+});
 
 // Panneau d'aide / fonctionnalités (accueil)
 $("btn-infos").addEventListener("click", () => $("panneau-infos").classList.remove("cache"));
@@ -2491,6 +2530,10 @@ window.addEventListener("beforeinstallprompt", (e) => {
 })();
 $("btn-fermer-navigation").addEventListener("click", () => {
   $("panneau-navigation").classList.add("cache");
+  // Si on avait ouvert la navigation DEPUIS la loupe, on y revient à la nouvelle
+  // position (la loupe est restée affichée dessous).
+  if (navDepuisLoupe && !$("ecran-contexte").classList.contains("cache")) rafraichirContexte(true);
+  navDepuisLoupe = false;
   sauverPosition();
 });
 $("nav-chapitre").addEventListener("change", (e) => {
