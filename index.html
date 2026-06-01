@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=201">
+  <link rel="stylesheet" href="style.css?v=202">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -137,7 +137,6 @@
         <button id="rech-go">Go</button>
       </div>
       <div id="rech-resultats"></div>
-      <button id="rech-fermer">Fermer</button>
     </div>
   </div>
 
@@ -148,7 +147,8 @@
       <ul id="liste-infos">
         <li><b>Lecture rapide</b> — les mots défilent un à un ou par groupes, centrés sur la lettre repère (rouge) pour garder l'œil fixe.</li>
         <li><b>Mode Minimaliste</b> — touchez la <b>zone de lecture</b> pour masquer l'interface (lecture sans distraction) ; touchez à nouveau pour revenir.</li>
-        <li><b>Mode loupe</b> — appui long sur play/pause pour afficher la lecture contextuelle + annotations. Double tap pour rechercher dans le texte.</li>
+        <li><b>Mode loupe</b> — appui long sur play/pause pour afficher la lecture contextuelle + annotations.</li>
+        <li><b>Rechercher</b> — double tape sur le texte en Mode Loupe pour lancer une recherche.</li>
         <li><b>Naviguer</b> — touchez les <b>infos de lecture</b> pour ouvrir la navigation pour aller à un chapitre ou se déplacer dans le livre.</li>
         <li><b>Chapitres</b> — les boutons ⏮ / ⏭ sautent au chapitre précédent / suivant ; les flèches reculent / avancent d'une phrase.</li>
         <li><b>Vitesse</b> — les boutons − et + ajustent la vitesse de lecture.</li>
@@ -257,16 +257,20 @@
         <label for="reglage-marqueur-note">Marqueur d'annotations</label>
         <select id="reglage-marqueur-note">
           <option value="aucun">Aucun</option>
-          <option value="etoile">Astérisque *</option>
-          <option value="bulle">Bulle °</option>
-          <option value="chapeau">Chapeau ^</option>
-          <option value="hashtag">Hashtag ＃</option>
-          <option value="point">Point ●</option>
-          <option value="etoile-acc" class="opt-accent">Astérisque *</option>
-          <option value="bulle-acc" class="opt-accent">Bulle °</option>
-          <option value="chapeau-acc" class="opt-accent">Chapeau ^</option>
-          <option value="hashtag-acc" class="opt-accent">Hashtag ＃</option>
-          <option value="point-acc" class="opt-accent">Point ●</option>
+          <optgroup label="Couleur du texte">
+            <option value="etoile">Astérisque *</option>
+            <option value="bulle">Bulle °</option>
+            <option value="chapeau">Chapeau ^</option>
+            <option value="hashtag">Hashtag ＃</option>
+            <option value="point">Point ●</option>
+          </optgroup>
+          <optgroup label="Couleur d'accentuation">
+            <option value="etoile-acc" class="opt-accent">Astérisque *</option>
+            <option value="bulle-acc" class="opt-accent">Bulle °</option>
+            <option value="chapeau-acc" class="opt-accent">Chapeau ^</option>
+            <option value="hashtag-acc" class="opt-accent">Hashtag ＃</option>
+            <option value="point-acc" class="opt-accent">Point ●</option>
+          </optgroup>
         </select>
       </div>
 
@@ -339,10 +343,10 @@
       <div class="reglage reglage-inline" id="bloc-orp-couleur">
         <label for="reglage-orp-couleur">Couleur d'accentuation</label>
         <select id="reglage-orp-couleur">
+          <option value="aucune">Aucune</option>
           <option value="#f25c54" selected>Corail</option>
           <option value="#a6de7a">Anis</option>
           <option value="#ffd359">Moutarde</option>
-          <option value="aucune">Aucune (couleur du texte)</option>
           <option value="perso">Personnalisé…</option>
         </select>
       </div>
@@ -384,6 +388,6 @@
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="app.js?v=201"></script>
+  <script src="app.js?v=202"></script>
 </body>
 </html>

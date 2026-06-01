@@ -1659,7 +1659,6 @@ $("rech-resultats").addEventListener("click", (e) => {
   rafraichirContexte(true);   // saute à l'occurrence (reconstruit si besoin + recentre)
   sauverPosition();
 });
-$("rech-fermer").addEventListener("click", fermerRecherche);
 $("panneau-recherche").addEventListener("click", (e) => {
   if (e.target.id === "panneau-recherche") fermerRecherche();  // clic sur le fond
 });
