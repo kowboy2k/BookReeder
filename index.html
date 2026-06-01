@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=237">
+  <link rel="stylesheet" href="style.css?v=238">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -85,7 +85,7 @@
     <div id="barre-bas">
       <button id="btn-fermer" title="Changer de livre">✖</button>
       <div id="info-vitesse">
-        <div>Vitesse : <span id="vitesse-actuelle">260</span> mots/min</div>
+        <div>Vitesse : <span id="vitesse-actuelle">300</span> mots/min</div>
         <div id="duree-chapitre">Durée du chapitre : 0h00m</div>
       </div>
       <button id="btn-reglages" title="Réglages" aria-label="Réglages">
@@ -111,7 +111,7 @@
       <!-- Vitesse en mode épuré : − chiffre + -->
       <div id="barre-epure-vitesse">
         <button id="ep-moins" class="ic-moins" title="Ralentir" aria-label="Ralentir"></button>
-        <span id="ep-vitesse">260</span>
+        <span id="ep-vitesse">300</span>
         <button id="ep-plus" class="ic-plus" title="Accélérer" aria-label="Accélérer"></button>
       </div>
     </div>
@@ -165,14 +165,14 @@
         <h3 id="palette-titre-theme">Palette du thème Midnight</h3>
         <button id="palette-theme-suiv" aria-label="Thème suivant">›</button>
       </div>
+      <!-- Aperçu unique, en haut, qui change selon la palette choisie -->
+      <div id="palette-apercu-haut" class="palette-apercu"></div>
       <div id="palette-defilable">
         <div id="palette-liste"></div>
-        <h3 class="palette-titre-perso">Palette personnalisée…</h3>
         <button id="palette-item-perso" class="palette-item" data-nom="perso">
           <div class="palette-tete"><b>Mes couleurs</b>
             <span id="palette-perso-pastilles" class="pastilles-mini"></span>
           </div>
-          <div id="palette-perso-apercu" class="palette-apercu"></div>
         </button>
         <div id="palette-perso-roues">
           <input type="color" class="roue-voix" id="voix1-couleur" value="#74a228" aria-label="Voix 1">
@@ -232,6 +232,14 @@
       </div>
 
       <div class="reglage">
+        <label>Chapitre précédent / suivant</label>
+        <div id="nav-chap-boutons">
+          <button id="nav-chap-prec" class="btn-chapitre" title="Chapitre précédent">⏮&#xFE0E;</button>
+          <button id="nav-chap-suiv" class="btn-chapitre" title="Chapitre suivant">⏭&#xFE0E;</button>
+        </div>
+      </div>
+
+      <div class="reglage">
         <label>Position dans le livre entier : <span id="position-pct-livre">0,00</span>%</label>
         <div id="barre-livre">
           <div id="remplissage-livre"></div>
@@ -278,8 +286,8 @@
       </div>
 
       <div class="reglage">
-        <label for="reglage-pauses">Longueur des pauses : coef. x<span id="valeur-pauses">1,0</span></label>
-        <input type="range" id="reglage-pauses" min="0" max="4" step="0.1" value="1">
+        <label for="reglage-pauses">Longueur des pauses : coef. x<span id="valeur-pauses">2,0</span></label>
+        <input type="range" id="reglage-pauses" min="0" max="4" step="0.1" value="2">
       </div>
 
       <div class="reglage reglage-inline">
@@ -463,12 +471,14 @@
 
       </div><!-- /page 2 -->
       </div><!-- /reglages-pages -->
+
+      <button id="btn-fermer-reglages">OK</button>
     </div>
   </div>
 
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="app.js?v=237"></script>
+  <script src="app.js?v=238"></script>
 </body>
 </html>

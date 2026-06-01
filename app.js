@@ -9,14 +9,14 @@ const etat = {
   index: 0,          // position de lecture actuelle
   enLecture: false,
   minuteur: null,
-  vitesse: 260,      // mots/min (vitesse par défaut)
+  vitesse: 300,      // mots/min (vitesse par défaut)
   nbMots: 1,         // mots affichés simultanément (max souhaité)
   modeStrict: false, // « 1 (strict) » : 1 mot, sans groupage des noms propres
   nbCourant: 1,      // mots réellement affichés dans le chunk courant
   continuerApresSaut: true, // garder la lecture en marche après avance/retour
   pauseAuto: "fin",         // pause auto : "fin" (fin de chapitre), "suivant" (ouverture du suivant), "off"
   _pauseApresChunk: false,  // drapeau interne pour le mode "suivant"
-  coefPause: 1,      // coefficient multiplicateur des temps de pause (0,5–4)
+  coefPause: 2,      // coefficient multiplicateur des temps de pause (0,5–4)
   coefAccel: 1,      // accélération max visée (×1 = constante, jusqu'à ×3)
   multAccel: 1,      // multiplicateur d'accélération courant (1 → coefAccel)
   intervalleAccel: 10, // secondes entre deux hausses de +0,1×
@@ -1536,23 +1536,29 @@ function rendrePaletteListe() {
     // (« Accentuation » est commune à tous les thèmes).
     const memeSource = p.nom === "Accentuation" || (etat.paletteTheme || themeActif()) === paletteThemeApercu;
     const sel = (etat.paletteDialogue === p.nom && memeSource) ? " choisie" : "";
-    return '<button class="palette-item' + sel + '" data-nom="' + esc(p.nom) + '">' +
+    return '<button class="palette-item' + sel + '" data-nom="' + esc(p.nom) + '"' +
+      ' data-couleurs="' + p.c.join(",") + '">' +
       '<div class="palette-tete"><b>' + esc(p.nom) + '</b>' +
       '<span class="pastilles-mini">' + p.c.map((c) => '<span class="pastille-mini" style="background:' + c + '"></span>').join("") + '</span></div>' +
-      apercuDialogueHTML(p.c) + '</button>';
+      '</button>';
   }).join("");
   rendrePerso();
+  majApercuHaut();   // l'aperçu du haut reflète la palette active
 }
-function apercuDialogueHTML(c) {
-  return '<div class="palette-apercu">' +
-    '<span style="color:' + c[0] + '">— Vous voyez ?</span> ' +
-    '<span style="color:' + c[1] + '">— Tout à fait.</span> ' +
-    '<span style="color:' + c[2] + '">— Messieurs !</span></div>';
+// Met à jour le bloc d'aperçu unique en haut : 3 répliques colorées (une par
+// couleur de la palette) ; les incises (« dit-elle », « répondit Claire »)
+// gardent la couleur du texte (non colorées).
+function majApercuHaut(c) {
+  const cols = c || couleursPaletteCourante();
+  const el = $("palette-apercu-haut");
+  if (el) el.innerHTML =
+    '<div><span style="color:' + cols[0] + '">— Vous voyez ?</span> dit-elle.</div>' +
+    '<div><span style="color:' + cols[1] + '">— Oui, tout à fait !</span> répondit Claire. <span style="color:' + cols[1] + '">C\'est stupéfiant…</span></div>' +
+    '<div><span style="color:' + cols[2] + '">— Mais que faites vous ici ?</span></div>';
 }
-// Rend la carte « Personnalisée » (pastilles + aperçu) selon les 3 roues.
+// Rend la carte « Mes couleurs » (pastilles) selon les 3 roues.
 function rendrePerso() {
   $("palette-perso-pastilles").innerHTML = couleursPerso.map((c) => '<span class="pastille-mini" style="background:' + c + '"></span>').join("");
-  $("palette-perso-apercu").innerHTML = apercuDialogueHTML(couleursPerso).replace(/^<div class="palette-apercu">|<\/div>$/g, "");
   $("palette-item-perso").classList.toggle("choisie", etat.paletteDialogue === "perso");
 }
 function ouvrirPalette() {
@@ -1579,8 +1585,16 @@ $("palette-liste").addEventListener("click", (e) => {
   appliquerPaletteDialogue(it.dataset.nom, paletteThemeApercu);
   rendrePaletteListe();
 });
+// Aperçu dynamique au survol (PC) : le bloc du haut montre la palette survolée.
+$("palette-liste").addEventListener("pointerover", (e) => {
+  const it = e.target.closest(".palette-item");
+  if (it && it.dataset.couleurs) majApercuHaut(it.dataset.couleurs.split(","));
+});
+$("palette-liste").addEventListener("pointerleave", () => majApercuHaut());
 // Sélection de la palette personnalisée (clic sur sa carte).
 $("palette-item-perso").addEventListener("click", () => { appliquerPaletteDialogue("perso"); rendrePaletteListe(); });
+$("palette-item-perso").addEventListener("pointerover", () => majApercuHaut(couleursPerso));
+$("palette-item-perso").addEventListener("pointerleave", () => majApercuHaut());
 // Roues chromatiques Voix 1/2/3 : mettent à jour la palette perso en direct.
 ["voix1-couleur", "voix2-couleur", "voix3-couleur"].forEach((id, i) => {
   $(id).addEventListener("input", (e) => {
@@ -2777,6 +2791,14 @@ $("nav-chapitre").addEventListener("change", (e) => {
   if (!ch) return;
   deplacer(ch.debut - etat.index, true);
 });
+// Boutons chapitre précédent / suivant du panneau Navigation
+function navChapPanneau(dir) {
+  allerChapitre(dir);
+  $("nav-chapitre").value = etat.chapitres.indexOf(chapitreActuel());
+  majBarreLivre();
+}
+$("nav-chap-prec").addEventListener("click", () => navChapPanneau(-1));
+$("nav-chap-suiv").addEventListener("click", () => navChapPanneau(1));
 
 // =========================================================
 //  Bibliothèque sur l'écran d'accueil
@@ -2903,7 +2925,8 @@ function fermerReglages() {
   ecranLecture.classList.remove("apercu");
   afficherChunk(); // re-rendu complet avec les réglages finaux
 }
-// Toucher la zone au-dessus du panneau (hors de la carte) valide et referme.
+// Bouton « OK » + toucher la zone au-dessus du panneau (hors carte) : valide et referme.
+$("btn-fermer-reglages")?.addEventListener("click", fermerReglages);
 $("panneau-reglages").addEventListener("click", (e) => {
   if (e.target === $("panneau-reglages")) fermerReglages();
 });
@@ -3124,7 +3147,7 @@ function appliquerCoefPause(v) {
 }
 $("reglage-pauses").addEventListener("input", (e) => appliquerCoefPause(+e.target.value));
 (function initCoefPause() {
-  let v = 1;
+  let v = 2;
   try { const s = localStorage.getItem("bookreeder-coef-pause"); if (s) v = +s; } catch (e) {}
   appliquerCoefPause(v);
 })();
