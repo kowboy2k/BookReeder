@@ -1644,9 +1644,8 @@ $("rech-resultats").addEventListener("click", (e) => {
 $("panneau-recherche").addEventListener("click", (e) => {
   if (e.target.id === "panneau-recherche") fermerRecherche();  // clic sur le fond
 });
-// Bouton Play de la loupe : SIMPLE = reprendre la lecture (après 280 ms, le temps
-// de détecter un éventuel 2e tap) ; DOUBLE = ouvrir la recherche dans le livre.
-let ctxPlayTimer = null;
+// Bouton Play de la loupe : CLIC COURT = reprendre la lecture ; APPUI LONG
+// (≈0,5 s) = ouvrir la recherche dans le livre.
 function reprendreDepuisLoupe() {
   fermerBulleNote();
   fermerContexte();
@@ -1654,17 +1653,19 @@ function reprendreDepuisLoupe() {
   clearTimeout(etat.minuteur);
   etat.minuteur = setTimeout(lecture, 1000);
 }
-$("ctx-play").addEventListener("click", () => {
-  if (ctxPlayTimer) {                 // 2e tap rapide → recherche
-    clearTimeout(ctxPlayTimer); ctxPlayTimer = null;
-    ouvrirRecherche();
-    return;
-  }
-  ctxPlayTimer = setTimeout(() => {
-    ctxPlayTimer = null;
+(function installerRechercheLong() {
+  const btn = $("ctx-play");
+  if (!btn) return;
+  let timer = null, declenche = false;
+  const debut = () => { declenche = false; timer = setTimeout(() => { declenche = true; ouvrirRecherche(); }, 500); };
+  const fin = () => clearTimeout(timer);
+  btn.addEventListener("pointerdown", debut);
+  ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => btn.addEventListener(ev, fin));
+  btn.addEventListener("click", (e) => {
+    if (declenche) { declenche = false; e.preventDefault(); e.stopImmediatePropagation(); return; }
     reprendreDepuisLoupe();
-  }, 280);
-});
+  });
+})();
 
 // Clic court = play/pause ; appui long (≈0,5 s) = ouvre le mode contexte.
 function installerPlayLong(id) {

@@ -408,18 +408,18 @@ html, body {
   inset: 0;
   background: rgba(0,0,0,0.6);
   display: flex;
-  align-items: center;
+  /* Ancrée vers le HAUT (à ~20% du bord supérieur) pour que le clavier iPhone,
+     qui remonte par le bas, n'empiète pas sur le champ de saisie. */
+  align-items: flex-start;
   justify-content: center;
   z-index: 70;
-  /* Toujours 10% d'espace cliquable en haut et en bas pour fermer en touchant le
-     fond. On utilise dvh (hauteur dynamique) car sur iPhone vh ignore la barre
-     d'adresse Safari et la marge du haut disparaît. + safe-area iOS. */
-  padding: max(10dvh, env(safe-area-inset-top)) 1rem max(10dvh, env(safe-area-inset-bottom));
+  /* dvh = hauteur dynamique (iPhone : vh ignore la barre Safari). */
+  padding: 20dvh 1rem max(10dvh, env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
 #panneau-recherche .panneau-contenu {
   border-radius: 1rem;
-  max-height: 80dvh;       /* laisse 10% cliquable en haut + 10% en bas */
+  max-height: 60dvh;       /* fenêtre plus courte (20% en haut, ~10% en bas) */
   display: flex;
   flex-direction: column;
 }
