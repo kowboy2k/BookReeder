@@ -1518,7 +1518,7 @@ function couleursPaletteCourante() {
 }
 // Met à jour le bouton hybride (nom + 3 pastilles de la palette courante).
 function majBoutonPalette() {
-  const nom = etat.paletteDialogue === "perso" ? "Mes couleurs" : (etat.paletteDialogue || "Corail");
+  const nom = etat.paletteDialogue === "perso" ? "Perso" : (etat.paletteDialogue || "Corail");
   const elNom = $("btn-palette-nom"); if (elNom) elNom.textContent = nom;
   const elPast = $("btn-palette-pastilles");
   if (elPast) elPast.innerHTML = couleursPaletteCourante().map((col) => '<span class="pastille-mini" style="background:' + col + '"></span>').join("");
@@ -1528,7 +1528,7 @@ const ORDRE_THEMES = ["midnight", "mono", "black", "sepia"];
 let paletteThemeApercu = "midnight";   // thème dont on visualise les palettes (≠ thème de fond éventuellement)
 // Rend la section « Palette du thème X » du thème en aperçu.
 function rendrePaletteListe() {
-  $("palette-titre-theme").textContent = "Palette du thème " + (NOMS_THEMES[paletteThemeApercu] || "");
+  $("palette-titre-theme").textContent = "Palette " + (NOMS_THEMES[paletteThemeApercu] || "");
   const liste = palettesDuTheme(paletteThemeApercu);
   const esc = (s) => (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;");
   $("palette-liste").innerHTML = liste.map((p) => {
@@ -1604,6 +1604,13 @@ $("palette-item-perso").addEventListener("pointerleave", () => majApercuHaut());
     rendrePaletteListe();                // met à jour la sélection (retire .choisie des autres)
     $("palette-item-perso").scrollIntoView({ block: "nearest" });   // focus sur « Mes couleurs »
   });
+});
+// Pendant l'ouverture d'une roue chromatique native, ne pas assombrir l'arrière-plan
+// (on rend le fond du panneau transparent le temps de la sélection). Vaut pour TOUTES
+// les roues : Mes couleurs (palette), couleur d'accentuation, police, début bionic.
+document.querySelectorAll('input[type="color"]').forEach((inp) => {
+  inp.addEventListener("focus", () => document.body.classList.add("roue-ouverte"));
+  inp.addEventListener("blur", () => document.body.classList.remove("roue-ouverte"));
 });
 // Construit etat.couleurParMot. Principe « ping-pong » : dans un échange, les
 // répliques alternent entre 2 interlocuteurs (tour à tour). Les incises détectées
@@ -3200,7 +3207,9 @@ $("reglage-orp").addEventListener("change", (e) => {
 });
 // La couleur du repère ne s'affiche que si « Repère central » est coché
 function majVisibiliteOrpCouleur() {
-  $("bloc-orp-couleur").style.display = etat.orpActif ? "flex" : "none";
+  // La couleur d'accentuation reste toujours visible : elle sert aussi aux
+  // dialogues colorés et aux marqueurs d'annotation, indépendamment du repère.
+  $("bloc-orp-couleur").style.display = "flex";
 }
 
 // --- Police : 2 menus (famille + variante) ---

@@ -1109,13 +1109,17 @@ html, body {
 /* Panneau de choix de palette */
 #panneau-palette {
   position: fixed; inset: 0; z-index: 60;
-  background: rgba(0,0,0,0.6); display: flex; align-items: stretch; justify-content: center;
-  /* La carte occupe toute la hauteur ; marge basse +10px pour dégager la barre iPhone */
+  background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center;
+  /* Marge basse +10px pour dégager la barre iPhone */
   padding: max(2dvh, env(safe-area-inset-top)) 0.8rem max(2dvh, calc(env(safe-area-inset-bottom) + 10px));
   box-sizing: border-box;
 }
 #panneau-palette.cache { display: none; }
-#panneau-palette .panneau-contenu { border-radius: 1rem; max-height: 100%; display: flex; flex-direction: column; }
+/* Roue chromatique ouverte : on n'assombrit pas l'arrière-plan (palette + réglages) */
+body.roue-ouverte #panneau-palette { background: transparent; }
+body.roue-ouverte #panneau-reglages .panneau-contenu { background: transparent; box-shadow: none; }
+/* La carte s'ajuste au contenu (pas de vide), avec défilement si trop haute */
+#panneau-palette .panneau-contenu { border-radius: 1rem; max-height: 92dvh; display: flex; flex-direction: column; }
 /* Barre de navigation entre thèmes (‹ Nom du thème ›) */
 #palette-barre-theme { flex: none; display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.8rem; }
 #palette-barre-theme h3 { flex: 1 1 auto; text-align: center; margin: 0; }
@@ -1123,7 +1127,7 @@ html, body {
   flex: none; width: 2.4rem; height: 2.4rem; border-radius: 50%; border: 1px solid var(--surface-bord);
   background: var(--fond); color: var(--texte); font-size: 1.3rem; cursor: pointer;
 }
-#palette-defilable { flex: 1 1 auto; min-height: 0; overflow-y: auto; margin-bottom: 1rem; }
+#palette-defilable { flex: 0 1 auto; min-height: 0; overflow-y: auto; margin-bottom: 1rem; }
 #palette-titre-theme, .palette-titre-perso {
   text-align: center; font-family: sans-serif; font-size: 1.05rem; font-weight: 700;
   margin: 0.4rem 0 0.9rem;
@@ -1180,8 +1184,8 @@ html, body {
   display: flex;
   flex-direction: column;                      /* entête fixe · pages défilables · OK fixe */
   overflow: hidden;
-  /* Marge basse pour que « OK » ne passe pas sous la barre d'accueil iPhone (+10px) */
-  padding-bottom: calc(1.5rem + env(safe-area-inset-bottom) + 10px);
+  /* Marge basse pour que « OK » ne passe pas sous la barre d'accueil iPhone (+25px) */
+  padding-bottom: calc(1.5rem + env(safe-area-inset-bottom) + 25px);
 }
 /* Entête : flèches ‹ › + titre, toujours visible */
 #reglages-entete { flex: none; display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1rem; }
@@ -1229,10 +1233,11 @@ html, body {
 #panneau-navigation .panneau-contenu { padding: 1.8rem 1.5rem 2.4rem; }
 #panneau-navigation .reglage { margin-bottom: 2rem; }
 /* Boutons chapitre précédent / suivant dans le panneau Navigation */
-#nav-chap-boutons { display: flex; justify-content: center; gap: 2.5rem; }
+#nav-chap-boutons { display: flex; justify-content: center; gap: 1.6rem; }
 #nav-chap-boutons .btn-chapitre {
-  width: 3.4rem; height: 3.4rem; border-radius: 50%; border: none; cursor: pointer;
-  background: var(--surface); color: var(--texte); font-size: 1.2rem; line-height: 1;
+  flex: none; width: min(10rem, 38vw); aspect-ratio: 1; border-radius: 50%;
+  border: none; cursor: pointer; background: var(--surface); color: var(--texte);
+  font-size: min(3.4rem, 13vw); line-height: 1;
   display: flex; align-items: center; justify-content: center;
 }
 #nav-chap-boutons .btn-chapitre:active { transform: scale(0.93); }
@@ -1296,8 +1301,8 @@ html, body {
 
 /* Cases « Couleur de la police » */
 .cases-couleur { display: flex; gap: 0.5rem; margin-left: auto; }
-/* Pastilles d'accentuation décalées de 5px vers la gauche */
-#couleurs-orp { margin-right: 5px; }
+/* Pastilles d'accentuation et de couleur de police décalées de 5px vers la gauche */
+#couleurs-orp, #couleurs-police { margin-right: 5px; }
 .case-couleur {
   width: 1.6rem;
   height: 1.6rem;
