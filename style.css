@@ -1179,18 +1179,25 @@ body.roue-ouverte #panneau-reglages .panneau-contenu { background: transparent; 
 /* Vitesse en cours d'accélération : gras + couleur du repère */
 #vitesse-actuelle.accel, #ep-vitesse.accel { font-weight: 900; color: var(--orp-couleur, var(--accent)); }
 #barre-bas #info-vitesse { cursor: pointer; }
-/* Réglages : feuille du bas (≈ 2/3) laissant voir l'aperçu de lecture en haut */
-#panneau-reglages { background: transparent; align-items: flex-end; }
-#panneau-reglages .panneau-contenu {
-  max-height: 85vh;                            /* s'ajuste au contenu, défile si trop long */
-  display: flex;
-  flex-direction: column;                      /* entête fixe · pages défilables · OK fixe */
-  overflow: hidden;
-  /* « OK » aligné à 2% au-dessus du bord visible (zone de sécurité iPhone incluse) */
-  padding-bottom: calc(env(safe-area-inset-bottom) + 2vh);
+/* Réglages : feuille du bas. Hauteur FIXE basée sur dvh (zone réellement visible
+   sur iPhone, contrairement à vh qui inclut la barre du bas non affichable).
+   Le panneau est ancré AU-DESSUS de la zone de sécurité (home indicator). */
+#panneau-reglages {
+  background: transparent;
+  align-items: flex-end;
+  padding-bottom: env(safe-area-inset-bottom);   /* le bas du panneau reste visible */
 }
+#panneau-reglages .panneau-contenu {
+  height: 90dvh;                               /* hauteur FIXE → ne bouge jamais */
+  display: flex;
+  flex-direction: column;                      /* entête fixe · pages · OK fixe */
+  overflow: hidden;
+  padding-bottom: 1.2rem;                      /* marge interne au-dessus du bas */
+}
+/* Espacements compacts pour que chaque page tienne sans défiler */
+#panneau-reglages .reglage { margin-bottom: 0.95rem; }
 /* Entête : flèches ‹ › + titre, toujours visible */
-#reglages-entete { flex: none; display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1rem; }
+#reglages-entete { flex: none; display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.9rem; }
 #reglages-entete h2 { flex: 1 1 auto; text-align: center; margin: 0; }
 #reglages-prec, #reglages-suiv {
   flex: none; width: 2.4rem; height: 2.4rem; border-radius: 50%; border: 1px solid var(--surface-bord);
