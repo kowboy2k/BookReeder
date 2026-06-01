@@ -2869,9 +2869,23 @@ $("bulle-liremoi").addEventListener("click", cacherBulleLireMoi);
 // Réglages : on met en pause et on fait monter la zone de lecture en aperçu (1/3
 // haut) pendant que le panneau occupe les 2/3 du bas ; à la fermeture, on
 // ré-affiche le chunk pour appliquer proprement tous les réglages.
+// Réglages paginés (3 pages navigables ‹ ›), titre + OK toujours visibles.
+let reglagesPage = 0;
+const REGLAGES_NB_PAGES = 3;
+function montrerReglagesPage(n) {
+  reglagesPage = (n + REGLAGES_NB_PAGES) % REGLAGES_NB_PAGES;
+  document.querySelectorAll("#reglages-pages .reglages-page").forEach((p) => {
+    p.classList.toggle("cache", +p.dataset.page !== reglagesPage);
+  });
+  $("reglages-titre").textContent = "Réglages " + (reglagesPage + 1) + "/" + REGLAGES_NB_PAGES;
+  const pages = $("reglages-pages"); if (pages) pages.scrollTop = 0;
+}
+$("reglages-prec").addEventListener("click", () => montrerReglagesPage(reglagesPage - 1));
+$("reglages-suiv").addEventListener("click", () => montrerReglagesPage(reglagesPage + 1));
 $("btn-reglages").addEventListener("click", () => {
   pause();
   ecranLecture.classList.add("apercu");
+  montrerReglagesPage(0);
   $("panneau-reglages").classList.remove("cache");
   afficherChunk();
 });
@@ -3149,10 +3163,7 @@ $("reglage-orp").addEventListener("change", (e) => {
 });
 // La couleur du repère ne s'affiche que si « Repère central » est coché
 function majVisibiliteOrpCouleur() {
-  const actif = etat.orpActif;
-  $("bloc-orp-couleur").style.display = actif ? "flex" : "none";
-  $("bloc-orp-perso").style.display =
-    (actif && $("reglage-orp-couleur").value === "perso") ? "flex" : "none";
+  $("bloc-orp-couleur").style.display = etat.orpActif ? "flex" : "none";
 }
 
 // --- Police : 2 menus (famille + variante) ---
@@ -3255,21 +3266,34 @@ $("reglage-bionic-couleur").addEventListener("change", (e) => {
 });
 $("reglage-bio-teinte").addEventListener("input", appliquerBioCouleur);
 
-// --- Couleur du repère central (lettre ORP) ---
-function appliquerOrpCouleur() {
-  const choix = $("reglage-orp-couleur").value;
-  let couleur;
-  if (choix === "aucune") couleur = "currentColor";     // même couleur que le texte
-  else if (choix === "perso") couleur = $("reglage-orp-teinte").value;
-  else couleur = choix;                                 // préréglage (rouge/vert/jaune)
+// --- Couleur d'accentuation (lettre ORP) — pastilles de couleur ---
+const COULEURS_ORP_PREDEF = ["#f25c54", "#a6de7a", "#ffd359"];
+// `choix` : "aucune", un préréglage hex, "perso" (lit la roue), ou un hex perso.
+function appliquerOrpCouleur(choix, sansSauver) {
+  if (choix == null) choix = "#f25c54";
+  if (choix === "perso") choix = $("reglage-orp-teinte").value;
+  const aucune = choix === "aucune";
+  const couleur = aucune ? "currentColor" : choix;       // « aucune » = couleur du texte
+  const perso = !aucune && !COULEURS_ORP_PREDEF.includes(choix);
   document.documentElement.style.setProperty("--orp-couleur", couleur);
-  $("bloc-orp-perso").style.display =
-    (etat.orpActif && choix === "perso") ? "flex" : "none";
-  try {
-    localStorage.setItem("bookreeder-orp-couleur", choix);
-    localStorage.setItem("bookreeder-orp-teinte", $("reglage-orp-teinte").value);
-  } catch (e) {}
-  colorerOptionsMarqueur(choix === "perso" ? $("reglage-orp-teinte").value : couleur);
+  // Surligne la pastille active
+  document.querySelectorAll("#couleurs-orp .case-couleur:not(.case-perso)").forEach((b) => {
+    b.classList.toggle("active", b.dataset.couleur === (aucune ? "aucune" : choix));
+  });
+  const casePerso = document.querySelector("#couleurs-orp .case-perso");
+  if (casePerso) {
+    casePerso.classList.toggle("active", perso);
+    if (perso) { casePerso.style.backgroundImage = "none"; casePerso.style.background = choix; }
+    else { casePerso.style.background = ""; casePerso.style.backgroundImage = ""; }
+  }
+  if (perso && /^#/.test(choix)) $("reglage-orp-teinte").value = choix;
+  if (!sansSauver) {
+    try {
+      localStorage.setItem("bookreeder-orp-couleur", perso ? "perso" : choix);
+      localStorage.setItem("bookreeder-orp-teinte", $("reglage-orp-teinte").value);
+    } catch (e) {}
+  }
+  colorerOptionsMarqueur(couleur);
   // Si la palette de dialogue « Accentuation » est active, elle dérive de cette
   // couleur → on la recalcule pour qu'elle suive le nouveau choix.
   if (etat.paletteDialogue === "Accentuation" && typeof appliquerPaletteDialogue === "function") {
@@ -3283,16 +3307,19 @@ function colorerOptionsMarqueur(couleur) {
   document.querySelectorAll("#reglage-marqueur-note .opt-accent")
     .forEach((o) => { o.style.color = c; });
 }
-$("reglage-orp-couleur").addEventListener("change", appliquerOrpCouleur);
-$("reglage-orp-teinte").addEventListener("input", appliquerOrpCouleur);
+document.querySelectorAll("#couleurs-orp .case-couleur:not(.case-perso)").forEach((b) => {
+  b.addEventListener("click", () => appliquerOrpCouleur(b.dataset.couleur));
+});
+$("reglage-orp-teinte").addEventListener("input", (e) => appliquerOrpCouleur(e.target.value));
 function initialiserOrpCouleur() {
+  let c = "#f25c54";
   try {
-    const c = localStorage.getItem("bookreeder-orp-couleur");
-    const t = localStorage.getItem("bookreeder-orp-teinte");
-    if (t) $("reglage-orp-teinte").value = t;
-    if (c) $("reglage-orp-couleur").value = c;
+    const sc = localStorage.getItem("bookreeder-orp-couleur");
+    const st = localStorage.getItem("bookreeder-orp-teinte");
+    if (st) $("reglage-orp-teinte").value = st;
+    if (sc) c = sc;
   } catch (e) {}
-  appliquerOrpCouleur();
+  appliquerOrpCouleur(c, true);
   majVisibiliteOrpCouleur();
 }
 initialiserOrpCouleur();
