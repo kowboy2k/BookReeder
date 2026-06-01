@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=200">
+  <link rel="stylesheet" href="style.css?v=201">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -128,12 +128,16 @@
     <div id="contexte-infos"></div>
   </div>
 
-  <!-- Panneau de recherche dans le texte (double-tap d'un mot en mode loupe) -->
+  <!-- Panneau de recherche dans le livre (double-tap dans la zone de texte du mode loupe) -->
   <div id="panneau-recherche" class="cache">
     <div class="panneau-contenu">
-      <h2 id="recherche-titre">Recherche</h2>
-      <div id="recherche-resultats"></div>
-      <button id="btn-fermer-recherche">Fermer</button>
+      <h2>Rechercher dans le livre</h2>
+      <div class="rech-saisie">
+        <input type="text" id="rech-champ" placeholder="Mot ou expression…" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <button id="rech-go">Go</button>
+      </div>
+      <div id="rech-resultats"></div>
+      <button id="rech-fermer">Fermer</button>
     </div>
   </div>
 
@@ -380,6 +384,6 @@
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="app.js?v=200"></script>
+  <script src="app.js?v=201"></script>
 </body>
 </html>

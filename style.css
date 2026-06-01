@@ -419,13 +419,39 @@ html, body {
   display: flex;
   flex-direction: column;
 }
-#recherche-titre b { color: var(--orp-couleur, var(--accent)); }
-#recherche-resultats {
+.rech-saisie {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+#rech-champ {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.7rem 0.8rem;
+  border-radius: 0.6rem;
+  border: 1px solid var(--surface-bord);
+  background: var(--fond);
+  color: var(--texte);
+  font-family: sans-serif;
+  font-size: 1rem;
+}
+#rech-go {
+  flex: none;
+  padding: 0 1.2rem;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 0.6rem;
+  font-size: 1rem;
+  cursor: pointer;
+}
+#rech-resultats {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   margin-bottom: 1rem;
 }
+.res-compte { font-family: sans-serif; font-size: 0.85rem; opacity: 0.6; margin-bottom: 0.6rem; }
 .res-item {
   display: block;
   width: 100%;
@@ -444,7 +470,7 @@ html, body {
 .res-item b { color: var(--orp-couleur, var(--accent)); font-weight: 700; }
 .res-chap { display: block; font-family: sans-serif; font-size: 0.78rem; opacity: 0.55; margin-bottom: 0.2rem; }
 .res-vide { opacity: 0.6; font-style: italic; }
-#btn-fermer-recherche {
+#rech-fermer {
   flex: none;
   width: 100%;
   padding: 0.9rem;

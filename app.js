@@ -1539,36 +1539,36 @@ function actionSimpleLoupe(i, s) {
   marquerCourant(false);
   sauverPosition();
 }
-// Clic/appui en loupe : SIMPLE = action ci-dessus ; DOUBLE (même mot, <280 ms) =
-// recherche du mot dans tout le livre. Un clic après sélection de texte (copier /
-// rechercher sur le Web) est ignoré.
+// Clic/appui en loupe : SIMPLE = action ci-dessus ; DOUBLE (même mot, <300 ms) =
+// ouvre la recherche dans le livre, préremplie avec ce mot.
 let tapTimer = null, tapPending = null;
 $("contexte-texte").addEventListener("click", (e) => {
-  const sel = window.getSelection && window.getSelection();
-  if (sel && !sel.isCollapsed && (sel.toString() || "").trim()) return;
   let s = e.target.closest("span[data-i]");
   if (!s) s = spanProche($("contexte-texte"), e.clientX, e.clientY);
   if (!s) return;
   const i = +s.dataset.i;
-  if (tapTimer) {
+  if (tapTimer) {                              // 2e tap rapide
     clearTimeout(tapTimer); tapTimer = null;
-    if (tapPending && tapPending.i === i) {     // double-tap sur le même mot → recherche
-      tapPending = null;
-      fermerBulleNote();
-      ouvrirRechercheMot(i);
+    const memeMot = tapPending && tapPending.i === i;
+    tapPending = null;
+    if (memeMot) {
+      const sel = window.getSelection && window.getSelection();
+      if (sel) sel.removeAllRanges();          // annule la sélection du double-clic
+      ouvrirRecherche();                        // invite de saisie libre (champ vide)
       return;
     }
-    if (tapPending) actionSimpleLoupe(tapPending.i, tapPending.s); // autre mot : on valide le précédent
   }
+  // Tap simple : on ignore s'il vient d'une sélection de texte (copier / Web).
+  const sel = window.getSelection && window.getSelection();
+  if (sel && !sel.isCollapsed && (sel.toString() || "").trim()) return;
   tapPending = { i, s };
   tapTimer = setTimeout(() => {
     tapTimer = null; const p = tapPending; tapPending = null;
     if (p) actionSimpleLoupe(p.i, p.s);
-  }, 280);
+  }, 300);
 });
 
-// --- Recherche d'un mot dans tout le livre (depuis la loupe) ---
-const MAX_RESULTATS = 300;
+// --- Recherche dans tout le livre (bulle au-dessus des boutons, en mode loupe) ---
 // Élision française de tête (l', d', qu', j', t', s', n', m', c'…), apostrophe
 // droite ou typographique — à retirer pour que « d'anguille » trouve « anguille ».
 const ELISION = /^(qu|[ldjtnmcs])['’]/i;
@@ -1601,37 +1601,57 @@ function extraitAutour(j) {
   }
   return html.trim();
 }
-function ouvrirRechercheMot(i) {
-  const requete = normaliserMot(etat.mots[i]);
-  const affiche = coeurMot(etat.mots[i]) || etat.mots[i];
-  const titre = $("recherche-titre");
-  const cont = $("recherche-resultats");
-  if (requete.length < 2) {
-    titre.innerHTML = "Recherche : « " + echHtml(affiche) + " »";
-    cont.innerHTML = '<p class="res-vide">Mot trop court pour une recherche.</p>';
-    $("panneau-recherche").classList.remove("cache");
+const MAX_RESULTATS = 300;
+// Normalise une saisie libre (accents/casse/ponctuation) en suite de mots.
+function normaliserTexte(s) {
+  return (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+}
+// Lance la recherche de la saisie courante et affiche la liste des occurrences.
+function lancerRecherche() {
+  const cont = $("rech-resultats");
+  const req = normaliserTexte($("rech-champ").value);
+  if (req.length < 2) {
+    cont.innerHTML = '<p class="res-vide">Saisissez au moins 2 caracteres.</p>';
     return;
   }
+  const motsReq = req.split(" ").filter(Boolean);
   const trouves = [];
-  for (let j = 0; j < etat.mots.length && trouves.length < MAX_RESULTATS; j++) {
-    if (normaliserMot(etat.mots[j]).includes(requete)) trouves.push(j);
+  for (let j = 0; j + motsReq.length <= etat.mots.length && trouves.length < MAX_RESULTATS; j++) {
+    let ok = true;
+    for (let k = 0; k < motsReq.length; k++) {
+      if (!normaliserMot(etat.mots[j + k]).includes(motsReq[k])) { ok = false; break; }
+    }
+    if (ok) trouves.push(j);
   }
-  titre.innerHTML = "Recherche : « " + echHtml(affiche) + " » — " +
-    trouves.length + (trouves.length >= MAX_RESULTATS ? "+ " : " ") +
-    "résultat" + (trouves.length > 1 ? "s" : "");
   if (trouves.length === 0) {
-    cont.innerHTML = '<p class="res-vide">Aucune occurrence trouvée.</p>';
-  } else {
-    cont.innerHTML = trouves.map((j) =>
-      '<button class="res-item" data-i="' + j + '">' +
-      '<span class="res-chap">' + echHtml(tronquerTitre(chapitrePourIndex(j).titre)) + '</span>' +
-      extraitAutour(j) + '</button>'
-    ).join("");
+    cont.innerHTML = '<p class="res-vide">Aucune occurrence trouvee.</p>';
+    return;
   }
+  const entete = '<p class="res-compte">' + trouves.length +
+    (trouves.length >= MAX_RESULTATS ? "+" : "") +
+    " occurrence" + (trouves.length > 1 ? "s" : "") + "</p>";
+  cont.innerHTML = entete + trouves.map((j) =>
+    '<button class="res-item" data-i="' + j + '">' +
+    '<span class="res-chap">' + echHtml(tronquerTitre(chapitrePourIndex(j).titre)) + '</span>' +
+    extraitAutour(j) + '</button>'
+  ).join("");
+  cont.scrollTop = 0;
+}
+function ouvrirRecherche() {
+  fermerBulleNote();
+  $("rech-champ").value = "";
+  $("rech-resultats").innerHTML = "";
   $("panneau-recherche").classList.remove("cache");
+  $("rech-champ").focus();
 }
 function fermerRecherche() { $("panneau-recherche").classList.add("cache"); }
-$("recherche-resultats").addEventListener("click", (e) => {
+$("rech-go").addEventListener("click", lancerRecherche);
+$("rech-champ").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { e.preventDefault(); lancerRecherche(); }
+  else if (e.key === "Escape") { e.preventDefault(); fermerRecherche(); }
+});
+$("rech-resultats").addEventListener("click", (e) => {
   const it = e.target.closest(".res-item");
   if (!it) return;
   etat.index = Math.min(Math.max(0, +it.dataset.i), etat.mots.length - 1);
@@ -1639,7 +1659,7 @@ $("recherche-resultats").addEventListener("click", (e) => {
   rafraichirContexte(true);   // saute à l'occurrence (reconstruit si besoin + recentre)
   sauverPosition();
 });
-$("btn-fermer-recherche").addEventListener("click", fermerRecherche);
+$("rech-fermer").addEventListener("click", fermerRecherche);
 $("panneau-recherche").addEventListener("click", (e) => {
   if (e.target.id === "panneau-recherche") fermerRecherche();  // clic sur le fond
 });
