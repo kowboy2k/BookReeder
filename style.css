@@ -886,6 +886,7 @@ html, body {
 #groupe-vitesse #btn-plus { position: relative; top: 10px; }
 
 /* --- Mode épuré (« fullscreen ») : cartouche + 3 boutons seulement --- */
+#barre-epure-groupe { width: 100%; }
 #barre-epure, #barre-epure-vitesse { display: none; }
 #ecran-lecture.epure #zone-navigation,
 #ecran-lecture.epure #barre-progression,
@@ -987,6 +988,30 @@ html, body {
 }
 #duree-chapitre { font-size: 0.82rem; opacity: 0.8; margin-top: 0.15rem; }
 
+/* --- Mode paysage (horizontal) : autorisé seulement en Mode Loupe & Mode
+   Minimaliste (l'écran principal bascule en minimaliste via le JS). --- */
+@media (orientation: landscape) {
+  /* Mode Loupe : 5 % de marge latérale pour dégager l'encoche / caméra frontale */
+  #ecran-contexte { padding-left: 5%; padding-right: 5%; }
+
+  /* Mode Minimaliste : les boutons (nav + vitesse) se répartissent sur UNE ligne */
+  #ecran-lecture.epure #barre-epure-groupe {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 2.4rem;
+    width: 100%;
+  }
+  #ecran-lecture.epure #barre-epure,
+  #ecran-lecture.epure #barre-epure-vitesse { width: auto; margin-bottom: 0; }
+
+  /* Appui long sur une flèche : décale le groupe de boutons vers ce côté
+     (prise en main à une seule main). */
+  #ecran-lecture.epure.nav-gauche #barre-epure-groupe { justify-content: flex-start; padding-left: 4%; }
+  #ecran-lecture.epure.nav-droite #barre-epure-groupe { justify-content: flex-end;   padding-right: 4%; }
+}
+
 /* --- Bibliothèque (écran d'accueil) --- */
 /* La liste remplit le bloc « Mes lectures » (40%) sous le titre, et défile. */
 #bibliotheque {
@@ -1081,12 +1106,13 @@ html, body {
 /* Panneau de choix de palette */
 #panneau-palette {
   position: fixed; inset: 0; z-index: 60;
-  background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center;
-  padding: max(8dvh, env(safe-area-inset-top)) 1rem max(8dvh, env(safe-area-inset-bottom));
+  background: rgba(0,0,0,0.6); display: flex; align-items: stretch; justify-content: center;
+  /* La carte occupe toute la hauteur ; marge basse +10px pour dégager la barre iPhone */
+  padding: max(2dvh, env(safe-area-inset-top)) 0.8rem max(2dvh, calc(env(safe-area-inset-bottom) + 10px));
   box-sizing: border-box;
 }
 #panneau-palette.cache { display: none; }
-#panneau-palette .panneau-contenu { border-radius: 1rem; max-height: 86dvh; display: flex; flex-direction: column; }
+#panneau-palette .panneau-contenu { border-radius: 1rem; max-height: 100%; display: flex; flex-direction: column; }
 /* Barre de navigation entre thèmes (‹ Nom du thème ›) */
 #palette-barre-theme { flex: none; display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.8rem; }
 #palette-barre-theme h3 { flex: 1 1 auto; text-align: center; margin: 0; }
@@ -1145,6 +1171,8 @@ html, body {
   display: flex;
   flex-direction: column;                      /* entête fixe · pages défilables · OK fixe */
   overflow: hidden;
+  /* Marge basse pour que « OK » ne passe pas sous la barre d'accueil iPhone (+10px) */
+  padding-bottom: calc(1.5rem + env(safe-area-inset-bottom) + 10px);
 }
 /* Entête : flèches ‹ › + titre, toujours visible */
 #reglages-entete { flex: none; display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1rem; }
@@ -1261,8 +1289,8 @@ html, body {
   flex: none;
 }
 .case-couleur.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
-/* Damier tant qu'aucune couleur perso n'est définie (et case « Aucune ») */
-.case-perso, .case-aucune {
+/* Damier tant qu'aucune couleur perso n'est définie */
+.case-perso {
   position: relative;
   overflow: hidden;
   background-color: #fff;

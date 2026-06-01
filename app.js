@@ -2252,6 +2252,7 @@ function demarrerLecture() {
   appliquerOrp();
   afficherChunk();
   majDureeChapitre();
+  if (typeof gererOrientation === "function") gererOrientation(); // paysage → minimaliste
 }
 
 // =========================================================
@@ -2503,10 +2504,18 @@ function fermerLoupe(relancer) {
   const btn = $("ctx-play");
   if (!btn) return;
   let timer = null, long = false;
-  btn.addEventListener("pointerdown", () => { long = false; timer = setTimeout(() => { long = true; }, 500); });
+  // Appui long (≈0,5 s) : ferme le mode loupe SANS attendre de relever le doigt
+  // (et sans relancer la lecture). Appui court (clic) : reprend la lecture.
+  btn.addEventListener("pointerdown", () => {
+    long = false;
+    timer = setTimeout(() => { long = true; fermerLoupe(false); }, 500);
+  });
   ["pointerleave", "pointercancel"].forEach((ev) => btn.addEventListener(ev, () => clearTimeout(timer)));
   btn.addEventListener("pointerup", () => clearTimeout(timer));
-  btn.addEventListener("click", () => { fermerLoupe(!long); long = false; });
+  btn.addEventListener("click", () => {
+    if (long) { long = false; return; }   // déjà fermé par l'appui long
+    fermerLoupe(true);
+  });
 })();
 // Bouton loupe (droite) : ouvre la recherche dans le livre.
 $("ctx-recherche").addEventListener("click", ouvrirRecherche);
@@ -2895,7 +2904,7 @@ $("btn-fermer-reglages").addEventListener("click", () => {
   afficherChunk(); // re-rendu complet avec les réglages finaux
 });
 
-$("reglage-modele").addEventListener("change", (e) => {
+$("reglage-modele")?.addEventListener("change", (e) => {
   activerModele(e.target.value);
   // Chaque modèle re-découpe le texte à sa façon (en conservant la position)
   if (etat.chapitresTexte) {
@@ -2942,7 +2951,8 @@ $("reglage-dialogues").addEventListener("change", (e) => appliquerDialogues(e.ta
   appliquerDialogues(v);
 })();
 $("reglage-continuer").addEventListener("change", (e) => {
-  etat.continuerApresSaut = e.target.checked;
+  // Case « Pause après retour / avance rapide » : cochée = on NE continue PAS.
+  etat.continuerApresSaut = !e.target.checked;
 });
 // Pause automatique : "fin" (fin de chapitre) | "suivant" (ouverture du suivant) | "off"
 function appliquerPauseAuto(v) {
@@ -3324,7 +3334,7 @@ function initialiserOrpCouleur() {
 }
 initialiserOrpCouleur();
 
-$("reglage-majuscules").addEventListener("change", (e) => {
+$("reglage-majuscules")?.addEventListener("change", (e) => {
   motAffiche.classList.toggle("majuscules", e.target.checked);
   afficherChunk(); // recalcule le centrage ORP (largeurs modifiées)
 });
@@ -3384,14 +3394,58 @@ document.addEventListener("keydown", (e) => {
 
 // Toucher le cartouche = bascule l'affichage épuré (« fullscreen »)
 zoneMot.addEventListener("click", () => {
+  // En paysage, l'écran principal complet n'est pas autorisé : on reste en minimaliste.
+  if (window.matchMedia("(orientation: landscape)").matches
+      && ecranLecture.classList.contains("epure")) return;
   ecranLecture.classList.toggle("epure");
   afficherChunk(); // recentre l'ORP (largeur dispo modifiée)
 });
 
-// Boutons de la barre épurée (réutilisent les mêmes actions)
-$("ep-recul").addEventListener("click", () => deplacer(phrasePrecedente() - etat.index, true));
-$("ep-avance").addEventListener("click", () => deplacer(phraseSuivante() - etat.index, true));
+// Boutons de la barre épurée : clic = navigation phrase ; appui long (≈0,5 s) =
+// déplace le groupe de boutons vers ce côté (utile en paysage, à une main).
+function installerFlecheEpure(id, action, cote) {
+  const btn = $(id);
+  if (!btn) return;
+  let timer = null, long = false;
+  btn.addEventListener("pointerdown", () => {
+    long = false;
+    timer = setTimeout(() => {
+      long = true;
+      ecranLecture.classList.remove("nav-gauche", "nav-droite");
+      ecranLecture.classList.add(cote);
+    }, 500);
+  });
+  ["pointerleave", "pointercancel"].forEach((ev) => btn.addEventListener(ev, () => clearTimeout(timer)));
+  btn.addEventListener("pointerup", () => clearTimeout(timer));
+  btn.addEventListener("click", () => {
+    if (long) { long = false; return; }   // c'était un appui long → pas de navigation
+    action();
+  });
+}
+installerFlecheEpure("ep-recul", () => deplacer(phrasePrecedente() - etat.index, true), "nav-gauche");
+installerFlecheEpure("ep-avance", () => deplacer(phraseSuivante() - etat.index, true), "nav-droite");
 installerPlayLong("ep-lecture");
+
+// --- Orientation paysage : autorisée seulement en Mode Loupe & Mode Minimaliste.
+// Sur l'écran principal, le passage en paysage bascule en Mode Minimaliste. ---
+const mqPaysage = window.matchMedia("(orientation: landscape)");
+let epureForceePaysage = false;
+function gererOrientation() {
+  const paysage = mqPaysage.matches;
+  const lectureVisible = !ecranLecture.classList.contains("cache");
+  const enLoupe = !$("ecran-contexte").classList.contains("cache");
+  if (paysage && lectureVisible && !enLoupe && !ecranLecture.classList.contains("epure")) {
+    ecranLecture.classList.add("epure");        // écran principal interdit en paysage
+    epureForceePaysage = true;
+    afficherChunk();
+  } else if (!paysage && epureForceePaysage && ecranLecture.classList.contains("epure")) {
+    ecranLecture.classList.remove("epure");     // retour portrait : on revient à l'écran principal
+    epureForceePaysage = false;
+    afficherChunk();
+  }
+}
+mqPaysage.addEventListener("change", gererOrientation);
+gererOrientation();
 
 // PWA : enregistrement du service worker (hors-ligne + mise à jour auto)
 let swRegistration = null;

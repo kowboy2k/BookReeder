@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=232">
+  <link rel="stylesheet" href="style.css?v=235">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -100,17 +100,20 @@
       </button>
     </div>
 
-    <!-- Mode épuré : barre minimale (retour phrase · play/pause · avance phrase) -->
-    <div id="barre-epure">
-      <button id="ep-recul" class="ic-fleche ic-recul" title="Phrase précédente"></button>
-      <button id="ep-lecture" class="icone-play" title="Lecture / Pause"></button>
-      <button id="ep-avance" class="ic-fleche ic-avance" title="Phrase suivante"></button>
-    </div>
-    <!-- Vitesse en mode épuré : − chiffre + -->
-    <div id="barre-epure-vitesse">
-      <button id="ep-moins" class="ic-moins" title="Ralentir" aria-label="Ralentir"></button>
-      <span id="ep-vitesse">260</span>
-      <button id="ep-plus" class="ic-plus" title="Accélérer" aria-label="Accélérer"></button>
+    <!-- Mode épuré : barre minimale (retour phrase · play/pause · avance phrase)
+         + vitesse. En paysage, le groupe passe sur une seule ligne. -->
+    <div id="barre-epure-groupe">
+      <div id="barre-epure">
+        <button id="ep-recul" class="ic-fleche ic-recul" title="Phrase précédente"></button>
+        <button id="ep-lecture" class="icone-play" title="Lecture / Pause"></button>
+        <button id="ep-avance" class="ic-fleche ic-avance" title="Phrase suivante"></button>
+      </div>
+      <!-- Vitesse en mode épuré : − chiffre + -->
+      <div id="barre-epure-vitesse">
+        <button id="ep-moins" class="ic-moins" title="Ralentir" aria-label="Ralentir"></button>
+        <span id="ep-vitesse">260</span>
+        <button id="ep-plus" class="ic-plus" title="Accélérer" aria-label="Accélérer"></button>
+      </div>
     </div>
     <!-- Infos de lecture (Mode Minimaliste) : position · chapitre · mots -->
     <div id="infos-minimal"></div>
@@ -199,8 +202,10 @@
       <h2>Comment ça marche</h2>
       <ul id="liste-infos">
         <li><b>Lecture rapide</b> — les mots défilent un à un ou par groupes, centrés sur la lettre repère (rouge) pour garder l'œil fixe.</li>
+        <li><b>Dialogues dynamiques</b> — rajoutez du style dans les dialogues entre les personnages !</li>
         <li><b>Mode Minimaliste</b> — touchez la <b>zone de lecture</b> pour masquer l'interface (lecture sans distraction) ; touchez à nouveau pour revenir.</li>
         <li><b>Mode loupe</b> — appui prolongé sur le bouton lecture/pause pour afficher la lecture contextuelle + annotations.</li>
+        <li><b>Lecture horizontale</b> — basculez votre appareil en mode paysage ; en Mode Minimaliste, basculez la position des boutons en restant appuyé sur ‹ ou ›.</li>
         <li><b>Naviguer</b> — touchez les <b>infos de lecture</b> pour ouvrir la navigation et aller à un chapitre ou se déplacer dans le livre. En Mode Loupe, touchez la ligne d'infos du chapitre pour naviguer sans quitter la loupe.</li>
         <li><b>Chapitres</b> — les boutons ⏮ / ⏭ sautent au chapitre précédent / suivant ; les flèches reculent / avancent d'une phrase.</li>
         <li><b>Vitesse</b> — les boutons − et + ajustent la vitesse de lecture.</li>
@@ -267,11 +272,6 @@
       <div id="reglages-pages">
       <div class="reglages-page" data-page="0">
 
-      <div class="reglage reglage-inline">
-        <label for="reglage-modele">Modèle de lecture</label>
-        <select id="reglage-modele"></select>
-      </div>
-
       <div class="reglage">
         <label for="reglage-nb-mots">Mots affichés : <span id="valeur-nb-mots">1</span></label>
         <input type="range" id="reglage-nb-mots" min="0" max="3" step="1" value="1">
@@ -292,8 +292,8 @@
       </div>
 
       <div class="reglage reglage-case">
-        <label for="reglage-continuer">Continuer la lecture après avance/retour</label>
-        <input type="checkbox" id="reglage-continuer" checked>
+        <label for="reglage-continuer">Pause après retour / avance rapide</label>
+        <input type="checkbox" id="reglage-continuer">
       </div>
 
       <div class="reglage reglage-case">
@@ -376,14 +376,14 @@
         <input type="color" id="reglage-bio-teinte" value="#f39c12">
       </div>
 
-      <div class="reglage reglage-case">
-        <label for="reglage-majuscules">Tout en majuscule</label>
-        <input type="checkbox" id="reglage-majuscules">
-      </div>
-
       <div class="reglage">
         <label for="reglage-taille-police">Taille de la police : <span id="valeur-taille-police">100</span> %</label>
         <input type="range" id="reglage-taille-police" min="50" max="150" step="10" value="100">
+      </div>
+
+      <div class="reglage">
+        <label for="reglage-taille-loupe">Taille de la police Mode Loupe : <span id="valeur-taille-loupe">100</span> %</label>
+        <input type="range" id="reglage-taille-loupe" min="50" max="200" step="10" value="100">
       </div>
 
       <div class="reglage">
@@ -412,7 +412,6 @@
       <div class="reglage reglage-inline" id="bloc-orp-couleur">
         <label>Couleur d'accentuation</label>
         <div id="couleurs-orp" class="cases-couleur">
-          <button type="button" class="case-couleur case-aucune" data-couleur="aucune" title="Aucune (couleur du texte)"></button>
           <button type="button" class="case-couleur" data-couleur="#f25c54" title="Corail" style="background:#f25c54"></button>
           <button type="button" class="case-couleur" data-couleur="#a6de7a" title="Anis" style="background:#a6de7a"></button>
           <button type="button" class="case-couleur" data-couleur="#ffd359" title="Moutarde" style="background:#ffd359"></button>
@@ -461,11 +460,6 @@
         <input type="range" id="reglage-long-reperes" min="4" max="40" step="2" value="14">
       </div>
 
-      <div class="reglage">
-        <label for="reglage-taille-loupe">Taille de la police Mode Loupe : <span id="valeur-taille-loupe">100</span> %</label>
-        <input type="range" id="reglage-taille-loupe" min="50" max="200" step="10" value="100">
-      </div>
-
       </div><!-- /page 2 -->
       </div><!-- /reglages-pages -->
 
@@ -476,6 +470,6 @@
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="app.js?v=232"></script>
+  <script src="app.js?v=235"></script>
 </body>
 </html>
