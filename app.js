@@ -3242,8 +3242,10 @@ function appliquerPolice() {
     graisse = 400; bionic = true;
   } else {
     police = FAMILLE_CSS[fam] || FAMILLE_CSS.georgia;
-    graisse = +varr || 400; bionic = false;
+    graisse = +varr || 400; bionic = false;   // « maj » → NaN → 400 (poids normal)
   }
+  // Variante « MAJUSCULE » : affiche le mot en capitales
+  motAffiche.classList.toggle("majuscules", varr === "maj");
   document.documentElement.style.setProperty("--police", police);
   document.documentElement.style.setProperty("--graisse", graisse);
   etat.bionic = bionic;
@@ -3253,7 +3255,8 @@ function appliquerPolice() {
     (bionic && $("reglage-bionic-couleur").value === "perso") ? "flex" : "none";
 }
 
-// (Re)remplit le menu Variante selon la famille choisie ; défaut = Normal
+// (Re)remplit le menu Variantes selon la famille choisie ; défaut = Normal.
+// Une variante spéciale « MAJUSCULE » (sauf en Bionic) affiche le texte en capitales.
 function remplirVariantes(familleId) {
   const sel = $("reglage-variante");
   const vs = variantesDe(familleId);
@@ -3262,6 +3265,10 @@ function remplirVariantes(familleId) {
     const o = document.createElement("option");
     o.value = v.id; o.textContent = v.nom; sel.appendChild(o);
   });
+  if (familleId !== "bionic") {
+    const o = document.createElement("option");
+    o.value = "maj"; o.textContent = "MAJUSCULE"; sel.appendChild(o);
+  }
   sel.value = vs.some((v) => v.id === "400") ? "400" : vs[0].id;
 }
 
