@@ -1188,7 +1188,8 @@ body.roue-ouverte #panneau-reglages .panneau-contenu { background: transparent; 
   padding-bottom: env(safe-area-inset-bottom);   /* le bas du panneau reste visible */
 }
 #panneau-reglages .panneau-contenu {
-  height: 90dvh;                               /* hauteur FIXE → ne bouge jamais */
+  height: 70dvh;                               /* hauteur FIXE → ne bouge jamais (laisse
+                                                  voir le cartouche d'aperçu en haut) */
   display: flex;
   flex-direction: column;                      /* entête fixe · pages · OK fixe */
   overflow: hidden;
@@ -1213,11 +1214,12 @@ body.roue-ouverte #panneau-reglages .panneau-contenu { background: transparent; 
 #reglages-pages::-webkit-scrollbar-track { background: transparent; }
 #reglages-pages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 3px; }
 #panneau-reglages #btn-fermer-reglages { flex: none; margin-top: 1rem; }
-/* Pendant les réglages, la zone de lecture monte dans le tiers haut (aperçu live) */
+/* Pendant les réglages, la zone de lecture (cartouche d'aperçu) reste visible en
+   haut, au-dessus du panneau (70dvh). Hauteur calée sur l'espace libre. */
 #ecran-lecture.apercu #zone-mot {
   position: fixed;
   top: 0; left: 0; right: 0;
-  height: 33vh;
+  height: 28dvh;
 }
 #ecran-lecture.apercu #barre-progression,
 #ecran-lecture.apercu #zone-navigation,
