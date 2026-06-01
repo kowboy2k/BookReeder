@@ -559,6 +559,14 @@ html, body {
 
 #mot-affiche.majuscules { text-transform: uppercase; }
 
+/* --- Effets de dialogue --- */
+#mot-affiche.dlg-italique { font-style: italic; }
+/* Couleur du locuteur (multicolore) : sur tout le mot sauf le pivot ORP. */
+#mot-affiche.dlg-couleur { color: var(--couleur-dialogue, var(--couleur-police, var(--texte))); }
+/* Fondu rapide à l'apparition de chaque réplique. */
+@keyframes dlg-fondu { from { opacity: 0; } to { opacity: 1; } }
+#mot-affiche.dlg-fondu { animation: dlg-fondu 0.18s ease-out; }
+
 /* Gras + couleur du début de mot (bionic) */
 #mot-affiche .bio { font-weight: 900; color: var(--bio-couleur, inherit); }
 /* Le pivot ORP reste prioritaire en couleur, même dans un début gras */

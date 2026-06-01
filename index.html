@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=207">
+  <link rel="stylesheet" href="style.css?v=208">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -356,6 +356,22 @@
         <input type="color" id="reglage-orp-teinte" value="#f25c54">
       </div>
 
+      <div class="reglage reglage-inline">
+        <label for="reglage-dialogues">Dialogues</label>
+        <select id="reglage-dialogues">
+          <option value="aucun">Aucun effet</option>
+          <option value="elocution">Élocution</option>
+          <option value="multicolore">Multicolore</option>
+          <option value="italique">Italique</option>
+          <option value="fondu">Fondu</option>
+          <option value="elocution,multicolore">Élocution + Multicolore</option>
+          <option value="elocution,italique">Élocution + Italique</option>
+          <option value="multicolore,italique">Multicolore + Italique</option>
+          <option value="elocution,multicolore,italique">Élocution + Multicolore + Italique</option>
+          <option value="elocution,multicolore,italique,fondu">Tous les effets</option>
+        </select>
+      </div>
+
       <div class="reglage" id="bloc-ecart-reperes">
         <label for="reglage-ecart-reperes">Écartement des repères : <span id="valeur-ecart-reperes">40</span> px</label>
         <input type="range" id="reglage-ecart-reperes" min="10" max="120" step="2" value="40">
@@ -388,6 +404,6 @@
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="app.js?v=207"></script>
+  <script src="app.js?v=208"></script>
 </body>
 </html>

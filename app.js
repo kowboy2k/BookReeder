@@ -23,9 +23,13 @@ const etat = {
   elan: 1,           // « momentum » : <1 juste après une pause, remonte vers 1
   orpActif: true,
   bionic: false,     // lecture bionic (début des mots en gras)
+  dialoguesEffets: [], // effets dialogues actifs : "elocution" "multicolore" "italique" "fondu"
+  couleurParMot: null, // Map index mot -> couleur (multicolore, calculée au chargement)
   modeleId: "default", // modèle de lecture actif (groupement + rythme + ORP + bionic)
   modele: null,        // objet modèle courant (défini au démarrage)
 };
+// Un effet de dialogue est-il actif ?
+function effetDialogue(nom) { return (etat.dialoguesEffets || []).indexOf(nom) >= 0; }
 
 // Un mot qui termine une phrase : ponctuation forte éventuellement suivie
 // d'un guillemet/parenthèse fermant. On ne regroupe jamais après lui.
@@ -791,6 +795,8 @@ function retokeniser() {
     map.get(r.motIndex).push(n);
   });
   etat.noteParMot = map;
+  etat.couleurParMot = null;   // recalculé à la demande si le multicolore est actif
+  if (effetDialogue("multicolore")) calculerLocuteurs();
   const total = Math.max(1, etat.mots.length);
   etat.index = Math.min(Math.round((etat.progression || 0) * (total - 1)), total - 1);
   if (etat.index < 0 || !isFinite(etat.index)) etat.index = 0;
@@ -1108,6 +1114,7 @@ function afficherChunk() {
 
   const idxOrp = etat.orpActif ? etat.modele.orp(texte) : -1;
   motAffiche.innerHTML = construireHtml(texte, idxOrp);
+  appliquerEffetsDialogue();   // italique / fondu / couleur du locuteur
   ajusterTaillePolice();
 
   if (idxOrp < 0) {
@@ -1124,6 +1131,29 @@ function afficherChunk() {
       (r.left - boite.left + r.width / 2) + "px");
   }
   majProgression();
+}
+
+// Applique les effets de dialogue (italique / fondu / couleur du locuteur) au
+// cartouche, selon que le mot courant fait partie d'une réplique.
+function appliquerEffetsDialogue() {
+  const enDial = dansDialogue(etat.index);
+  motAffiche.classList.toggle("dlg-italique", enDial && effetDialogue("italique"));
+  // Couleur du locuteur (multicolore) : posée sur le conteneur ; l'ORP garde sa
+  // priorité (couleur du repère) via sa propre règle CSS.
+  let couleur = "";
+  if (enDial && effetDialogue("multicolore") && etat.couleurParMot) {
+    couleur = etat.couleurParMot.get(etat.index) || "";
+  }
+  motAffiche.style.setProperty("--couleur-dialogue", couleur || "");
+  motAffiche.classList.toggle("dlg-couleur", !!couleur);
+  // Fondu : on relance l'animation à chaque chunk (retire/rajoute la classe).
+  if (enDial && effetDialogue("fondu")) {
+    motAffiche.classList.remove("dlg-fondu");
+    void motAffiche.offsetWidth;            // force le redémarrage de l'animation
+    motAffiche.classList.add("dlg-fondu");
+  } else {
+    motAffiche.classList.remove("dlg-fondu");
+  }
 }
 
 // Construit le HTML du chunk : gras bionic optionnel + lettre pivot ORP.
@@ -1226,6 +1256,96 @@ function dansDialogue(i) {
   return DEBUT_REPLIQUE.test((etat.mots[debut] || "").trimStart());
 }
 
+// --- Multicolore : détection du locuteur de chaque réplique ---
+// Verbes de parole courants (incise : « dit Margaret », « Margaret s'écria »).
+const VERBES_PAROLE = /^(dit|dis|dirent|r[ée]pond(it|irent)|r[ée]pliqu(a|èrent)|s[' ]?[ée]cri(a|èrent)|demand(a|èrent)|murmur(a|èrent)|souffl(a|èrent)|lan[çc](a|èrent)|ajout(a|èrent)|repr(it|irent)|s[' ]?exclam(a|èrent)|s[' ]?[ée]tonn(a|èrent)|soupir(a|èrent)|cri(a|èrent)|fit|firent|insist(a|èrent)|pours(uivit|uivirent)|chuchot(a|èrent)|gémit|grogn(a|èrent)|interrog(ea|èrent)|questionn(a|èrent)|conclu(t|rent)|affirm(a|èrent)|d[ée]clar(a|èrent)|expliqu(a|èrent)|raill(a|èrent)|ordonn(a|èrent)|protest(a|èrent)|balbut(ia|ièrent)|annon[çc](a|èrent)|rétorqu(a|èrent)|tonn(a|èrent))$/i;
+function motNu(m) { return (m || "").replace(/[^\p{L}'-]/gu, ""); }
+// Cherche le nom propre associé à une réplique commençant au mot `deb`.
+//   - APRÈS : juste après la fin de la réplique, un verbe de parole + nom propre
+//     (« … ? » s'étonna Margaret) ou (nom propre + verbe) ;
+//   - AVANT : à la fin de la phrase précédant la réplique (« Margaret s'écria : »).
+function locuteurDeReplique(deb) {
+  const mots = etat.mots;
+  // fin de la réplique = jusqu'au prochain début de phrase
+  let fin = deb + 1; while (fin < mots.length && !estDebutPhrase(fin)) fin++;
+  // APRÈS la réplique : scanne quelques mots pour un couple nom propre + verbe.
+  for (let k = fin; k < Math.min(fin + 8, mots.length); k++) {
+    const a = motNu(mots[k]), b = motNu(mots[k + 1] || "");
+    if (VERBES_PAROLE.test(a) && /\p{Lu}/u.test((b[0] || ""))) return b;     // « dit Margaret »
+    if (/\p{Lu}/u.test((a[0] || "")) && VERBES_PAROLE.test(b)) return a;     // « Margaret dit »
+    if (estDebutPhrase(k + 1) && k > fin + 1) break;
+  }
+  // AVANT la réplique : derniers mots de la phrase précédente (« Margaret s'écria : »).
+  let p = deb - 1; while (p >= 0 && !estDebutPhrase(p)) p--;
+  for (let k = deb - 1; k >= Math.max(0, p); k--) {
+    const a = motNu(mots[k]);
+    if (VERBES_PAROLE.test(a)) {
+      // nom propre juste avant ou juste après le verbe
+      const av = motNu(mots[k - 1] || ""), ap = motNu(mots[k + 1] || "");
+      if (/\p{Lu}/u.test((av[0] || ""))) return av;
+      if (/\p{Lu}/u.test((ap[0] || ""))) return ap;
+    }
+  }
+  return "";
+}
+// Couleurs des dialogues : principal #74a228, secondaires #aa4521 puis #a22878.
+const COUL_PRINCIPAL = "#74a228", COUL_SEC1 = "#aa4521", COUL_SEC2 = "#a22878";
+// Construit etat.couleurParMot. Principe « ping-pong » : dans un échange, les
+// répliques alternent entre 2 interlocuteurs (tour à tour). Les incises détectées
+// (« dit Margaret ») ancrent un nom sur sa parité ; le personnage principal (le
+// plus cité du livre) garde sa couleur partout.
+function calculerLocuteurs() {
+  const mots = etat.mots;
+  const map = new Map();
+  if (!mots || !mots.length) { etat.couleurParMot = map; return; }
+
+  // 1) Liste des répliques + locuteur détecté (si incise) ; compte global des noms.
+  const repliques = [];   // { deb, fin, nom }
+  const compte = {};
+  for (let i = 0; i < mots.length; i++) {
+    const estRep = estDebutPhrase(i) && DEBUT_REPLIQUE.test((mots[i] || "").trimStart());
+    if (!estRep) continue;
+    let fin = i + 1; while (fin < mots.length && !estDebutPhrase(fin)) fin++;
+    const nom = normTitre(locuteurDeReplique(i));
+    if (nom) compte[nom] = (compte[nom] || 0) + 1;
+    repliques.push({ deb: i, fin, nom });
+    i = fin - 1;
+  }
+  if (!repliques.length) { etat.couleurParMot = map; return; }
+
+  // 2) Personnage principal = nom le plus cité.
+  let principal = "", max = 0;
+  for (const n in compte) if (compte[n] > max) { max = compte[n]; principal = n; }
+
+  // 3) Découpe en CONVERSATIONS (répliques rapprochées) ; dans chaque bloc,
+  //    alternance par tour entre 2 slots (0/1). Un nom détecté « ancre » sa parité.
+  const GAP_MAX = 80;   // mots de narration max entre 2 répliques d'un même échange
+  let b = 0;
+  while (b < repliques.length) {
+    let e = b;
+    while (e + 1 < repliques.length && repliques[e + 1].deb - repliques[e].fin <= GAP_MAX) e++;
+    const slotNom = ["", ""];
+    for (let k = b; k <= e; k++) {
+      const par = (k - b) % 2;
+      if (repliques[k].nom && !slotNom[par]) slotNom[par] = repliques[k].nom;
+    }
+    const slot0Princ = slotNom[0] && slotNom[0] === principal;
+    const slot1Princ = slotNom[1] && slotNom[1] === principal;
+    const couleurSlot = (par) => {
+      if (slotNom[par] && slotNom[par] === principal) return COUL_PRINCIPAL;
+      const autrePrinc = par === 0 ? slot1Princ : slot0Princ;
+      if (autrePrinc) return COUL_SEC1;                    // l'autre est le principal
+      return par === 0 ? COUL_SEC1 : COUL_SEC2;            // 2 secondaires en alternance
+    };
+    for (let k = b; k <= e; k++) {
+      const c = couleurSlot((k - b) % 2);
+      for (let w = repliques[k].deb; w < repliques[k].fin; w++) map.set(w, c);
+    }
+    b = e + 1;
+  }
+  etat.couleurParMot = map;
+}
+
 // Décélération d'élocution (DIALOGUES) : on ralentit progressivement les derniers
 // mots AVANT une ponctuation, pour imiter le débit parlé.
 //   virgule , ; : → 2 derniers mots : +20%, +40%
@@ -1302,11 +1422,13 @@ function delaiChunk() {
   else if (pause > 0 || majuscule) etat.elan = P.elanPauseMoyenne;      // pause moyenne
   else etat.elan = Math.min(1, etat.elan + P.elanAccel);                // accélération
 
-  // Décélération d'élocution (dialogues) : on applique le plus fort coefficient
-  // parmi les mots du groupe (en pratique, le dernier proche d'une ponctuation).
-  let coefElo = 1;
-  for (let k = debut; k < fin; k++) coefElo = Math.max(coefElo, coefElocution(k));
-  mot *= coefElo;
+  // Décélération d'élocution (dialogues) : active seulement si l'effet « élocution »
+  // est choisi. On applique le plus fort coefficient parmi les mots du groupe.
+  if (effetDialogue("elocution")) {
+    let coefElo = 1;
+    for (let k = debut; k < fin; k++) coefElo = Math.max(coefElo, coefElocution(k));
+    mot *= coefElo;
+  }
 
   // Le temps de pause est modulé par le coefficient réglable (0,5–4).
   // Plancher absolu : aucun mot ne s'affiche moins de ~Nms (anti-télescopage).
@@ -2363,6 +2485,21 @@ function ajusterCadre() {
     `min(${88 + n * 2}%, ${440 + n * 140}px)`
   );
 }
+// Effets de dialogue (élocution / multicolore / italique / fondu), mémorisés.
+function appliquerDialogues(val) {
+  etat.dialoguesEffets = (val || "").split(",").map((s) => s.trim()).filter((s) => s && s !== "aucun");
+  $("reglage-dialogues").value = val || "aucun";
+  try { localStorage.setItem("bookreeder-dialogues", val || "aucun"); } catch (e) {}
+  // Le multicolore a besoin de la carte des locuteurs (calculée au chargement).
+  if (effetDialogue("multicolore") && !etat.couleurParMot && etat.mots.length) calculerLocuteurs();
+  if (!ecranLecture.classList.contains("cache")) afficherChunk();
+}
+$("reglage-dialogues").addEventListener("change", (e) => appliquerDialogues(e.target.value));
+(function initDialogues() {
+  let v = "aucun";
+  try { v = localStorage.getItem("bookreeder-dialogues") || "aucun"; } catch (e) {}
+  appliquerDialogues(v);
+})();
 $("reglage-continuer").addEventListener("change", (e) => {
   etat.continuerApresSaut = e.target.checked;
 });
