@@ -1656,11 +1656,20 @@ function reprendreDepuisLoupe() {
 (function installerRechercheLong() {
   const btn = $("ctx-play");
   if (!btn) return;
-  let timer = null, declenche = false;
-  const debut = () => { declenche = false; timer = setTimeout(() => { declenche = true; ouvrirRecherche(); }, 500); };
-  const fin = () => clearTimeout(timer);
+  let timer = null, pret = false, declenche = false;
+  const debut = () => {
+    pret = false; declenche = false;
+    timer = setTimeout(() => { pret = true; }, 500);   // seuil atteint : appui « long »
+  };
+  const annuler = () => { clearTimeout(timer); pret = false; };
   btn.addEventListener("pointerdown", debut);
-  ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => btn.addEventListener(ev, fin));
+  // Au RELÂCHEMENT : si le seuil long est atteint, on ouvre la recherche ICI,
+  // dans le geste utilisateur → iOS autorise l'ouverture automatique du clavier.
+  btn.addEventListener("pointerup", () => {
+    clearTimeout(timer);
+    if (pret) { declenche = true; pret = false; ouvrirRecherche(); }
+  });
+  ["pointerleave", "pointercancel"].forEach((ev) => btn.addEventListener(ev, annuler));
   btn.addEventListener("click", (e) => {
     if (declenche) { declenche = false; e.preventDefault(); e.stopImmediatePropagation(); return; }
     reprendreDepuisLoupe();
