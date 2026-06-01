@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=197">
+  <link rel="stylesheet" href="style.css?v=198">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -128,6 +128,15 @@
     <div id="contexte-infos"></div>
   </div>
 
+  <!-- Panneau de recherche dans le texte (double-tap d'un mot en mode loupe) -->
+  <div id="panneau-recherche" class="cache">
+    <div class="panneau-contenu">
+      <h2 id="recherche-titre">Recherche</h2>
+      <div id="recherche-resultats"></div>
+      <button id="btn-fermer-recherche">Fermer</button>
+    </div>
+  </div>
+
   <!-- Panneau d'aide / fonctionnalités -->
   <div id="panneau-infos" class="cache">
     <div class="panneau-contenu">
@@ -135,7 +144,7 @@
       <ul id="liste-infos">
         <li><b>Lecture rapide</b> — les mots défilent un à un ou par groupes, centrés sur la lettre repère (rouge) pour garder l'œil fixe.</li>
         <li><b>Mode Minimaliste</b> — touchez la <b>zone de lecture</b> pour masquer l'interface (lecture sans distraction) ; touchez à nouveau pour revenir.</li>
-        <li><b>Mode loupe</b> — appui long sur play/pause pour afficher la lecture contextuelle + annotations.</li>
+        <li><b>Mode loupe</b> — appui long sur play/pause pour afficher la lecture contextuelle + annotations. Double tap pour rechercher dans le texte.</li>
         <li><b>Naviguer</b> — touchez les <b>infos de lecture</b> pour ouvrir la navigation pour aller à un chapitre ou se déplacer dans le livre.</li>
         <li><b>Chapitres</b> — les boutons ⏮ / ⏭ sautent au chapitre précédent / suivant ; les flèches reculent / avancent d'une phrase.</li>
         <li><b>Vitesse</b> — les boutons − et + ajustent la vitesse de lecture.</li>
@@ -354,6 +363,6 @@
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="app.js?v=197"></script>
+  <script src="app.js?v=198"></script>
 </body>
 </html>

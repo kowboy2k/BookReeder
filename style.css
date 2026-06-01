@@ -197,6 +197,11 @@ html, body {
   color: var(--couleur-police, var(--texte));
   scrollbar-width: thin;
   scrollbar-color: rgba(255,255,255,0.18) transparent;
+  /* Texte sélectionnable : appui long (mobile) ou clic-glissé (PC) → menu natif
+     « Copier / Rechercher sur Google ». Le reste de l'app reste non sélectionnable. */
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
 }
 #contexte-texte::-webkit-scrollbar { width: 5px; }
 #contexte-texte::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 3px; }
@@ -374,6 +379,59 @@ html, body {
   border-radius: 1rem;
   max-height: 80vh;
   overflow-y: auto;
+}
+/* Panneau de recherche dans le texte (double-tap d'un mot en mode loupe) */
+#panneau-recherche {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 70;
+  padding: 1rem;
+}
+#panneau-recherche .panneau-contenu {
+  border-radius: 1rem;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+#recherche-titre b { color: var(--orp-couleur, var(--accent)); }
+#recherche-resultats {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+}
+.res-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--fond);
+  color: var(--texte);
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.7rem;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  font-family: var(--police);
+  font-size: 1rem;
+  line-height: 1.4;
+}
+.res-item b { color: var(--orp-couleur, var(--accent)); font-weight: 700; }
+.res-chap { display: block; font-family: sans-serif; font-size: 0.78rem; opacity: 0.55; margin-bottom: 0.2rem; }
+.res-vide { opacity: 0.6; font-style: italic; }
+#btn-fermer-recherche {
+  flex: none;
+  width: 100%;
+  padding: 0.9rem;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 0.6rem;
+  font-size: 1rem;
+  cursor: pointer;
 }
 #liste-infos {
   list-style: none;

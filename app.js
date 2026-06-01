@@ -1406,6 +1406,7 @@ function demarrerLecture() {
 // =========================================================
 // --- Mode loupe : tout le chapitre, scrollable ; clic = point de reprise ---
 let ctxRange = null;                          // bornes de mots rendues {a, b}
+let ctxSpans = new Map();                      // index du mot -> <span> (évite les querySelector répétés)
 function construireContexte() {
   const cont = $("contexte-texte");
   const { debut, fin } = bornesChapitre();
@@ -1428,6 +1429,9 @@ function construireContexte() {
   }
   if (ouvert) html += "</p>";
   cont.innerHTML = html;
+  // Mémorise les spans une seule fois (lookup direct au surlignage).
+  ctxSpans = new Map();
+  cont.querySelectorAll("span[data-i]").forEach((s) => ctxSpans.set(+s.dataset.i, s));
 }
 function marquerCourant(recentrer) {
   const cont = $("contexte-texte");
@@ -1438,13 +1442,13 @@ function marquerCourant(recentrer) {
   let phFin = etat.index + 1;
   while (phFin < etat.mots.length && !estDebutPhrase(phFin)) phFin++;
   for (let i = phDebut; i < phFin; i++) {
-    const s = cont.querySelector('span[data-i="' + i + '"]');
-    if (s) s.classList.add("phrase-courante");   // toute la phrase en gras (couleur conservée)
+    const s = ctxSpans.get(i);
+    if (s) s.classList.add("phrase-courante");   // phrase en cours (100 % d'opacité)
   }
   // Mot/groupe en cours : couleur accentuée (repère).
   let prem = null;
   for (let i = etat.index; i < etat.index + nb; i++) {
-    const s = cont.querySelector('span[data-i="' + i + '"]');
+    const s = ctxSpans.get(i);
     if (s) { s.classList.add("courant"); if (!prem) prem = s; }
   }
   if (recentrer && prem) prem.scrollIntoView({ block: "center" });
@@ -1511,18 +1515,118 @@ function ouvrirBulleNote(i, ancre) {
   b.style.left = left + "px";
   b.style.top = top + "px";
 }
-// Clic/appui : mot porteur de note → bulle d'annotation ; sinon point de reprise
-// (clic approximatif accepté → mot le plus proche, sans recentrer la vue).
-$("contexte-texte").addEventListener("click", (e) => {
+// Action d'un appui SIMPLE en loupe : mot porteur de note → bulle d'annotation ;
+// sinon on repositionne la lecture au début de la phrase cliquée.
+function actionSimpleLoupe(i, s) {
   fermerBulleNote();
+  if (etat.noteParMot && etat.noteParMot.has(i)) { ouvrirBulleNote(i, s); return; }
+  etat.index = debutPhraseAvant(i);
+  marquerCourant(false);
+  sauverPosition();
+}
+// Clic/appui en loupe : SIMPLE = action ci-dessus ; DOUBLE (même mot, <280 ms) =
+// recherche du mot dans tout le livre. Un clic après sélection de texte (copier /
+// rechercher sur le Web) est ignoré.
+let tapTimer = null, tapPending = null;
+$("contexte-texte").addEventListener("click", (e) => {
+  const sel = window.getSelection && window.getSelection();
+  if (sel && !sel.isCollapsed && (sel.toString() || "").trim()) return;
   let s = e.target.closest("span[data-i]");
   if (!s) s = spanProche($("contexte-texte"), e.clientX, e.clientY);
   if (!s) return;
   const i = +s.dataset.i;
-  if (etat.noteParMot && etat.noteParMot.has(i)) { ouvrirBulleNote(i, s); return; }
-  etat.index = debutPhraseAvant(i);   // début de la phrase cliquée
-  marquerCourant(false);
+  if (tapTimer) {
+    clearTimeout(tapTimer); tapTimer = null;
+    if (tapPending && tapPending.i === i) {     // double-tap sur le même mot → recherche
+      tapPending = null;
+      fermerBulleNote();
+      ouvrirRechercheMot(i);
+      return;
+    }
+    if (tapPending) actionSimpleLoupe(tapPending.i, tapPending.s); // autre mot : on valide le précédent
+  }
+  tapPending = { i, s };
+  tapTimer = setTimeout(() => {
+    tapTimer = null; const p = tapPending; tapPending = null;
+    if (p) actionSimpleLoupe(p.i, p.s);
+  }, 280);
+});
+
+// --- Recherche d'un mot dans tout le livre (depuis la loupe) ---
+const MAX_RESULTATS = 300;
+// Élision française de tête (l', d', qu', j', t', s', n', m', c'…), apostrophe
+// droite ou typographique — à retirer pour que « d'anguille » trouve « anguille ».
+const ELISION = /^(qu|[ldjtnmcs])['’]/i;
+function sansElision(s) {
+  return (s || "").replace(/ /g, " ")
+    .replace(/^[^\p{L}\p{N}]+/u, "")   // ponctuation de tête
+    .replace(ELISION, "");             // élision
+}
+function normaliserMot(s) {
+  return sansElision(s).normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+}
+// Cœur visible d'un jeton (sans espaces insécables ni ponctuation de bord)
+function coeurMot(s) {
+  return (s || "").replace(/ /g, " ").trim()
+    .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "")
+    .replace(ELISION, "");
+}
+function chapitrePourIndex(j) {
+  let c = etat.chapitres[0] || { titre: "" };
+  for (const ch of etat.chapitres) { if (ch.debut <= j) c = ch; else break; }
+  return c;
+}
+function extraitAutour(j) {
+  const a = Math.max(0, j - 6), b = Math.min(etat.mots.length, j + 7);
+  let html = "";
+  for (let k = a; k < b; k++) {
+    const mot = echHtml(etat.mots[k].replace(/ /g, " "));
+    html += (k === j ? "<b>" + mot + "</b>" : mot) + " ";
+  }
+  return html.trim();
+}
+function ouvrirRechercheMot(i) {
+  const requete = normaliserMot(etat.mots[i]);
+  const affiche = coeurMot(etat.mots[i]) || etat.mots[i];
+  const titre = $("recherche-titre");
+  const cont = $("recherche-resultats");
+  if (requete.length < 2) {
+    titre.innerHTML = "Recherche : « " + echHtml(affiche) + " »";
+    cont.innerHTML = '<p class="res-vide">Mot trop court pour une recherche.</p>';
+    $("panneau-recherche").classList.remove("cache");
+    return;
+  }
+  const trouves = [];
+  for (let j = 0; j < etat.mots.length && trouves.length < MAX_RESULTATS; j++) {
+    if (normaliserMot(etat.mots[j]).includes(requete)) trouves.push(j);
+  }
+  titre.innerHTML = "Recherche : « " + echHtml(affiche) + " » — " +
+    trouves.length + (trouves.length >= MAX_RESULTATS ? "+ " : " ") +
+    "résultat" + (trouves.length > 1 ? "s" : "");
+  if (trouves.length === 0) {
+    cont.innerHTML = '<p class="res-vide">Aucune occurrence trouvée.</p>';
+  } else {
+    cont.innerHTML = trouves.map((j) =>
+      '<button class="res-item" data-i="' + j + '">' +
+      '<span class="res-chap">' + echHtml(tronquerTitre(chapitrePourIndex(j).titre)) + '</span>' +
+      extraitAutour(j) + '</button>'
+    ).join("");
+  }
+  $("panneau-recherche").classList.remove("cache");
+}
+function fermerRecherche() { $("panneau-recherche").classList.add("cache"); }
+$("recherche-resultats").addEventListener("click", (e) => {
+  const it = e.target.closest(".res-item");
+  if (!it) return;
+  etat.index = Math.min(Math.max(0, +it.dataset.i), etat.mots.length - 1);
+  fermerRecherche();
+  rafraichirContexte(true);   // saute à l'occurrence (reconstruit si besoin + recentre)
   sauverPosition();
+});
+$("btn-fermer-recherche").addEventListener("click", fermerRecherche);
+$("panneau-recherche").addEventListener("click", (e) => {
+  if (e.target.id === "panneau-recherche") fermerRecherche();  // clic sur le fond
 });
 // Play : referme, affiche la position puis relance la lecture après 1 s.
 $("ctx-play").addEventListener("click", () => {
