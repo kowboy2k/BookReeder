@@ -216,16 +216,24 @@ html, body {
    Discret (couleur de la police) ou « accentué » (.accent → couleur
    d'accentuation en cours). Signale un contenu consultable en mode loupe. */
 .marque-note {
-  font-size: 0.62em;
-  vertical-align: super;
-  margin-left: 0.08em;
+  font-size: 1em;
+  vertical-align: baseline;     /* sur la ligne du texte, comme la pastille */
+  margin-left: 0.18em;
   color: inherit;
 }
 .marque-note.accent { color: var(--orp-couleur, var(--accent)); }
-.marque-note.marque-point {      /* point « ● » : plus gros, sur la ligne du texte */
-  font-size: 2em;
-  vertical-align: baseline;
+/* Pastille pleine dessinée (cercle), posée sur la ligne du texte (n'agrandit
+   pas la hauteur de ligne contrairement au glyphe « • »). */
+.marque-pastille {
+  display: inline-block;
+  width: 0.42em;
+  height: 0.42em;
+  border-radius: 50%;
+  background: currentColor;
+  vertical-align: middle;
+  margin-left: 0.18em;
 }
+.marque-pastille.accent { background: var(--orp-couleur, var(--accent)); }
 /* Appel de note : exposant cliquable (couleur repère) */
 #contexte-texte .a-note { cursor: pointer; }
 #contexte-texte .ctx-note {

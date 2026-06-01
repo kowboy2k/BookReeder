@@ -843,9 +843,13 @@ function construireHtml(chunk, idxOrp) {
     if (etat.noteParMot && etat.noteParMot.has(etat.index + m)) {
       const mk = MARQUEURS[etat.marqueurNote] || MARQUEURS.etoile;
       if (mk && mk.car) {
-        const estPoint = mk.car === "•";
-        html += '<span class="marque-note' + (mk.accent ? " accent" : "") +
-          (estPoint ? " marque-point" : "") + '" aria-hidden="true">' + mk.car + "</span>";
+        const accent = mk.accent ? " accent" : "";
+        if (mk.car === "•") {
+          // Pastille pleine DESSINÉE (cercle CSS), sur la ligne du texte.
+          html += '<span class="marque-pastille' + accent + '" aria-hidden="true"></span>';
+        } else {
+          html += '<span class="marque-note' + accent + '" aria-hidden="true">' + mk.car + "</span>";
+        }
       }
     }
   });
