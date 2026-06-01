@@ -411,12 +411,15 @@ html, body {
   align-items: center;
   justify-content: center;
   z-index: 70;
-  /* Toujours 10% d'espace cliquable en haut et en bas pour fermer en touchant le fond */
-  padding: 10vh 1rem;
+  /* Toujours 10% d'espace cliquable en haut et en bas pour fermer en touchant le
+     fond. On utilise dvh (hauteur dynamique) car sur iPhone vh ignore la barre
+     d'adresse Safari et la marge du haut disparaît. + safe-area iOS. */
+  padding: max(10dvh, env(safe-area-inset-top)) 1rem max(10dvh, env(safe-area-inset-bottom));
+  box-sizing: border-box;
 }
 #panneau-recherche .panneau-contenu {
   border-radius: 1rem;
-  max-height: 80vh;       /* laisse 10% cliquable en haut + 10% en bas */
+  max-height: 80dvh;       /* laisse 10% cliquable en haut + 10% en bas */
   display: flex;
   flex-direction: column;
 }

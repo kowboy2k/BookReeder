@@ -1539,33 +1539,15 @@ function actionSimpleLoupe(i, s) {
   marquerCourant(false);
   sauverPosition();
 }
-// Clic/appui en loupe : SIMPLE = action ci-dessus ; DOUBLE (même mot, <300 ms) =
-// ouvre la recherche dans le livre, préremplie avec ce mot.
-let tapTimer = null, tapPending = null;
+// Clic/appui sur le texte en loupe : repositionne la lecture (ou ouvre la note).
+// On ignore le clic s'il vient d'une sélection de texte (copier / recherche Web).
 $("contexte-texte").addEventListener("click", (e) => {
+  const sel = window.getSelection && window.getSelection();
+  if (sel && !sel.isCollapsed && (sel.toString() || "").trim()) return;
   let s = e.target.closest("span[data-i]");
   if (!s) s = spanProche($("contexte-texte"), e.clientX, e.clientY);
   if (!s) return;
-  const i = +s.dataset.i;
-  if (tapTimer) {                              // 2e tap rapide
-    clearTimeout(tapTimer); tapTimer = null;
-    const memeMot = tapPending && tapPending.i === i;
-    tapPending = null;
-    if (memeMot) {
-      const sel = window.getSelection && window.getSelection();
-      if (sel) sel.removeAllRanges();          // annule la sélection du double-clic
-      ouvrirRecherche();                        // invite de saisie libre (champ vide)
-      return;
-    }
-  }
-  // Tap simple : on ignore s'il vient d'une sélection de texte (copier / Web).
-  const sel = window.getSelection && window.getSelection();
-  if (sel && !sel.isCollapsed && (sel.toString() || "").trim()) return;
-  tapPending = { i, s };
-  tapTimer = setTimeout(() => {
-    tapTimer = null; const p = tapPending; tapPending = null;
-    if (p) actionSimpleLoupe(p.i, p.s);
-  }, 300);
+  actionSimpleLoupe(+s.dataset.i, s);
 });
 
 // --- Recherche dans tout le livre (bulle au-dessus des boutons, en mode loupe) ---
@@ -1662,13 +1644,26 @@ $("rech-resultats").addEventListener("click", (e) => {
 $("panneau-recherche").addEventListener("click", (e) => {
   if (e.target.id === "panneau-recherche") fermerRecherche();  // clic sur le fond
 });
-// Play : referme, affiche la position puis relance la lecture après 1 s.
-$("ctx-play").addEventListener("click", () => {
+// Bouton Play de la loupe : SIMPLE = reprendre la lecture (après 280 ms, le temps
+// de détecter un éventuel 2e tap) ; DOUBLE = ouvrir la recherche dans le livre.
+let ctxPlayTimer = null;
+function reprendreDepuisLoupe() {
   fermerBulleNote();
   fermerContexte();
   afficherChunk();
   clearTimeout(etat.minuteur);
   etat.minuteur = setTimeout(lecture, 1000);
+}
+$("ctx-play").addEventListener("click", () => {
+  if (ctxPlayTimer) {                 // 2e tap rapide → recherche
+    clearTimeout(ctxPlayTimer); ctxPlayTimer = null;
+    ouvrirRecherche();
+    return;
+  }
+  ctxPlayTimer = setTimeout(() => {
+    ctxPlayTimer = null;
+    reprendreDepuisLoupe();
+  }, 280);
 });
 
 // Clic court = play/pause ; appui long (≈0,5 s) = ouvre le mode contexte.
