@@ -837,6 +837,17 @@ function construireHtml(chunk, idxOrp) {
       if (gras && j >= gras.debut && j < gras.fin) c = '<span class="bio">' + c + "</span>";
       html += c;
     }
+    // Repère d'annotation : marqueur si ce mot porte une note consultable en
+    // mode loupe. Discret (couleur de la police) ou « accentué » (couleur
+    // d'accentuation en cours). N'entre pas dans le calcul de l'ORP.
+    if (etat.noteParMot && etat.noteParMot.has(etat.index + m)) {
+      const mk = MARQUEURS[etat.marqueurNote] || MARQUEURS.etoile;
+      if (mk && mk.car) {
+        const estPoint = mk.car === "•";
+        html += '<span class="marque-note' + (mk.accent ? " accent" : "") +
+          (estPoint ? " marque-point" : "") + '" aria-hidden="true">' + mk.car + "</span>";
+      }
+    }
   });
   return html;
 }
@@ -2037,6 +2048,35 @@ $("reglage-infos-loupe").addEventListener("change", (e) => {
   etat.infosLoupe = on;
   $("ecran-contexte").classList.toggle("infos-loupe", on);
 })();
+// Marqueur d'annotations en lecture rapide. Chaque entrée : caractère affiché +
+// `accent` (true → couleur d'accentuation en cours, sinon couleur de la police).
+// « aucun » = pas de marqueur (car vide).
+const MARQUEURS = {
+  aucun:          { car: "",  accent: false },
+  etoile:         { car: "*", accent: false },
+  bulle:          { car: "°", accent: false },
+  chapeau:        { car: "^", accent: false },
+  hashtag:        { car: "#", accent: false },
+  point:          { car: "•", accent: false },
+  "etoile-acc":   { car: "*", accent: true },
+  "bulle-acc":    { car: "°", accent: true },
+  "chapeau-acc":  { car: "^", accent: true },
+  "hashtag-acc":  { car: "#", accent: true },
+  "point-acc":    { car: "•", accent: true },
+};
+function appliquerMarqueurNote(v) {
+  if (!(v in MARQUEURS)) v = "etoile";
+  etat.marqueurNote = v;
+  $("reglage-marqueur-note").value = v;
+  try { localStorage.setItem("bookreeder-marqueur-note", v); } catch (e) {}
+  if (!ecranLecture.classList.contains("cache")) afficherChunk();  // mise à jour immédiate
+}
+$("reglage-marqueur-note").addEventListener("change", (e) => appliquerMarqueurNote(e.target.value));
+(function initMarqueurNote() {
+  let v = "etoile";
+  try { v = localStorage.getItem("bookreeder-marqueur-note") || "etoile"; } catch (e) {}
+  appliquerMarqueurNote(v);
+})();
 
 // --- Couleur de la police (cases : Blanc 100/75 %, Crème, Noir 70/90 %, Perso) ---
 // La couleur est mémorisée PAR THÈME (clé bookreeder-couleur-police-<thème>).
@@ -2261,6 +2301,14 @@ function appliquerOrpCouleur() {
     localStorage.setItem("bookreeder-orp-couleur", choix);
     localStorage.setItem("bookreeder-orp-teinte", $("reglage-orp-teinte").value);
   } catch (e) {}
+  colorerOptionsMarqueur(choix === "perso" ? $("reglage-orp-teinte").value : couleur);
+}
+// Affiche les options « accentuées » du menu marqueur dans la couleur
+// d'accentuation en cours (« aucune » → couleur du texte).
+function colorerOptionsMarqueur(couleur) {
+  const c = (couleur === "currentColor") ? "" : couleur;
+  document.querySelectorAll("#reglage-marqueur-note .opt-accent")
+    .forEach((o) => { o.style.color = c; });
 }
 $("reglage-orp-couleur").addEventListener("change", appliquerOrpCouleur);
 $("reglage-orp-teinte").addEventListener("input", appliquerOrpCouleur);

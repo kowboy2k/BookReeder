@@ -212,6 +212,20 @@ html, body {
 #contexte-texte .courant {
   color: var(--orp-couleur, var(--accent));            /* mot courant : couleur du repère */
 }
+/* Repère d'annotation en lecture rapide : petit caractère en exposant.
+   Discret (couleur de la police) ou « accentué » (.accent → couleur
+   d'accentuation en cours). Signale un contenu consultable en mode loupe. */
+.marque-note {
+  font-size: 0.62em;
+  vertical-align: super;
+  margin-left: 0.08em;
+  color: inherit;
+}
+.marque-note.accent { color: var(--orp-couleur, var(--accent)); }
+.marque-note.marque-point {      /* point « ● » : plus gros, sur la ligne du texte */
+  font-size: 2em;
+  vertical-align: baseline;
+}
 /* Appel de note : exposant cliquable (couleur repère) */
 #contexte-texte .a-note { cursor: pointer; }
 #contexte-texte .ctx-note {

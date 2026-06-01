@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=198">
+  <link rel="stylesheet" href="style.css?v=199">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -250,6 +250,23 @@
       </div>
 
       <div class="reglage reglage-inline">
+        <label for="reglage-marqueur-note">Marqueur d'annotations</label>
+        <select id="reglage-marqueur-note">
+          <option value="aucun">Aucun</option>
+          <option value="etoile">Astérisque *</option>
+          <option value="bulle">Bulle °</option>
+          <option value="chapeau">Chapeau ^</option>
+          <option value="hashtag">Hashtag ＃</option>
+          <option value="point">Point ●</option>
+          <option value="etoile-acc" class="opt-accent">Astérisque *</option>
+          <option value="bulle-acc" class="opt-accent">Bulle °</option>
+          <option value="chapeau-acc" class="opt-accent">Chapeau ^</option>
+          <option value="hashtag-acc" class="opt-accent">Hashtag ＃</option>
+          <option value="point-acc" class="opt-accent">Point ●</option>
+        </select>
+      </div>
+
+      <div class="reglage reglage-inline">
         <label for="reglage-police">Police</label>
         <select id="reglage-police"></select>
       </div>
@@ -316,11 +333,11 @@
       </div>
 
       <div class="reglage reglage-inline" id="bloc-orp-couleur">
-        <label for="reglage-orp-couleur">Couleur du repère</label>
+        <label for="reglage-orp-couleur">Couleur d'accentuation</label>
         <select id="reglage-orp-couleur">
-          <option value="#f25c54" selected>Rouge</option>
-          <option value="#399d31">Vert</option>
-          <option value="#ffd359">Jaune</option>
+          <option value="#f25c54" selected>Corail</option>
+          <option value="#a6de7a">Anis</option>
+          <option value="#ffd359">Moutarde</option>
           <option value="aucune">Aucune (couleur du texte)</option>
           <option value="perso">Personnalisé…</option>
         </select>
@@ -363,6 +380,6 @@
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="app.js?v=198"></script>
+  <script src="app.js?v=199"></script>
 </body>
 </html>
