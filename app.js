@@ -1362,8 +1362,235 @@ function locuteurDeReplique(deb) {
   }
   return { nom: "", tiers: false };
 }
-// Couleurs des dialogues : principal #74a228, secondaires #aa4521 puis #a22878.
-const COUL_PRINCIPAL = "#74a228", COUL_SEC1 = "#aa4521", COUL_SEC2 = "#a22878";
+// Couleurs des dialogues (principal, secondaire 1, secondaire 2). Pilotées par la
+// palette choisie dans les Réglages (etat.paletteDialogue) ; valeurs par défaut.
+let COUL_PRINCIPAL = "#74a228", COUL_SEC1 = "#aa4521", COUL_SEC2 = "#a22878";
+// Catalogue des palettes par thème (3 couleurs chacune). Mêmes noms d'un thème à
+// l'autre ; teintes ajustées au fond (clair pour Sépia, vives pour les sombres).
+// 4 palettes par thème, calibrées sur le fond :
+//  Midnight  → contraste MOYEN (couleurs franches mais pas criardes)
+//  Deep Black→ contraste FORT (couleurs vives, lumineuses)
+//  Dark Mono → contraste FAIBLE (teintes douces, désaturées)
+//  Sépia     → couleurs FONCÉES et PEU saturées (lisibles sur beige clair)
+const PALETTES = {
+  midnight: [
+    { nom: "Mars",      c: ["#cf5a33", "#b0479a", "#74a228"] },
+    { nom: "Lagon",     c: ["#3fa9c9", "#8abf3a", "#d98a3a"] },
+    { nom: "Verger",    c: ["#8abf3a", "#d3a946", "#d22d21"] },
+  ],
+  // Mêmes palettes que Midnight, déclinées selon le contraste de chaque thème :
+  black: [   // Deep Black : teintes franches (échangées depuis Sépia)
+    { nom: "Néon",      c: ["#bc4824", "#8f3d8f", "#278647"] },
+    { nom: "Cosmos",    c: ["#2e6f9e", "#309161", "#b67820"] },
+    { nom: "Spectre",   c: ["#358d35", "#c48c1c", "#b62d20"] },
+  ],
+  mono: [    // Dark Mono : teintes douces (désaturées, saturation +15 %)
+    { nom: "Galet",     c: ["#b07867", "#987474", "#77914d"] },
+    { nom: "Brouillard",c: ["#719eac", "#8da36b", "#bc946b"] },
+    { nom: "Lichen",    c: ["#8da36b", "#b8a575", "#b9564e"] },
+  ],
+  sepia: [   // Sépia : teintes vives + claires (échangées depuis Deep Black)
+    { nom: "Terre",     c: ["#e27e5d", "#cd67b8", "#98d82f"] },
+    { nom: "Ardoise",   c: ["#67c2de", "#a8d85e", "#eaa966"] },
+    { nom: "Automne",   c: ["#a8d85e", "#e5c371", "#eb5045"] },
+  ],
+};
+// Palettes affichées pour un thème = 3 palettes fixes + 1 palette « Accentuation »
+// (dynamique : la couleur d'accentuation actuelle, déclinée en 3 tons).
+function palettesDuTheme(cle) {
+  return (PALETTES[cle] || PALETTES.midnight).concat([paletteAccentuation()]);
+}
+// Thème actif (clé de PALETTES) ; mis à jour par appliquerTheme().
+function themeActif() {
+  const cl = document.documentElement.className;
+  if (/theme-mono/.test(cl)) return "mono";
+  if (/theme-black/.test(cl)) return "black";
+  if (/theme-sepia/.test(cl)) return "sepia";
+  return "midnight";
+}
+
+// --- Conversions couleur (pour la palette « Accentuation » en 3 tons) ---
+function hexVersRgb(h) {
+  h = (h || "").replace("#", "");
+  if (h.length === 3) h = h.split("").map((x) => x + x).join("");
+  const n = parseInt(h, 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+function rgbVersHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s = 0; const l = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h /= 6;
+  }
+  return [h * 360, s * 100, l * 100];
+}
+function hsl(h, s, l) {
+  return "hsl(" + Math.round(h) + "," + Math.round(Math.max(0, Math.min(100, s))) + "%," + Math.round(Math.max(0, Math.min(100, l))) + "%)";
+}
+// --- Conversions sRGB ↔ Lab (D65) pour décliner une couleur perceptuellement ---
+function rgbVersLab(r, g, b) {
+  const lin = (v) => { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+  const R = lin(r), G = lin(g), B = lin(b);
+  let x = (R * 0.4124 + G * 0.3576 + B * 0.1805) / 0.95047;
+  let y = (R * 0.2126 + G * 0.7152 + B * 0.0722);
+  let z = (R * 0.0193 + G * 0.1192 + B * 0.9505) / 1.08883;
+  const f = (t) => t > 0.008856 ? Math.cbrt(t) : (7.787 * t + 16 / 116);
+  x = f(x); y = f(y); z = f(z);
+  return [116 * y - 16, 500 * (x - y), 200 * (y - z)];
+}
+function labVersRgb(L, a, bb) {
+  let y = (L + 16) / 116, x = a / 500 + y, z = y - bb / 200;
+  const f3 = (t) => { const t3 = t * t * t; return t3 > 0.008856 ? t3 : (t - 16 / 116) / 7.787; };
+  x = 0.95047 * f3(x); y = f3(y); z = 1.08883 * f3(z);
+  let R = x * 3.2406 - y * 1.5372 - z * 0.4986;
+  let G = -x * 0.9689 + y * 1.8758 + z * 0.0415;
+  let B = x * 0.0557 - y * 0.2040 + z * 1.0570;
+  const dl = (v) => { v = v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055; return Math.max(0, Math.min(255, Math.round(v * 255))); };
+  return [dl(R), dl(G), dl(B)];
+}
+function rgbHex(r, g, b) { return "#" + [r, g, b].map((n) => n.toString(16).padStart(2, "0")).join(""); }
+// Couleur d'accentuation en [r,g,b] (résout hex OU hsl(...)).
+function accentRgb() {
+  const c = couleurAccentuation();
+  if (/^#?[0-9a-f]{3,6}$/i.test(c)) return hexVersRgb(c);
+  const m = c.match(/hsl\(\s*([\d.]+)[, ]+([\d.]+)%[, ]+([\d.]+)%/i);
+  if (m) { const t = document.createElement("span"); t.style.color = c; document.body.appendChild(t);
+    const rgb = getComputedStyle(t).color.match(/\d+/g); t.remove();
+    if (rgb) return rgb.slice(0, 3).map(Number); }
+  return [242, 92, 84];
+}
+// Couleur d'accentuation effective (résout currentColor / la variable CSS).
+function couleurAccentuation() {
+  let c = (getComputedStyle(document.documentElement).getPropertyValue("--orp-couleur") || "").trim();
+  if (!c || c === "currentColor") c = (getComputedStyle(document.documentElement).getPropertyValue("--accent") || "#f25c54").trim();
+  return c;
+}
+// Palette « Accentuation » : la couleur d'accentuation déclinée en 3 tons (même
+// teinte/saturation, luminosités différentes) pour distinguer les voix sans
+// changer de couleur de base.
+function paletteAccentuation() {
+  // Camaïeu via l'espace Lab : on garde L (clarté) et a (rouge↔vert), et on décale
+  // le canal b (bleu↔jaune) de ±60 → 3 tons proches, perceptuellement cohérents.
+  const [r, g, b] = accentRgb();
+  const [L, A, B] = rgbVersLab(r, g, b);
+  const v = (db) => rgbHex(...labVersRgb(L, A, B + db));
+  return { nom: "Accentuation", accent: true, c: [v(0), v(-60), v(60)] };
+}
+// Couleurs courantes de la palette PERSONNALISÉE (Voix 1/2/3), mémorisées.
+let couleursPerso = ["#74a228", "#aa4521", "#a22878"];
+// Applique la palette choisie au thème courant. `nom` = nom d'une palette du thème,
+// ou "perso" pour la palette personnalisée (3 roues chromatiques).
+// Applique une palette. `theme` = thème SOURCE de la palette (peut différer du
+// thème de fond : palette et thème sont indépendants). Par défaut, le thème mémorisé.
+function appliquerPaletteDialogue(nom, theme) {
+  if (nom === "perso") {
+    etat.paletteDialogue = "perso";
+    [COUL_PRINCIPAL, COUL_SEC1, COUL_SEC2] = couleursPerso;
+  } else {
+    const src = theme || etat.paletteTheme || themeActif();
+    const liste = palettesDuTheme(src);
+    let p = liste.find((x) => x.nom === nom);
+    if (!p) { p = palettesDuTheme(themeActif())[0]; etat.paletteTheme = themeActif(); }
+    else etat.paletteTheme = src;
+    etat.paletteDialogue = p.nom;
+    [COUL_PRINCIPAL, COUL_SEC1, COUL_SEC2] = p.c;
+  }
+  try {
+    localStorage.setItem("bookreeder-palette-dialogue", etat.paletteDialogue);
+    localStorage.setItem("bookreeder-palette-theme", etat.paletteTheme || "");
+  } catch (e) {}
+  if (etat.couleurParMot) calculerLocuteurs();   // recalcule avec les nouvelles couleurs
+  if (!ecranLecture.classList.contains("cache")) afficherChunk();
+  majBoutonPalette();
+}
+// Couleurs effectives de la palette courante (pour le bouton + les pastilles).
+function couleursPaletteCourante() {
+  if (etat.paletteDialogue === "perso") return couleursPerso;
+  const liste = palettesDuTheme(etat.paletteTheme || themeActif());
+  const p = liste.find((x) => x.nom === etat.paletteDialogue) || liste[0];
+  return p.c;
+}
+// Met à jour le bouton hybride (nom + 3 pastilles de la palette courante).
+function majBoutonPalette() {
+  const nom = etat.paletteDialogue === "perso" ? "Mes couleurs" : (etat.paletteDialogue || "Corail");
+  const elNom = $("btn-palette-nom"); if (elNom) elNom.textContent = nom;
+  const elPast = $("btn-palette-pastilles");
+  if (elPast) elPast.innerHTML = couleursPaletteCourante().map((col) => '<span class="pastille-mini" style="background:' + col + '"></span>').join("");
+}
+const NOMS_THEMES = { midnight: "Midnight", mono: "Dark Mono", black: "Deep Black", sepia: "Sépia" };
+const ORDRE_THEMES = ["midnight", "mono", "black", "sepia"];
+let paletteThemeApercu = "midnight";   // thème dont on visualise les palettes (≠ thème de fond éventuellement)
+// Rend la section « Palette du thème X » du thème en aperçu.
+function rendrePaletteListe() {
+  $("palette-titre-theme").textContent = "Palette du thème " + (NOMS_THEMES[paletteThemeApercu] || "");
+  const liste = palettesDuTheme(paletteThemeApercu);
+  const esc = (s) => (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  $("palette-liste").innerHTML = liste.map((p) => {
+    // « choisie » seulement si c'est la palette active ET du même thème source
+    // (« Accentuation » est commune à tous les thèmes).
+    const memeSource = p.nom === "Accentuation" || (etat.paletteTheme || themeActif()) === paletteThemeApercu;
+    const sel = (etat.paletteDialogue === p.nom && memeSource) ? " choisie" : "";
+    return '<button class="palette-item' + sel + '" data-nom="' + esc(p.nom) + '">' +
+      '<div class="palette-tete"><b>' + esc(p.nom) + '</b>' +
+      '<span class="pastilles-mini">' + p.c.map((c) => '<span class="pastille-mini" style="background:' + c + '"></span>').join("") + '</span></div>' +
+      apercuDialogueHTML(p.c) + '</button>';
+  }).join("");
+  rendrePerso();
+}
+function apercuDialogueHTML(c) {
+  return '<div class="palette-apercu">' +
+    '<span style="color:' + c[0] + '">— Vous voyez ?</span> ' +
+    '<span style="color:' + c[1] + '">— Tout à fait.</span> ' +
+    '<span style="color:' + c[2] + '">— Messieurs !</span></div>';
+}
+// Rend la carte « Personnalisée » (pastilles + aperçu) selon les 3 roues.
+function rendrePerso() {
+  $("palette-perso-pastilles").innerHTML = couleursPerso.map((c) => '<span class="pastille-mini" style="background:' + c + '"></span>').join("");
+  $("palette-perso-apercu").innerHTML = apercuDialogueHTML(couleursPerso).replace(/^<div class="palette-apercu">|<\/div>$/g, "");
+  $("palette-item-perso").classList.toggle("choisie", etat.paletteDialogue === "perso");
+}
+function ouvrirPalette() {
+  paletteThemeApercu = themeActif();         // on démarre sur le thème de fond actuel
+  rendrePaletteListe();
+  $("panneau-palette").classList.remove("cache");
+}
+function fermerPalette() { $("panneau-palette").classList.add("cache"); }
+function naviguerThemePalette(pas) {
+  const i = ORDRE_THEMES.indexOf(paletteThemeApercu);
+  paletteThemeApercu = ORDRE_THEMES[(i + pas + ORDRE_THEMES.length) % ORDRE_THEMES.length];
+  rendrePaletteListe();
+}
+$("btn-palette").addEventListener("click", ouvrirPalette);
+$("btn-fermer-palette").addEventListener("click", fermerPalette);
+$("panneau-palette").addEventListener("click", (e) => { if (e.target.id === "panneau-palette") fermerPalette(); });
+$("palette-theme-prec").addEventListener("click", () => naviguerThemePalette(-1));
+$("palette-theme-suiv").addEventListener("click", () => naviguerThemePalette(1));
+// Choix d'une palette : on applique ses couleurs SANS changer le thème de fond
+// (palette et thème sont indépendants). On retient le thème source de la palette.
+$("palette-liste").addEventListener("click", (e) => {
+  const it = e.target.closest(".palette-item");
+  if (!it) return;
+  appliquerPaletteDialogue(it.dataset.nom, paletteThemeApercu);
+  rendrePaletteListe();
+});
+// Sélection de la palette personnalisée (clic sur sa carte).
+$("palette-item-perso").addEventListener("click", () => { appliquerPaletteDialogue("perso"); rendrePaletteListe(); });
+// Roues chromatiques Voix 1/2/3 : mettent à jour la palette perso en direct.
+["voix1-couleur", "voix2-couleur", "voix3-couleur"].forEach((id, i) => {
+  $(id).addEventListener("input", (e) => {
+    couleursPerso[i] = e.target.value;
+    try { localStorage.setItem("bookreeder-perso-voix", JSON.stringify(couleursPerso)); } catch (err) {}
+    appliquerPaletteDialogue("perso");   // bascule sur perso et applique
+    rendrePaletteListe();                // met à jour la sélection (retire .choisie des autres)
+    $("palette-item-perso").scrollIntoView({ block: "nearest" });   // focus sur « Mes couleurs »
+  });
+});
 // Construit etat.couleurParMot. Principe « ping-pong » : dans un échange, les
 // répliques alternent entre 2 interlocuteurs (tour à tour). Les incises détectées
 // (« dit Margaret ») ancrent un nom sur sa parité ; le personnage principal (le
@@ -2730,12 +2957,33 @@ function appliquerTheme(nom) {
   if (meta) meta.setAttribute("content", COULEURS_THEME[nom] || COULEURS_THEME.midnight);
   try { localStorage.setItem("bookreeder-theme", nom); } catch (e) {}
   chargerCouleurPoliceDuTheme();   // chaque thème mémorise sa couleur de police
+  // La palette est indépendante du thème de fond : on la réapplique avec son thème
+  // SOURCE mémorisé (seule « Accentuation » se recalcule, car liée à la couleur d'accent).
+  // On n'agit QUE si la palette est déjà initialisée (sinon on écraserait le choix
+  // mémorisé pendant l'init, car appliquerTheme tourne avant initPaletteDialogue).
+  if (typeof appliquerPaletteDialogue === "function" && etat.paletteDialogue)
+    appliquerPaletteDialogue(etat.paletteDialogue, etat.paletteTheme || undefined);
 }
 $("reglage-theme").addEventListener("change", (e) => appliquerTheme(e.target.value));
 (function initTheme() {
   let t = "midnight";
   try { t = localStorage.getItem("bookreeder-theme") || "midnight"; } catch (e) {}
   appliquerTheme(t);
+})();
+// Palette des dialogues : restaurée au démarrage (après le thème).
+(function initPaletteDialogue() {
+  try {
+    const cp = JSON.parse(localStorage.getItem("bookreeder-perso-voix") || "null");
+    if (Array.isArray(cp) && cp.length === 3) couleursPerso = cp;
+  } catch (e) {}
+  // Synchronise les 3 roues avec les couleurs perso mémorisées.
+  ["voix1-couleur", "voix2-couleur", "voix3-couleur"].forEach((id, i) => { if ($(id)) $(id).value = couleursPerso[i]; });
+  let nom = "Corail", theme = "";
+  try {
+    nom = localStorage.getItem("bookreeder-palette-dialogue") || "Corail";
+    theme = localStorage.getItem("bookreeder-palette-theme") || "";
+  } catch (e) {}
+  appliquerPaletteDialogue(nom, theme || undefined);
 })();
 $("reglage-afficher-mots").addEventListener("change", (e) => {
   etat.afficherMots = e.target.checked;
@@ -3022,6 +3270,11 @@ function appliquerOrpCouleur() {
     localStorage.setItem("bookreeder-orp-teinte", $("reglage-orp-teinte").value);
   } catch (e) {}
   colorerOptionsMarqueur(choix === "perso" ? $("reglage-orp-teinte").value : couleur);
+  // Si la palette de dialogue « Accentuation » est active, elle dérive de cette
+  // couleur → on la recalcule pour qu'elle suive le nouveau choix.
+  if (etat.paletteDialogue === "Accentuation" && typeof appliquerPaletteDialogue === "function") {
+    appliquerPaletteDialogue("Accentuation");
+  }
 }
 // Affiche les options « accentuées » du menu marqueur dans la couleur
 // d'accentuation en cours (« aucune » → couleur du texte).

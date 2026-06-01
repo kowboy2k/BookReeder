@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=213">
+  <link rel="stylesheet" href="style.css?v=229">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -151,6 +151,33 @@
     <div class="panneau-contenu">
       <h2>Annotations</h2>
       <div id="annot-resultats"></div>
+    </div>
+  </div>
+
+  <!-- Panneau de choix de la palette des dialogues : palettes du thème + personnalisée -->
+  <div id="panneau-palette" class="cache">
+    <div class="panneau-contenu">
+      <div id="palette-barre-theme">
+        <button id="palette-theme-prec" aria-label="Thème précédent">‹</button>
+        <h3 id="palette-titre-theme">Palette du thème Midnight</h3>
+        <button id="palette-theme-suiv" aria-label="Thème suivant">›</button>
+      </div>
+      <div id="palette-defilable">
+        <div id="palette-liste"></div>
+        <h3 class="palette-titre-perso">Palette personnalisée…</h3>
+        <button id="palette-item-perso" class="palette-item" data-nom="perso">
+          <div class="palette-tete"><b>Mes couleurs</b>
+            <span id="palette-perso-pastilles" class="pastilles-mini"></span>
+          </div>
+          <div id="palette-perso-apercu" class="palette-apercu"></div>
+        </button>
+        <div id="palette-perso-roues">
+          <input type="color" class="roue-voix" id="voix1-couleur" value="#74a228" aria-label="Voix 1">
+          <input type="color" class="roue-voix" id="voix2-couleur" value="#aa4521" aria-label="Voix 2">
+          <input type="color" class="roue-voix" id="voix3-couleur" value="#a22878" aria-label="Voix 3">
+        </div>
+      </div>
+      <button id="btn-fermer-palette">OK</button>
     </div>
   </div>
 
@@ -413,6 +440,14 @@
       </div>
 
       <div class="reglage reglage-inline">
+        <label for="btn-palette">Palette des dialogues</label>
+        <button id="btn-palette" class="select-hybride">
+          <span id="btn-palette-nom">Corail</span>
+          <span id="btn-palette-pastilles" class="pastilles-mini"></span>
+        </button>
+      </div>
+
+      <div class="reglage reglage-inline">
         <label for="reglage-theme">Thème</label>
         <select id="reglage-theme">
           <option value="midnight" selected>Midnight</option>
@@ -429,6 +464,6 @@
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="app.js?v=213"></script>
+  <script src="app.js?v=229"></script>
 </body>
 </html>
