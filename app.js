@@ -2273,7 +2273,7 @@ function demarrerLecture() {
   appliquerOrp();
   afficherChunk();
   majDureeChapitre();
-  if (typeof majBlocagePaysage === "function") majBlocagePaysage();
+  if (typeof gererOrientation === "function") gererOrientation(); // paysage → minimaliste
 }
 
 // =========================================================
@@ -3437,6 +3437,9 @@ document.addEventListener("keydown", (e) => {
 
 // Toucher le cartouche = bascule l'affichage épuré (« fullscreen »)
 zoneMot.addEventListener("click", () => {
+  // En paysage, l'écran principal complet n'est pas autorisé : on reste en minimaliste.
+  if (window.matchMedia("(orientation: landscape)").matches
+      && ecranLecture.classList.contains("epure")) return;
   ecranLecture.classList.toggle("epure");
   afficherChunk(); // recentre l'ORP (largeur dispo modifiée)
 });
@@ -3466,30 +3469,26 @@ installerFlecheEpure("ep-recul", () => deplacer(phrasePrecedente() - etat.index,
 installerFlecheEpure("ep-avance", () => deplacer(phraseSuivante() - etat.index, true), "nav-droite");
 installerPlayLong("ep-lecture");
 
-// --- Orientation paysage : autorisée sur l'écran de lecture (principal +
-// minimaliste) et en Mode Loupe ; BLOQUÉE (message « tournez en portrait »)
-// sur l'accueil, les réglages et tous les autres panneaux. ---
+// --- Orientation paysage : autorisée seulement en Mode Loupe & Mode Minimaliste.
+// Sur l'écran principal, le passage en paysage bascule en Mode Minimaliste. ---
 const mqPaysage = window.matchMedia("(orientation: landscape)");
-const PANNEAUX_BLOQUANTS = ["panneau-reglages", "panneau-navigation", "panneau-palette",
-  "panneau-recherche", "panneau-annotations", "panneau-accel", "panneau-infos"];
-function majBlocagePaysage() {
-  const lectureVisible = !ecranLecture.classList.contains("cache");   // lecture ou loupe
-  const panneauOuvert = PANNEAUX_BLOQUANTS.some((id) => {
-    const e = $(id); return e && !e.classList.contains("cache");
-  });
-  // Autorisé en paysage uniquement si on lit (sans panneau ouvert).
-  const autorise = lectureVisible && !panneauOuvert;
-  document.body.classList.toggle("paysage-bloque", !autorise);
+let epureForceePaysage = false;
+function gererOrientation() {
+  const paysage = mqPaysage.matches;
+  const lectureVisible = !ecranLecture.classList.contains("cache");
+  const enLoupe = !$("ecran-contexte").classList.contains("cache");
+  if (paysage && lectureVisible && !enLoupe && !ecranLecture.classList.contains("epure")) {
+    ecranLecture.classList.add("epure");        // écran principal interdit en paysage
+    epureForceePaysage = true;
+    afficherChunk();
+  } else if (!paysage && epureForceePaysage && ecranLecture.classList.contains("epure")) {
+    ecranLecture.classList.remove("epure");     // retour portrait : on revient à l'écran principal
+    epureForceePaysage = false;
+    afficherChunk();
+  }
 }
-mqPaysage.addEventListener("change", majBlocagePaysage);
-// Recalcule dès qu'un écran/panneau apparaît ou disparaît (changement de classe).
-(function () {
-  const cibles = [ecranLecture, $("ecran-contexte"), $("ecran-accueil")]
-    .concat(PANNEAUX_BLOQUANTS.map((id) => $(id))).filter(Boolean);
-  const obs = new MutationObserver(majBlocagePaysage);
-  cibles.forEach((el) => obs.observe(el, { attributes: true, attributeFilter: ["class"] }));
-})();
-majBlocagePaysage();
+mqPaysage.addEventListener("change", gererOrientation);
+gererOrientation();
 
 // PWA : enregistrement du service worker (hors-ligne + mise à jour auto)
 let swRegistration = null;
