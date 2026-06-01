@@ -1633,8 +1633,8 @@ const MODELES = {
       motMin: 0.6,             // plancher de durée d'un mot (× base × nb mots)
       pauseFinPhrase: 2,       // pause après . ! ? … (× base)
       pauseVirgule: 1,         // pause après , ; : (× base)
-      pauseReplique: 3,        // pause avant une réplique de dialogue (× base)
-      plancherDialogue: 1.6,   // durée mini d'un mot en dialogue (× base)
+      pauseReplique: 1,        // pause avant une réplique de dialogue (× base)
+      plancherDialogue: 1,     // pas de ralentissement de base en dialogue (= narration)
       nomPropreMs: 500,        // 500 ms mini par nom propre @2,0× (cumulés si consécutifs)
       elanGrossePause: 0.65,   // élan après une grosse pause (reprise douce)
       elanPauseMoyenne: 0.82,  // élan après une pause moyenne
