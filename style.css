@@ -605,7 +605,8 @@ html, body {
 #mot-affiche.dlg-couleur { color: var(--couleur-dialogue, var(--couleur-police, var(--texte))); }
 /* Fondu rapide à l'apparition de chaque réplique. */
 @keyframes dlg-fondu { from { opacity: 0; } to { opacity: 1; } }
-#mot-affiche.dlg-fondu { animation: dlg-fondu 0.18s ease-out; }
+/* Durée = temps d'affichage du mot (--fondu-duree, posée en JS), progression linéaire */
+#mot-affiche.dlg-fondu { animation: dlg-fondu var(--fondu-duree, 0.2s) linear; }
 
 /* Gras + couleur du début de mot (bionic) */
 #mot-affiche .bio { font-weight: 900; color: var(--bio-couleur, inherit); }

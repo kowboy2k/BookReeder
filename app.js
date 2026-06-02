@@ -1191,14 +1191,10 @@ function appliquerEffetsDialogue() {
   motAffiche.classList.toggle("dlg-italique", enDial && effetDialogue("italique"));
   motAffiche.style.setProperty("--couleur-dialogue", couleur || "");
   motAffiche.classList.toggle("dlg-couleur", !!couleur);
-  // Fondu : on relance l'animation à chaque chunk (retire/rajoute la classe).
-  if (enDial && effetDialogue("fondu")) {
-    motAffiche.classList.remove("dlg-fondu");
-    void motAffiche.offsetWidth;            // force le redémarrage de l'animation
-    motAffiche.classList.add("dlg-fondu");
-  } else {
-    motAffiche.classList.remove("dlg-fondu");
-  }
+  // Fondu : la durée = temps d'affichage du mot, connu seulement dans tick().
+  // Ici on mémorise juste s'il s'applique et on nettoie la classe.
+  etat._enDialFondu = enDial && effetDialogue("fondu");
+  motAffiche.classList.remove("dlg-fondu");
 }
 
 // Construit le HTML du chunk : gras bionic optionnel + lettre pivot ORP.
@@ -1993,6 +1989,12 @@ function tick() {
   }
   afficherChunk();           // calcule etat.nbCourant
   const d = etat.modele.delai();
+  // Fondu du mot : 0 → 100 % sur toute sa durée d'affichage (d).
+  if (etat._enDialFondu) {
+    motAffiche.style.setProperty("--fondu-duree", d + "ms");
+    void motAffiche.offsetWidth;            // redémarre l'animation
+    motAffiche.classList.add("dlg-fondu");
+  }
   const finChap = bornesChapitre().fin;     // fin du chapitre du chunk affiché
   const mode = etat.pauseAuto;              // "fin" | "suivant" | "off"
 
