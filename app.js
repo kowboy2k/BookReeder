@@ -304,7 +304,7 @@ const TEXTE_DEMO2 = `Le lendemain matin, une brume épaisse montait de la Tamise
 — Toujours une excuse !
 — Ce n’est pas une excuse, c’est un fait.
 Elle finit par lui faire face, un sourire moqueur au coin des lèvres.
-— Et que comptez-vous faire de votre fameuse anguille ? demanda-t-elle.
+— Et que comptez-vous faire de votre petite protégée ? demanda-t-elle.
 — L’étudier, dit-il simplement. La comprendre.
 — La comprendre ? ricana un homme adossé contre le mur. Vous perdez votre temps, major.
 Lord John ne releva pas l’impertinence. Il savait que la curiosité valait toujours mieux que le mépris.
