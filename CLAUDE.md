@@ -122,6 +122,16 @@ Serveur local (config preview centralisée `C:\Claude Code\.claude\launch.json`,
   sans relire l'EPUB. Affiche nom, date d'ajout (JJ/MM/AAAA HH:MM:SS) et % de progression ;
   petit `×` pour retirer. La position est sauvée à la pause, à la fermeture et au glissé.
 
+- **Profil de lecture PAR LIVRE** (`etat.profil`, champ `profil` de la fiche IndexedDB) : chaque
+  livre mémorise ses propres réglages. Mécanique : un **shim** sur `localStorage.getItem/setItem`
+  (fonction `estCleProfil`, clés `bookreeder-*` sauf `-toc-*` et `-vue-version`) route les clés
+  de réglage vers `etat.profil` quand un livre est ouvert. **Profil vide → suit le global** : à
+  l'ouverture, `rechargerReglages()` réapplique tous les réglages (drapeau `_appliquantReglages`
+  qui SUSPEND l'écriture pendant l'application, pour ne pas figer le global dans le profil) ; le
+  profil ne se remplit que sur une vraie modification utilisateur. Sauvegarde via `sauverPosition`
+  (champ `profil`). La vitesse est désormais persistée (`bookreeder-vitesse`). `restaurerReglagesGeneriques`
+  factorise la restauration des réglages génériques (réutilisée au démarrage et à l'ouverture).
+
 ## Jalons
 - **Jalon 1 (FAIT)** : charger un EPUB, RSVP 1–8 mots, vitesse 200–800 mpm, ORP activable,
   découpe intelligente, contrôles clavier + tactile, base PWA hors-ligne.

@@ -134,8 +134,88 @@ async function sauverPosition() {
     // Position stockée en fraction (0–1) : indépendante de la tokenisation du modèle
     livre.progression = etat.mots.length ? etat.index / etat.mots.length : 0;
     livre.total = etat.mots.length;
+    if (etat.profil) livre.profil = etat.profil;   // profil de lecture du livre (v2.95)
     await sauverLivre(livre);
   }
+}
+
+// =========================================================
+//  Profil de lecture PAR LIVRE (v2.95)
+// =========================================================
+// Chaque livre mémorise ses propres réglages dans sa fiche (IndexedDB, champ
+// `profil`). Tant qu'un réglage n'a pas été modifié pendant la lecture de CE
+// livre, il suit la valeur globale (localStorage) ; dès qu'on le modifie, la
+// valeur va dans le profil du livre (le global reste intact).
+//
+// Mise en œuvre : un « shim » sur localStorage intercepte les clés de réglage
+// (bookreeder-*) quand un livre est ouvert → lecture/écriture dans etat.profil.
+// Aucun des appels localStorage existants n'a besoin d'être modifié.
+function estCleProfil(k) {
+  return typeof k === "string" && k.indexOf("bookreeder-") === 0 &&
+         k.indexOf("bookreeder-toc-") !== 0 && k !== "bookreeder-vue-version";
+}
+(function installerShimProfil() {
+  const proto = Storage.prototype;
+  const _get = proto.getItem, _set = proto.setItem;
+  proto.getItem = function (k) {
+    try {
+      if (estCleProfil(k) && typeof etat !== "undefined" && etat.idLivre && etat.profil &&
+          Object.prototype.hasOwnProperty.call(etat.profil, k)) return etat.profil[k];
+    } catch (e) {}
+    return _get.call(this, k);
+  };
+  proto.setItem = function (k, v) {
+    try {
+      if (estCleProfil(k) && typeof etat !== "undefined" && etat.idLivre) {
+        // Pendant l'APPLICATION des réglages (ouverture d'un livre), on n'écrit
+        // rien : on applique seulement. Le profil ne se remplit que sur une
+        // VRAIE modification de l'utilisateur (« profil vide → suit le global »).
+        if (_appliquantReglages) return;
+        if (!etat.profil) etat.profil = {};
+        etat.profil[k] = String(v);
+        planifierSauvegardeProfil();
+        return;
+      }
+    } catch (e) {}
+    return _set.call(this, k, v);
+  };
+})();
+let _appliquantReglages = false;
+let _timerProfil = null;
+function planifierSauvegardeProfil() {
+  clearTimeout(_timerProfil);
+  _timerProfil = setTimeout(() => { sauverPosition(); }, 400);   // sauve position + profil
+}
+// (Ré)applique tous les réglages à l'UI/état depuis le stockage : profil du livre
+// courant si présent (via le shim), sinon valeurs globales. Appelé à l'ouverture.
+function rechargerReglages() {
+  _appliquantReglages = true;
+  try { _rechargerReglages(); } finally { _appliquantReglages = false; }
+}
+function _rechargerReglages() {
+  const g = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  const num = (k, d) => { const s = g(k); return (s != null && isFinite(+s)) ? +s : d; };
+  const str = (k, d) => { const s = g(k); return s != null ? s : d; };
+  try { activerModele(str("bookreeder-modele", "default")); const sm = $("reglage-modele"); if (sm) sm.value = etat.modeleId; } catch (e) {}
+  try { appliquerTheme(str("bookreeder-theme", "midnight")); } catch (e) {}
+  try { const cp = JSON.parse(g("bookreeder-perso-voix") || "null"); if (Array.isArray(cp) && cp.length === 3) couleursPerso = cp; } catch (e) {}
+  try { appliquerPaletteDialogue(str("bookreeder-palette-dialogue", "Corail"), str("bookreeder-palette-theme", "")); } catch (e) {}
+  try { initialiserOrpCouleur(); } catch (e) {}
+  try { appliquerDialogues(str("bookreeder-dialogues", "aucun")); } catch (e) {}
+  try { appliquerPauseAuto(str("bookreeder-pause-auto", "fin")); } catch (e) {}
+  try { appliquerMarqueurNote(str("bookreeder-marqueur-note", "etoile")); } catch (e) {}
+  try { appliquerCoefPause(num("bookreeder-coef-pause", 2)); } catch (e) {}
+  try { appliquerCoefDialogue(num("bookreeder-coef-dialogue", 1.3)); } catch (e) {}
+  try { appliquerCoefAccel(num("bookreeder-coef-accel", 1)); } catch (e) {}
+  try { appliquerIntervalleAccel(num("bookreeder-accel-intervalle", 10)); } catch (e) {}
+  try { appliquerTailleLoupe(num("bookreeder-taille-loupe", 100)); } catch (e) {}
+  try { reglerVitesse(num("bookreeder-vitesse", 300)); } catch (e) {}
+  [["reglage-infos-minimal", "bookreeder-infos-minimal"], ["reglage-infos-loupe", "bookreeder-infos-loupe"]].forEach(([id, key]) => {
+    const el = $(id); if (!el) return;
+    el.checked = (g(key) === "1");
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  try { restaurerReglagesGeneriques(); } catch (e) {}
 }
 
 // =========================================================
@@ -308,6 +388,8 @@ function ouvrirFiche(fiche) {
   etat.titreLivre = fiche.titre || fiche.nom;
   etat.progression = fiche.progression != null ? fiche.progression
     : (fiche.total ? (fiche.index || 0) / fiche.total : 0);
+  etat.profil = fiche.profil || {};        // profil de lecture du livre (v2.95)
+  rechargerReglages();                      // applique les réglages du livre (sinon global)
   retokeniser();
   remplirSelectChapitres();
   placerMarqueursChapitres();
@@ -347,9 +429,11 @@ $("btn-demo").addEventListener("click", () => {
   ];
   etat.notes = [];
   etat.idLivre = null;
+  etat.profil = {};
   etat.nomLivre = "Démo";
   etat.titreLivre = "Texte de démo";
   etat.progression = 0;
+  rechargerReglages();   // démo : pas de profil (idLivre nul) → réglages globaux
   retokeniser();
   injecterNotesDemo();   // 2 annotations d'exemple : Londres¹, Lord John²
   remplirSelectChapitres();
@@ -1541,7 +1625,7 @@ function demarrerLecture() {
   ecranLecture.classList.remove("cache");
   if (typeof rafraichirBulleLireMoi === "function") rafraichirBulleLireMoi();
   $("titre-livre").textContent = etat.titreLivre || etat.nomLivre || "";
-  reglerVitesse(etat.vitesse);
+  reglerVitesse(etat.vitesse, true);   // simple rafraîchissement (ne pas écrire dans le profil)
   ajusterCadre();
   appliquerOrp();
   afficherChunk();
@@ -1954,8 +2038,9 @@ function demarrerAccel() {
   }
 }
 // Vitesse : − et + par paliers de 20 mots/min (bornes 100–800)
-function reglerVitesse(v) {
+function reglerVitesse(v, sansSauver) {
   etat.vitesse = Math.min(800, Math.max(100, v));
+  if (!sansSauver) { try { localStorage.setItem("bookreeder-vitesse", etat.vitesse); } catch (e) {} }   // mémorisée (par livre via le profil)
   etat.multAccel = 1;       // l'usage des touches réinitialise l'accélération
   demarrerAccel();          // et relance la rampe (10 s à partir de maintenant)
   majVitesseAffichee();
@@ -2904,37 +2989,43 @@ $("btn-maj").addEventListener("click", async () => {
 // existe — sinon on garde le défaut, pratique pour un réglage NOUVEAU) et on
 // sauvegarde à chaque changement. Exécuté en dernier, APRÈS tous les inits, pour
 // ne pas être écrasé. L'ordre compte (police avant variante).
-(function persisterReglages() {
-  const config = [
-    ["reglage-police", "change"],
-    ["reglage-variante", "change"],
-    ["reglage-nb-mots", "input"],
-    ["reglage-continuer", "change"],
-    ["reglage-afficher-mots", "change"],
-    ["reglage-bionic-couleur", "change"],
-    ["reglage-bio-teinte", "input"],
-    ["reglage-taille-police", "input"],
-    ["reglage-espace-lettres", "input"],
-    ["reglage-espace-mots", "input"],
-    ["reglage-cadre", "change"],
-    ["reglage-orp", "change"],
-    ["reglage-ecart-reperes", "input"],
-    ["reglage-long-reperes", "input"],
-  ];
-  config.forEach(([id, evt]) => {
+const CONFIG_REGLAGES_GENERIQUES = [
+  ["reglage-police", "change"],
+  ["reglage-variante", "change"],
+  ["reglage-nb-mots", "input"],
+  ["reglage-continuer", "change"],
+  ["reglage-afficher-mots", "change"],
+  ["reglage-bionic-couleur", "change"],
+  ["reglage-bio-teinte", "input"],
+  ["reglage-taille-police", "input"],
+  ["reglage-espace-lettres", "input"],
+  ["reglage-espace-mots", "input"],
+  ["reglage-cadre", "change"],
+  ["reglage-orp", "change"],
+  ["reglage-ecart-reperes", "input"],
+  ["reglage-long-reperes", "input"],
+];
+// Restaure (valeur + événement) les réglages génériques depuis le stockage
+// (profil du livre courant via le shim, sinon global). Réutilisé à l'ouverture.
+function restaurerReglagesGeneriques() {
+  CONFIG_REGLAGES_GENERIQUES.forEach(([id, evt]) => {
     const el = $(id);
     if (!el) return;
-    const cle = "bookreeder-" + id;
-    // Restauration de la valeur mémorisée (appliquée via l'événement habituel)
     try {
-      const v = localStorage.getItem(cle);
+      const v = localStorage.getItem("bookreeder-" + id);
       if (v !== null) {
         if (el.type === "checkbox") el.checked = (v === "1");
         else el.value = v;
         el.dispatchEvent(new Event(evt, { bubbles: true }));
       }
     } catch (e) {}
-    // Sauvegarde à chaque modification
+  });
+}
+(function persisterReglages() {
+  CONFIG_REGLAGES_GENERIQUES.forEach(([id, evt]) => {
+    const el = $(id);
+    if (!el) return;
+    const cle = "bookreeder-" + id;
     const sauver = () => {
       try {
         localStorage.setItem(cle, el.type === "checkbox" ? (el.checked ? "1" : "0") : el.value);
@@ -2943,4 +3034,5 @@ $("btn-maj").addEventListener("click", async () => {
     el.addEventListener(evt, sauver);
     el.addEventListener("change", sauver);   // filet pour les menus / cases
   });
+  restaurerReglagesGeneriques();   // restauration initiale (global au démarrage)
 })();
