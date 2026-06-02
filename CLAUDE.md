@@ -11,7 +11,12 @@ Cible : PC (Windows 11), Mac, iPhone (iOS) et liseuse Vivlio (Android).
 
 ## Fichiers clés
 - `index.html` — structure (écran accueil / écran lecture / panneau réglages)
-- `app.js` — tout le moteur : chargement EPUB, découpe en mots, RSVP, ORP, lecture auto
+- `app.js` — orchestration + moteur de lecture : bibliothèque (IndexedDB), découpe d'affichage,
+  RSVP, ORP, rythme, navigation, réglages/thèmes. Appelle `Chargeur` pour le parsing.
+- `chargeur.js` — **tout le parsing** : extraction EPUB (`extraireLivre`), tokenisation
+  (`tokeniserChapitres`), notes (`baliserNotes`), pages de garde / sommaire intégré, casse
+  (`preparerCasse`/`reinitCasse`), table des matières (`construireTOC`). Exposé via `window.Chargeur`.
+- `dialogues.js` — moteur dialogues (multicolore / élocution), chargé à la demande (`window.MoteurDialogues`)
 - `style.css` — thème sombre, centrage ORP via `--decalage-orp`
 - `sw.js` + `manifest.webmanifest` — PWA / hors-ligne
 - `lib/epub.min.js`, `lib/jszip.min.js` — lecture des EPUB

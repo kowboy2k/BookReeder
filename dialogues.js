@@ -148,7 +148,7 @@
       if (!(debutBloc(i) && DEBUT_REPLIQUE.test((mots[i] || "").trimStart()))) continue;
       let fin = i + 1; while (fin < mots.length && !debutBloc(fin)) fin++;
       const loc = locuteurDeReplique(i);
-      const nom = loc.tiers ? "" : normTitre(loc.nom);
+      const nom = loc.tiers ? "" : (window.Chargeur ? Chargeur.normTitre(loc.nom) : loc.nom);
       if (nom) compte[nom] = (compte[nom] || 0) + 1;
       repliques.push({ deb: i, fin, nom, genre: loc.genre || "", tiers: !!loc.tiers });
       i = fin - 1;
