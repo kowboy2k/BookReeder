@@ -712,9 +712,11 @@ async function extraireLivre(livre) {
   // PAS comme chapitres, mais on garde leur texte en le fusionnant dans le
   // chapitre de contenu voisin (les pages de tête → 1er vrai chapitre ; celles
   // de fin → dernier). Le menu des chapitres ne liste alors que le contenu réel.
-  const fusionne = fusionnerPagesGarde(reparti);
+  let fusionne = fusionnerPagesGarde(reparti);
   // Nettoyage du drapeau interne avant stockage
   fusionne.forEach((c) => { delete c.garde; });
+  // Recadrage des chapitres au sommaire intégré (page de titre collée au texte).
+  fusionne = recadrerSurSommaire(fusionne);
 
   // Résolution des notes pointant vers une autre section (endnotes regroupées).
   attente.forEach((p) => {
@@ -802,6 +804,44 @@ function fusionnerPagesGarde(chs) {
   return out;
 }
 
+// Recadrage « sommaire intégré » (option A) : certains EPUB mettent dans le même
+// fichier la page de titre + un SOMMAIRE qui re-liste tous les titres + le vrai
+// texte, sans repère d'ancre. L'entrée démarre alors tout en haut (sur la page de
+// titre). Quand le titre d'un chapitre RÉAPPARAÎT plus bas comme un bloc isolé,
+// suivi de vraie prose (et précédé d'un SOMMAIRE ou de plusieurs autres titres),
+// on coupe : la tête (pages liminaires) devient un bloc masqué — gardé dans le
+// flux mais absent du menu — et le chapitre démarre à sa vraie position.
+function recadrerSurSommaire(chs) {
+  const titresN = new Set(chs.map((c) => normTitre(c.titre)).filter(Boolean));
+  const out = [];
+  for (const c of chs) {
+    const titreN = normTitre(c.titre);
+    const blocs = String(c.texte || "").split(/\n+/);
+    let pos = -1;
+    if (titreN) {
+      for (let b = 1; b < blocs.length; b++) {
+        if (normTitre(blocs[b]) !== titreN) continue;
+        // bloc de contenu qui suit (on saute les vides) : doit être de la prose,
+        // pas un autre titre du livre.
+        let n = b + 1;
+        while (n < blocs.length && !blocs[n].trim()) n++;
+        const suite = blocs[n] || "";
+        if (suite.length >= 50 && !titresN.has(normTitre(suite))) { pos = b; break; }
+      }
+    }
+    if (pos < 1) { out.push(c); continue; }
+    const tete = blocs.slice(0, pos);
+    // La tête doit clairement être des pages liminaires : un « SOMMAIRE » /
+    // « table des matières », ou au moins deux autres titres du livre listés.
+    const aSommaire = tete.some((b) => /^(sommaire|table\s+des[\s-]+mati)/.test(normTitre(b)));
+    const autres = tete.filter((b) => { const n = normTitre(b); return n && n !== titreN && titresN.has(n); }).length;
+    if (!aSommaire && autres < 2) { out.push(c); continue; }
+    out.push({ titre: "Pages liminaires", texte: tete.join("\n\n"), masque: true });
+    out.push({ titre: c.titre, texte: blocs.slice(pos).join("\n\n") });
+  }
+  return out;
+}
+
 // Tokenise le texte par chapitre avec le découpage `decouper` du modèle actif,
 // et calcule les index de début de chaque chapitre.
 // Sentinelle de renvoi de note insérée dans le texte à l'extraction :
@@ -840,7 +880,9 @@ function tokeniserChapitres(chapitresTexte, decouper) {
         propres.push(t);
       }
       if (propres.length === 0) return;
-      if (!chapAjoute) {
+      // Un bloc « masqué » (pages liminaires recadrées) garde ses mots dans le
+      // flux mais ne crée PAS d'entrée de chapitre dans le menu.
+      if (!chapAjoute && !ch.masque) {
         chapitres.push({ titre: ch.titre || "Chapitre", debut: mots.length });
         chapAjoute = true;
       }
