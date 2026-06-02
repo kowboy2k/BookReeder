@@ -1114,7 +1114,7 @@ html, body {
   position: fixed; inset: 0; z-index: 60;
   background: rgba(0,0,0,0.6); display: flex; align-items: flex-start; justify-content: center;
   /* Marge basse +10px pour dégager la barre iPhone */
-  padding: max(12vh, env(safe-area-inset-top)) 0.8rem max(2dvh, calc(env(safe-area-inset-bottom) + 10px));
+  padding: max(7vh, env(safe-area-inset-top)) 0.8rem max(2dvh, calc(env(safe-area-inset-bottom) + 10px));
   box-sizing: border-box;
 }
 #panneau-palette.cache { display: none; }

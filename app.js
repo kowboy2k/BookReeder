@@ -3555,3 +3555,52 @@ $("btn-maj").addEventListener("click", async () => {
     statut.textContent = "Impossible de vérifier (connexion ?).";
   }
 });
+
+// =========================================================
+//  Persistance des réglages restants (survivent aux mises à jour)
+// =========================================================
+// Les réglages ci-dessous n'étaient pas mémorisés : ils repartaient par défaut à
+// chaque rechargement / mise à jour. On restaure la valeur enregistrée (si elle
+// existe — sinon on garde le défaut, pratique pour un réglage NOUVEAU) et on
+// sauvegarde à chaque changement. Exécuté en dernier, APRÈS tous les inits, pour
+// ne pas être écrasé. L'ordre compte (police avant variante).
+(function persisterReglages() {
+  const config = [
+    ["reglage-police", "change"],
+    ["reglage-variante", "change"],
+    ["reglage-nb-mots", "input"],
+    ["reglage-continuer", "change"],
+    ["reglage-afficher-mots", "change"],
+    ["reglage-bionic-couleur", "change"],
+    ["reglage-bio-teinte", "input"],
+    ["reglage-taille-police", "input"],
+    ["reglage-espace-lettres", "input"],
+    ["reglage-espace-mots", "input"],
+    ["reglage-cadre", "change"],
+    ["reglage-orp", "change"],
+    ["reglage-ecart-reperes", "input"],
+    ["reglage-long-reperes", "input"],
+  ];
+  config.forEach(([id, evt]) => {
+    const el = $(id);
+    if (!el) return;
+    const cle = "bookreeder-" + id;
+    // Restauration de la valeur mémorisée (appliquée via l'événement habituel)
+    try {
+      const v = localStorage.getItem(cle);
+      if (v !== null) {
+        if (el.type === "checkbox") el.checked = (v === "1");
+        else el.value = v;
+        el.dispatchEvent(new Event(evt, { bubbles: true }));
+      }
+    } catch (e) {}
+    // Sauvegarde à chaque modification
+    const sauver = () => {
+      try {
+        localStorage.setItem(cle, el.type === "checkbox" ? (el.checked ? "1" : "0") : el.value);
+      } catch (e) {}
+    };
+    el.addEventListener(evt, sauver);
+    el.addEventListener("change", sauver);   // filet pour les menus / cases
+  });
+})();
