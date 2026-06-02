@@ -981,6 +981,18 @@ function nettoyerNote(t) {
 // <id> collée au mot. Mémorise le contenu de la note (résolu dans la
 // même section si possible, sinon en attente via la table d'identifiants idMap,
 // renseignée pour toutes les sections puis résolue à la fin).
+// Texte d'une cible de note : si l'ancre pointe sur le LIEN de retour (« 1 »)
+// à l'intérieur du paragraphe de note, on remonte au bloc (p/li/aside) qui
+// contient réellement le texte de la note.
+function texteNoteCible(el) {
+  if (!el) return "";
+  let bloc = el;
+  const t = (el.textContent || "").trim();
+  if (el.tagName === "A" || t.length <= 3) {
+    bloc = (el.closest && el.closest("li, p, aside, dd, td, div.footnote, .note")) || el.parentElement || el;
+  }
+  return (bloc.textContent || "").replace(/\s+/g, " ").trim();
+}
 function baliserNotes(doc, corps, notesArr, idMap, attente) {
   if (!corps || !corps.querySelectorAll) return;
   const estNum = (t) => {
@@ -990,7 +1002,7 @@ function baliserNotes(doc, corps, notesArr, idMap, attente) {
   // Contenus candidats (notes courtes) repérés par leur id.
   corps.querySelectorAll("[id]").forEach((el) => {
     const id = el.id; if (!id || idMap[id] != null) return;
-    const txt = (el.textContent || "").replace(/\s+/g, " ").trim();
+    const txt = texteNoteCible(el);
     if (txt && txt.length <= 2000) idMap[id] = txt;
   });
   // Renvois : éléments marqués noteref, puis liens vers une ancre au texte court.
@@ -1020,7 +1032,7 @@ function baliserNotes(doc, corps, notesArr, idMap, attente) {
       let tgt = null;
       try { tgt = corps.querySelector("#" + cssEchappe(fragId)); } catch (e) {}
       if (!tgt && doc.getElementById) tgt = doc.getElementById(fragId);
-      if (tgt) note.texte = nettoyerNote(tgt.textContent);
+      if (tgt) note.texte = nettoyerNote(texteNoteCible(tgt));
       else attente.push({ noteId, fragId });
     }
     notesArr.push(note);
@@ -2208,7 +2220,15 @@ function construireContexte() {
     const coul = (effetDialogue("multicolore") && etat.couleurParMot) ? etat.couleurParMot.get(i) : "";
     const cls = (ns && ns.length ? "a-note" : "") + (coul ? " ctx-dlg" : "");
     const styleCoul = coul ? ` style="--c-dlg:${coul}"` : "";
-    html += `<span data-i="${i}"${cls ? ` class="${cls.trim()}"` : ""}${styleCoul}>${echap(etat.mots[i])}${sup}</span> `;
+    // L'exposant est COLLÉ au mot : on l'insère AVANT la ponctuation fermante
+    // (guillemet, parenthèse, crochet) si le mot en a une.
+    let motHtml = echap(etat.mots[i]);
+    if (sup) {
+      const m = motHtml.match(/([^\p{L}\p{N}]+)$/u);   // ponctuation de fin (» . ) … )
+      if (m) motHtml = motHtml.slice(0, motHtml.length - m[1].length) + sup + m[1];
+      else motHtml += sup;
+    }
+    html += `<span data-i="${i}"${cls ? ` class="${cls.trim()}"` : ""}${styleCoul}>${motHtml}</span> `;
   }
   if (ouvert) html += "</p>";
   cont.innerHTML = html;
