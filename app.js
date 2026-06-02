@@ -1609,9 +1609,16 @@ $("palette-item-perso").addEventListener("pointerleave", () => majApercuHaut());
 // (on rend le fond du panneau transparent le temps de la sélection). Vaut pour TOUTES
 // les roues : Mes couleurs (palette), couleur d'accentuation, police, début bionic.
 document.querySelectorAll('input[type="color"]').forEach((inp) => {
-  inp.addEventListener("focus", () => document.body.classList.add("roue-ouverte"));
-  inp.addEventListener("blur", () => document.body.classList.remove("roue-ouverte"));
+  const ouvrir = () => document.body.classList.add("roue-ouverte");
+  const fermer = () => document.body.classList.remove("roue-ouverte");
+  // pointerdown : déclenché de façon fiable sur iOS dès le tap (avant l'ouverture)
+  inp.addEventListener("pointerdown", ouvrir);
+  inp.addEventListener("focus", ouvrir);
+  inp.addEventListener("blur", fermer);
+  inp.addEventListener("change", fermer);
 });
+// Filet de sécurité : au retour sur la page (picker fermé), on rétablit le fond.
+window.addEventListener("focus", () => document.body.classList.remove("roue-ouverte"));
 // Construit etat.couleurParMot. Principe « ping-pong » : dans un échange, les
 // répliques alternent entre 2 interlocuteurs (tour à tour). Les incises détectées
 // (« dit Margaret ») ancrent un nom sur sa parité ; le personnage principal (le

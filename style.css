@@ -1108,12 +1108,13 @@ html, body {
 .pastilles-mini { display: inline-flex; gap: 0.25rem; }
 .pastille-mini { width: 0.85rem; height: 0.85rem; border-radius: 50%; display: inline-block; }
 
-/* Panneau de choix de palette */
+/* Panneau de choix de palette : ancré en haut (≈position centrée actuelle) pour
+   pouvoir s'étendre uniquement vers le bas sans remonter. */
 #panneau-palette {
   position: fixed; inset: 0; z-index: 60;
-  background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.6); display: flex; align-items: flex-start; justify-content: center;
   /* Marge basse +10px pour dégager la barre iPhone */
-  padding: max(2dvh, env(safe-area-inset-top)) 0.8rem max(2dvh, calc(env(safe-area-inset-bottom) + 10px));
+  padding: max(12vh, env(safe-area-inset-top)) 0.8rem max(2dvh, calc(env(safe-area-inset-bottom) + 10px));
   box-sizing: border-box;
 }
 #panneau-palette.cache { display: none; }
@@ -1164,6 +1165,7 @@ body.roue-ouverte #panneau-reglages .panneau-contenu { background: transparent; 
 #btn-fermer-palette {
   flex: none; width: 100%; padding: 0.9rem; background: var(--accent); color: #fff;
   border: none; border-radius: 0.6rem; font-size: 1rem; cursor: pointer;
+  margin-top: 10vh;   /* +10% d'espace entre les pastilles perso et OK */
 }
 #btn-fermer-accel {
   width: 100%;
