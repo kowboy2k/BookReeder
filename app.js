@@ -17,6 +17,7 @@ const etat = {
   pauseAuto: "fin",         // pause auto : "fin" (fin de chapitre), "suivant" (ouverture du suivant), "off"
   _pauseApresChunk: false,  // drapeau interne pour le mode "suivant"
   coefPause: 2,      // coefficient multiplicateur des temps de pause (0,5–4)
+  coefDialogue: 1.3, // ralentissement des pauses en dialogue (×1 à ×2)
   coefAccel: 1,      // accélération max visée (×1 = constante, jusqu'à ×3)
   multAccel: 1,      // multiplicateur d'accélération courant (1 → coefAccel)
   intervalleAccel: 10, // secondes entre deux hausses de +0,1×
@@ -1234,7 +1235,9 @@ function construireHtml(chunk, idxOrp) {
           // Pastille pleine DESSINÉE (cercle CSS), sur la ligne du texte.
           html += '<span class="marque-pastille' + accent + '" aria-hidden="true"></span>';
         } else {
-          html += '<span class="marque-note' + accent + '" aria-hidden="true">' + mk.car + "</span>";
+          // * ^ ° : collés au mot (pas d'espace) ; # garde son espace.
+          const colle = (mk.car === "*" || mk.car === "^" || mk.car === "°") ? " collee" : "";
+          html += '<span class="marque-note' + accent + colle + '" aria-hidden="true">' + mk.car + "</span>";
         }
       }
     }
@@ -1800,12 +1803,13 @@ function delaiChunk() {
   let pause = Math.max(pausePonct, pauseRep);
   // Respiration de fin de bloc/paragraphe (titre sans ponctuation, etc.)
   if (pause === 0 && etat.debutsPhrase && etat.debutsPhrase.has(fin)) pause += base * P.pauseFinPhrase;
+  // Dans un dialogue, les pauses de ponctuation sont rallongées (slider, ×1,3 défaut).
+  if (enDialogue) pause *= etat.coefDialogue;
 
-  // 4) Mise à jour de l'élan pour le PROCHAIN groupe : après une vraie pause on
-  //    repart doucement, sinon on accélère par paliers (pas d'à-coup).
-  if (pause >= base * P.pauseFinPhrase) etat.elan = P.elanGrossePause;  // grosse pause
-  else if (pause > 0 || majuscule) etat.elan = P.elanPauseMoyenne;      // pause moyenne
-  else etat.elan = Math.min(1, etat.elan + P.elanAccel);                // accélération
+  // 4) L'élan ne sert QU'À la reprise (Play, saut de phrase/chapitre) : il
+  //    démarre bas à la reprise puis remonte progressivement vers 1, et ne
+  //    redescend JAMAIS sur la ponctuation pendant la lecture continue.
+  etat.elan = Math.min(1, etat.elan + P.elanAccel);                     // remontée seule
 
   // Décélération d'élocution (dialogues) : active seulement si l'effet « élocution »
   // est choisi. On applique le plus fort coefficient parmi les mots du groupe.
@@ -1916,9 +1920,9 @@ const MODELES = {
       pauseReplique: 1,        // pause avant une réplique de dialogue (× base)
       plancherDialogue: 1,     // pas de ralentissement de base en dialogue (= narration)
       nomPropreMs: 500,        // 500 ms mini par nom propre @2,0× (cumulés si consécutifs)
-      elanGrossePause: 0.65,   // élan après une grosse pause (reprise douce)
-      elanPauseMoyenne: 0.82,  // élan après une pause moyenne
-      elanAccel: 0.1,          // accélération de l'élan par mot (vers 1), graduelle
+      elanGrossePause: 0.65,   // élan de départ à la reprise (Play / saut)
+      elanPauseMoyenne: 0.82,  // (inutilisé : l'élan ne sert plus qu'à la reprise)
+      elanAccel: 0.0233,       // +0,0233/mot : reprise étalée sur ~15 mots (0,65 → 1)
       affichageMin: 90,        // durée mini absolue d'affichage (ms)
       motLongMax: 12,          // au-delà, un mot s'affiche seul
       lettresMax: 16,          // un groupe ne dépasse jamais ce nb de lettres
@@ -1992,9 +1996,10 @@ function tick() {
   // (défilement auto seulement au changement de ligne).
   if (!$("ecran-contexte").classList.contains("cache")) rafraichirContexte(true);
   const d = etat.modele.delai();
-  // Fondu du mot : 0 → 100 % sur toute sa durée d'affichage (d).
+  // Fondu du mot : 0 → 100 % sur 80 % de sa durée d'affichage (d),
+  // puis 100 % pendant les 20 % restants (facteur 0,8).
   if (etat._enDialFondu) {
-    motAffiche.style.setProperty("--fondu-duree", d + "ms");
+    motAffiche.style.setProperty("--fondu-duree", (d * 0.8) + "ms");
     void motAffiche.offsetWidth;            // redémarre l'animation
     motAffiche.classList.add("dlg-fondu");
   }
@@ -2029,7 +2034,7 @@ function lecture() {
   if (etat.enLecture) return;
   if (etat.index >= etat.mots.length) etat.index = 0;
   etat.enLecture = true;
-  etat.elan = 1;            // repart à pleine cadence
+  etat.elan = etat.modele.params.elanGrossePause || 0.65;   // reprise en douceur (remonte vers 1)
   etat.multAccel = 1;       // l'accélération repart de la vitesse initiale
   majVitesseAffichee();
   demarrerAccel();          // (re)lance la rampe toutes les 10 s si coef > 1
@@ -2093,14 +2098,37 @@ function basculerLecture() {
   etat.enLecture ? pause() : lecture();
 }
 
-// Durée estimée pour finir le chapitre courant, selon les mots RESTANTS
-// et la vitesse actuelle. Recalculée à chaque play/pause.
+// Estimation (approchée) du temps pour lire la plage [debut, fin) : durée de
+// base par mot + plancher des noms propres + pauses de ponctuation (× coef de
+// pause, ×1,5 en dialogue). On NE tient PAS compte de l'élan de reprise.
+const RE_FIN_PH = /[.!?…]["»”'’)\]]*$/;
+const RE_VIRG_PH = /[,;:]["»”'’)\]]*$/;
+function dureeEstimeeMs(debut, fin) {
+  const base = 60000 / Math.max(1, etat.vitesse);   // ms par mot (vitesse réglée)
+  const P = etat.modele.params;
+  const coef = etat.coefPause;
+  let total = 0;
+  for (let i = debut; i < fin; i++) {
+    const w = etat.mots[i] || "";
+    let mot = base;
+    if (P.nomPropreMs && !estDebutPhrase(i) && commenceMajuscule(w)) {
+      mot = Math.max(mot, P.nomPropreMs * coef / 2);   // plancher nom propre
+    }
+    let pause = 0;
+    if (RE_FIN_PH.test(w)) pause = base * P.pauseFinPhrase;
+    else if (RE_VIRG_PH.test(w)) pause = base * P.pauseVirgule;
+    if (dansDialogue(i)) pause *= etat.coefDialogue; // pauses rallongées en dialogue
+    total += mot + pause * coef;
+  }
+  return total;
+}
+// Durée estimée pour finir le chapitre courant (mots RESTANTS), en tenant compte
+// des pauses/coefs. Recalculée à chaque play/pause/saut.
 function majDureeChapitre() {
   const el = $("duree-chapitre");
   if (!el || !etat.mots.length) return;
   const { fin } = bornesChapitre();
-  const restant = Math.max(0, fin - etat.index);
-  const totalMin = restant / etat.vitesse;       // mots ÷ (mots/min) = minutes
+  const totalMin = dureeEstimeeMs(etat.index, fin) / 60000;   // ms → minutes
   const h = Math.floor(totalMin / 60);
   const m = Math.round(totalMin % 60);
   // Sous 1 h, on n'affiche que les minutes ; au-delà, format XhYYm.
@@ -2120,7 +2148,7 @@ function majDureeChapitre() {
 function deplacer(pas, continuer) {
   const reprendre = continuer && etat.continuerApresSaut && etat.enLecture;
   clearTimeout(etat.minuteur);
-  etat.elan = 1;            // nouvelle position : on repart à pleine cadence
+  etat.elan = etat.modele.params.elanGrossePause || 0.65;   // saut : reprise en douceur
   etat.index = Math.min(Math.max(0, etat.index + pas), etat.mots.length - 1);
   afficherChunk();
   majDureeChapitre();        // recalcule la durée restante après le saut
@@ -2365,19 +2393,24 @@ function ouvrirContexte() {
   marquerCourant(true);
 }
 function fermerContexte() { if (typeof fermerBulleNote === "function") fermerBulleNote(); $("ecran-contexte").classList.remove("lecture-auto"); $("ecran-contexte").classList.add("cache"); }
-// Saut de chapitre DANS la loupe (sans la fermer) : recalcule la cible comme
-// allerChapitre mais met simplement à jour l'index + le rendu de la loupe.
-function chapitreLoupe(dir) {
-  if (!chapitragePresent()) {
-    etat.index = Math.min(Math.max(0, etat.index + dir * 1000), etat.mots.length - 1);
-  } else {
-    const ci = etat.chapitres.indexOf(chapitreActuel());
-    let cible = ci + dir;
-    if (dir < 0 && etat.index > chapitreActuel().debut + 3) cible = ci;
-    cible = Math.min(Math.max(0, cible), etat.chapitres.length - 1);
-    etat.index = etat.chapitres[cible].debut;
-  }
+// Déplace dans la loupe puis, si on lisait, reprend la lecture après 1 s de
+// pause — réarmée à chaque saut (non cumulable), comme en lecture rapide.
+function allerLoupe(cible) {
+  fermerBulleNote();
+  clearTimeout(etat.minuteur);
+  etat.index = Math.min(Math.max(0, cible), etat.mots.length - 1);
+  etat.elan = etat.modele.params.elanGrossePause || 0.65;   // saut : reprise en douceur
   rafraichirContexte(true);
+  if (etat.enLecture) etat.minuteur = setTimeout(tick, 1000);   // 1 s avant reprise
+}
+// Index cible du chapitre voisin (même logique qu'allerChapitre).
+function cibleChapitreLoupe(dir) {
+  if (!chapitragePresent()) return etat.index + dir * 1000;
+  const ci = etat.chapitres.indexOf(chapitreActuel());
+  let cible = ci + dir;
+  if (dir < 0 && etat.index > chapitreActuel().debut + 3) cible = ci;
+  cible = Math.min(Math.max(0, cible), etat.chapitres.length - 1);
+  return etat.chapitres[cible].debut;
 }
 // Flèches loupe : clic court = phrase préc./suiv. ; appui long (≈0,5 s) = chapitre.
 function installerFlecheLoupe(id, court, longg) {
@@ -2390,11 +2423,11 @@ function installerFlecheLoupe(id, court, longg) {
   btn.addEventListener("click", () => { if (long) { long = false; return; } court(); });
 }
 installerFlecheLoupe("ctx-recul",
-  () => { fermerBulleNote(); etat.index = phrasePrecedente(); rafraichirContexte(true); },
-  () => { fermerBulleNote(); chapitreLoupe(-1); });
+  () => allerLoupe(phrasePrecedente()),
+  () => allerLoupe(cibleChapitreLoupe(-1)));
 installerFlecheLoupe("ctx-avance",
-  () => { fermerBulleNote(); etat.index = phraseSuivante(); rafraichirContexte(true); },
-  () => { fermerBulleNote(); chapitreLoupe(1); });
+  () => allerLoupe(phraseSuivante()),
+  () => allerLoupe(cibleChapitreLoupe(1)));
 // Trouve le mot le plus proche d'un point (x, y) — pour ne pas avoir à viser
 // précisément : on privilégie un mot sur la même ligne, sinon le plus proche.
 function spanProche(cont, x, y) {
@@ -2568,18 +2601,18 @@ function fermerLoupe(relancer) {
   const btn = $("ctx-play");
   if (!btn) return;
   let timer = null, long = false;
-  // Appui long (≈0,5 s) : ferme le mode loupe (sans attendre de relever le doigt).
-  // Appui court (clic) : lance / met en pause la lecture DANS le mode loupe
-  // (le mot courant reste centré, défilement auto à chaque changement de ligne).
+  // Appui long (≈0,5 s) : lance / met en pause la lecture DANS le mode loupe
+  // (mot courant centré, défilement auto). Appui simple : ferme la loupe et
+  // reprend la lecture rapide.
   btn.addEventListener("pointerdown", () => {
     long = false;
-    timer = setTimeout(() => { long = true; fermerLoupe(false); }, 500);
+    timer = setTimeout(() => { long = true; basculerLecture(); }, 500);
   });
   ["pointerleave", "pointercancel"].forEach((ev) => btn.addEventListener(ev, () => clearTimeout(timer)));
   btn.addEventListener("pointerup", () => clearTimeout(timer));
   btn.addEventListener("click", () => {
-    if (long) { long = false; return; }   // déjà fermé par l'appui long
-    basculerLecture();                     // lecture / pause dans la loupe
+    if (long) { long = false; return; }   // c'était un appui long → lecture dans la loupe
+    fermerLoupe(true);                     // appui simple → ferme + reprend la lecture rapide
   });
 })();
 // Bouton loupe (droite) : ouvre la recherche dans le livre.
@@ -3201,6 +3234,20 @@ $("reglage-pauses").addEventListener("input", (e) => appliquerCoefPause(+e.targe
   let v = 2;
   try { const s = localStorage.getItem("bookreeder-coef-pause"); if (s) v = +s; } catch (e) {}
   appliquerCoefPause(v);
+})();
+
+// --- Ralentissement des dialogues (×1 à ×2, défaut ×1,3) ---
+function appliquerCoefDialogue(v) {
+  etat.coefDialogue = v;
+  $("reglage-dialogue-lent").value = v;
+  $("valeur-dialogue-lent").textContent = v.toFixed(1).replace(".", ",");
+  try { localStorage.setItem("bookreeder-coef-dialogue", v); } catch (e) {}
+}
+$("reglage-dialogue-lent").addEventListener("input", (e) => appliquerCoefDialogue(+e.target.value));
+(function initCoefDialogue() {
+  let v = 1.3;
+  try { const s = localStorage.getItem("bookreeder-coef-dialogue"); if (s) v = +s; } catch (e) {}
+  appliquerCoefDialogue(v);
 })();
 
 // --- Accélération (expérimental) : panneau ouvert en touchant l'info de vitesse ---

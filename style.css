@@ -230,6 +230,7 @@ html, body {
   margin-left: 0.18em;
   color: inherit;
 }
+.marque-note.collee { margin-left: 0; }   /* * ^ ° collés au mot */
 .marque-note.accent { color: var(--orp-couleur, var(--accent)); }
 /* Pastille pleine dessinée (cercle), posée sur la ligne du texte (n'agrandit
    pas la hauteur de ligne contrairement au glyphe « • »). */

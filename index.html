@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=262">
+  <link rel="stylesheet" href="style.css?v=268">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -256,7 +256,7 @@
     <div class="panneau-contenu">
       <h2>Accélération</h2>
       <div class="reglage">
-        <label for="reglage-accel">Coefficient d'accélération : x<span id="valeur-accel">1,0</span></label>
+        <label for="reglage-accel">Coefficient d'accélération : x <span id="valeur-accel">1,0</span></label>
         <input type="range" id="reglage-accel" min="1" max="3" step="0.1" value="1">
       </div>
       <div class="reglage">
@@ -285,8 +285,13 @@
       </div>
 
       <div class="reglage">
-        <label for="reglage-pauses">Longueur des pauses : coef. x<span id="valeur-pauses">2,0</span></label>
+        <label for="reglage-pauses">Longueur des pauses : x <span id="valeur-pauses">2,0</span></label>
         <input type="range" id="reglage-pauses" min="0" max="4" step="0.1" value="2">
+      </div>
+
+      <div class="reglage">
+        <label for="reglage-dialogue-lent">Ralentissement des dialogues : x <span id="valeur-dialogue-lent">1,3</span></label>
+        <input type="range" id="reglage-dialogue-lent" min="1" max="2" step="0.1" value="1.3">
       </div>
 
       <div class="reglage reglage-inline">
@@ -406,6 +411,21 @@
       </div><!-- /page 1 -->
       <div class="reglages-page cache" data-page="2">
 
+      <div class="reglage reglage-duo">
+        <label class="case-inline">Cartouche ORP <input type="checkbox" id="reglage-cadre" checked></label>
+        <label class="case-inline">Repère central <input type="checkbox" id="reglage-orp" checked></label>
+      </div>
+
+      <div class="reglage" id="bloc-ecart-reperes">
+        <label for="reglage-ecart-reperes">Écartement des repères : <span id="valeur-ecart-reperes">40</span> px</label>
+        <input type="range" id="reglage-ecart-reperes" min="10" max="120" step="2" value="40">
+      </div>
+
+      <div class="reglage">
+        <label for="reglage-long-reperes">Longueur des repères : <span id="valeur-long-reperes">14</span> px</label>
+        <input type="range" id="reglage-long-reperes" min="4" max="40" step="2" value="14">
+      </div>
+
       <div class="reglage reglage-inline">
         <label for="reglage-theme">Thème</label>
         <select id="reglage-theme">
@@ -454,21 +474,6 @@
         </button>
       </div>
 
-      <div class="reglage reglage-duo">
-        <label class="case-inline">Cartouche ORP <input type="checkbox" id="reglage-cadre" checked></label>
-        <label class="case-inline">Repère central <input type="checkbox" id="reglage-orp" checked></label>
-      </div>
-
-      <div class="reglage" id="bloc-ecart-reperes">
-        <label for="reglage-ecart-reperes">Écartement des repères : <span id="valeur-ecart-reperes">40</span> px</label>
-        <input type="range" id="reglage-ecart-reperes" min="10" max="120" step="2" value="40">
-      </div>
-
-      <div class="reglage">
-        <label for="reglage-long-reperes">Longueur des repères : <span id="valeur-long-reperes">14</span> px</label>
-        <input type="range" id="reglage-long-reperes" min="4" max="40" step="2" value="14">
-      </div>
-
       </div><!-- /page 2 -->
       </div><!-- /reglages-pages -->
 
@@ -479,6 +484,6 @@
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="app.js?v=262"></script>
+  <script src="app.js?v=268"></script>
 </body>
 </html>
