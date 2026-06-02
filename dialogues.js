@@ -14,7 +14,7 @@
   "use strict";
 
   // --- Verbes de parole (incise : « dit Margaret », « Margaret s'écria ») ---
-  const VERBES_PAROLE = /^(dit|dis|dirent|r[ée]pond(it|irent)|r[ée]pliqu(a|èrent)|s[' ]?[ée]cri(a|èrent)|demand(a|èrent)|murmur(a|èrent)|souffl(a|èrent)|lan[çc](a|èrent)|ajout(a|èrent)|repr(it|irent)|s[' ]?exclam(a|èrent)|s[' ]?[ée]tonn(a|èrent)|soupir(a|èrent)|cri(a|èrent)|fit|firent|insist(a|èrent)|pours(uivit|uivirent)|chuchot(a|èrent)|gémit|grogn(a|èrent)|interrog(ea|èrent)|questionn(a|èrent)|conclu(t|rent)|affirm(a|èrent)|d[ée]clar(a|èrent)|expliqu(a|èrent)|raill(a|èrent)|ordonn(a|èrent)|protest(a|èrent)|balbut(ia|ièrent)|annon[çc](a|èrent)|rétorqu(a|èrent)|tonn(a|èrent)|conc[ée]d(a|èrent)|avou(a|èrent)|assur(a|èrent)|repri(t|rent)|rappel(a|èrent)|coup(a|èrent)|tranch(a|èrent)|observ(a|èrent)|remarqu(a|èrent)|gliss(a|èrent)|ren[âa]cl(a|èrent)|gront(a|èrent)|s[' ]?enquit|repli(a|èrent)|repart(it|irent)|opin(a|èrent)|acquies[çc](a|èrent)|haus(sa|sèrent)|gloss(a|èrent)|maugr[ée](a|èrent)|persifl(a|èrent)|s[' ]?empress(a|èrent)|rench[ée]r(it|irent))$/i;
+  const VERBES_PAROLE = /^(dit|dis|dirent|r[ée]pond(it|irent)|r[ée]pliqu(a|èrent)|s[' ]?[ée]cri(a|èrent)|demand(a|èrent)|murmur(a|èrent)|souffl(a|èrent)|lan[çc](a|èrent)|ajout(a|èrent)|repr(it|irent)|s[' ]?exclam(a|èrent)|s[' ]?[ée]tonn(a|èrent)|soupir(a|èrent)|cri(a|èrent)|fit|firent|insist(a|èrent)|pours(uivit|uivirent)|chuchot(a|èrent)|gémit|grogn(a|èrent)|interrog(ea|èrent)|questionn(a|èrent)|conclu(t|rent)|affirm(a|èrent)|d[ée]clar(a|èrent)|expliqu(a|èrent)|raill(a|èrent)|ordonn(a|èrent)|protest(a|èrent)|balbut(ia|ièrent)|annon[çc](a|èrent)|rétorqu(a|èrent)|tonn(a|èrent)|conc[ée]d(a|èrent)|avou(a|èrent)|assur(a|èrent)|repri(t|rent)|rappel(a|èrent)|coup(a|èrent)|tranch(a|èrent)|observ(a|èrent)|remarqu(a|èrent)|gliss(a|èrent)|ren[âa]cl(a|èrent)|gront(a|èrent)|s[' ]?enquit|repli(a|èrent)|repart(it|irent)|opin(a|èrent)|acquies[çc](a|èrent)|haus(sa|sèrent)|gloss(a|èrent)|maugr[ée](a|èrent)|persifl(a|èrent)|s[' ]?empress(a|èrent)|rench[ée]r(it|irent)|répét(a|èrent)|interromp(it|irent)|précis(a|èrent)|corrig(ea|èrent)|bredouill(a|èrent)|marmonn(a|èrent)|hurl(a|èrent)|beugl(a|èrent)|glap(it|irent)|s[' ]?esclaff(a|èrent)|plaisant(a|èrent)|ironis(a|èrent)|grond(a|èrent)|siffl(a|èrent)|bafouill(a|èrent)|s[' ]?emport(a|èrent)|lâch(a|èrent)|ricana|ricanèrent|pouff(a|èrent)|glouss(a|èrent))$/i;
 
   function motNu(m) { return (m || "").replace(/’/g, "'").replace(/[^\p{L}'-]/gu, ""); }
 
@@ -89,6 +89,14 @@
   // Indices de mots appartenant à une INCISE (à NE PAS colorer) au sein d'une réplique.
   function zonesIncise(deb, fin) {
     const set = new Set();
+    // Didascalies entre parenthèses (« (Il s'interrompit, toussa.) ») = narration.
+    let paren = false;
+    for (let i = deb; i < fin; i++) {
+      const w = etat.mots[i] || "";
+      if (/\(/.test(w)) paren = true;
+      if (paren) set.add(i);
+      if (/\)/.test(w)) paren = false;
+    }
     const finSegment = (i) => {
       const m = (etat.mots[i] || "").trim();
       return /[?!…][”»"')\]]*$/.test(m) || /,$/.test(m.replace(/[”»"')\]]+$/, ""));
@@ -106,10 +114,15 @@
       const motPrec = s > deb ? (etat.mots[s - 1] || "").trim() : "";
       const apresFinForte = /[?!…][”»"')\]]*$/.test(motPrec);
       let incise = false;
-      // (a) verbe de parole OU sujet inversé « -t-il/-t-elle » dans les 3 premiers
-      //     mots du segment (« lança Caroline », « concéda-t-il enfin »).
-      for (let k = s; k <= Math.min(e, s + 2); k++) {
-        if (estVerbeParole(etat.mots[k]) || RE_PRON_INV_T.test(motNu(etat.mots[k]))) { incise = true; break; }
+      // (a) Détection d'incise UNIQUEMENT sur un segment NON initial (l'ouverture
+      //     d'une réplique est toujours du dialogue, jamais une incise) : verbe de
+      //     parole OU sujet inversé euphonique « -t-il/-t-elle » dans les 3 premiers
+      //     mots (« , concéda-t-il enfin »). Évite le faux positif des questions
+      //     parlées (« L'enfant a-t-il un nom ? »).
+      if (s > deb) {
+        for (let k = s; k <= Math.min(e, s + 2); k++) {
+          if (estVerbeParole(etat.mots[k]) || RE_PRON_INV_T.test(motNu(etat.mots[k]))) { incise = true; break; }
+        }
       }
       // (b) RÈGLE TYPO : segment non initial démarrant en MINUSCULE juste après
       //     une FIN FORTE (? ! …) → incise (« ricana un homme… »).
