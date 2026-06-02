@@ -2100,13 +2100,38 @@ function chapitreActuel() {
 }
 
 // Remplit le menu déroulant des chapitres
+// Valeur d'un numéro de TÊTE « nu » (sans mot « Chapitre ») suivi d'un séparateur :
+// « 14 · », « 3. », « 5 - »… → renvoie le nombre, sinon null.
+function numeroTeteChapitre(t) {
+  const m = (t || "").trim().match(/^\s*(\d+)\s*[.:·•—–\-)]+/);
+  return m ? parseInt(m[1], 10) : null;
+}
+// Nettoie la liste des chapitres SANS jamais attribuer de numéro : on RETIRE
+// seulement les numéros de tête « nus » INCOHÉRENTS (artefacts de fabrication
+// ebook, ex. « 14 · » isolé). Si la numérotation de tête est cohérente (suite
+// croissante majoritaire), on n'y touche pas (fidélité aux chapitres d'origine).
+function nettoyerChapitres(chaps) {
+  if (!chaps || chaps.length < 2) return;
+  const vals = chaps.map((c) => numeroTeteChapitre(c.titre));
+  const presents = vals.filter((v) => v != null);
+  let croissant = true;
+  for (let i = 1; i < presents.length; i++) if (presents[i] <= presents[i - 1]) { croissant = false; break; }
+  const coherent = presents.length >= Math.ceil(chaps.length * 0.6) && croissant;
+  if (coherent) return;   // vraie numérotation → on garde tel quel
+  chaps.forEach((c) => {
+    if (numeroTeteChapitre(c.titre) != null) {
+      c.titre = (c.titre || "").replace(/^\s*\d+\s*[.:·•—–\-)]+\s*/, "").trim();
+    }
+  });
+}
 function remplirSelectChapitres() {
+  nettoyerChapitres(etat.chapitres);   // cohérence (idempotent)
   const sel = $("nav-chapitre");
   sel.innerHTML = "";
   etat.chapitres.forEach((ch, i) => {
     const opt = document.createElement("option");
     opt.value = i;
-    opt.textContent = ch.titre;
+    opt.textContent = ch.titre;        // pas d'attribution de numéro
     sel.appendChild(opt);
   });
 }

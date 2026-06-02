@@ -1196,8 +1196,8 @@ body.roue-ouverte #panneau-reglages .panneau-contenu { background: transparent; 
   padding-bottom: env(safe-area-inset-bottom);   /* le bas du panneau reste visible */
 }
 #panneau-reglages .panneau-contenu {
-  height: 70dvh;                               /* hauteur FIXE → ne bouge jamais (laisse
-                                                  voir le cartouche d'aperçu en haut) */
+  height: auto;                                /* s'ajuste à la zone de pages (fixe) */
+  max-height: 96dvh;
   display: flex;
   flex-direction: column;                      /* entête fixe · pages · OK fixe */
   overflow: hidden;
@@ -1215,8 +1215,7 @@ body.roue-ouverte #panneau-reglages .panneau-contenu { background: transparent; 
 /* Zone des pages : occupe l'espace entre l'entête et le bouton OK (hauteur du
    panneau fixe → la fenêtre ne change pas d'un onglet à l'autre). Défile si besoin. */
 #reglages-pages {
-  flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden;
-  touch-action: pan-y; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.18) transparent;
+  flex: none; height: 27rem; overflow: hidden;   /* hauteur fixe, AUCUN scroll */
 }
 #reglages-pages::-webkit-scrollbar { width: 5px; }
 #reglages-pages::-webkit-scrollbar-track { background: transparent; }
