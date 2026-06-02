@@ -857,7 +857,8 @@ function tokeniserChapitres(chapitresTexte, decouper) {
 function retokeniser() {
   const { mots, chapitres, debuts, refs } = tokeniserChapitres(etat.chapitresTexte, etat.modele.decouper);
   etat.mots = mots;
-  etat.chapitres = chapitres;
+  etat.chapitresBrut = chapitres;     // TOC d'origine (avant nettoyage / mode)
+  initModeTOC();                      // détermine le mode et construit etat.chapitres
   etat.debutsPhrase = debuts || new Set();
   // Table mot -> annotations (pour l'affichage en exposant et la bulle en loupe).
   const notes = etat.notes || [];
@@ -2100,38 +2101,46 @@ function chapitreActuel() {
 }
 
 // Remplit le menu déroulant des chapitres
-// Valeur d'un numéro de TÊTE « nu » (sans mot « Chapitre ») suivi d'un séparateur :
-// « 14 · », « 3. », « 5 - »… → renvoie le nombre, sinon null.
-function numeroTeteChapitre(t) {
-  const m = (t || "").trim().match(/^\s*(\d+)\s*[.:·•—–\-)]+/);
-  return m ? parseInt(m[1], 10) : null;
+// --- Table des matières : mode « existante » (nettoyée) ou « optimisée » ---
+// Construit etat.chapitres depuis la TOC brute (etat.chapitresBrut) selon le mode.
+function appliquerModeTOC() {
+  const mode = etat.tocMode || "existante";
+  const brut = etat.chapitresBrut || etat.chapitres || [];
+  etat.chapitres = (window.Chargeur ? window.Chargeur.construireTOC(brut, mode) : brut.slice());
+  if (!etat.chapitres || !etat.chapitres.length) etat.chapitres = [{ titre: "Début", debut: 0 }];
 }
-// Nettoie la liste des chapitres SANS jamais attribuer de numéro : on RETIRE
-// seulement les numéros de tête « nus » INCOHÉRENTS (artefacts de fabrication
-// ebook, ex. « 14 · » isolé). Si la numérotation de tête est cohérente (suite
-// croissante majoritaire), on n'y touche pas (fidélité aux chapitres d'origine).
-function nettoyerChapitres(chaps) {
-  if (!chaps || chaps.length < 2) return;
-  const vals = chaps.map((c) => numeroTeteChapitre(c.titre));
-  const presents = vals.filter((v) => v != null);
-  let croissant = true;
-  for (let i = 1; i < presents.length; i++) if (presents[i] <= presents[i - 1]) { croissant = false; break; }
-  const coherent = presents.length >= Math.ceil(chaps.length * 0.6) && croissant;
-  if (coherent) return;   // vraie numérotation → on garde tel quel
-  chaps.forEach((c) => {
-    if (numeroTeteChapitre(c.titre) != null) {
-      c.titre = (c.titre || "").replace(/^\s*\d+\s*[.:·•—–\-)]+\s*/, "").trim();
-    }
-  });
+// Détermine le mode au chargement : choix mémorisé du livre, sinon « optimisée »
+// quand il n'y a pas de vraie TOC, sinon on prévoit de demander à l'utilisateur.
+function initModeTOC() {
+  const reelle = !!(window.Chargeur && window.Chargeur.aTOCReelle(etat.chapitresBrut));
+  etat.tocReelle = reelle;
+  let mode = null;
+  if (etat.idLivre) { try { mode = localStorage.getItem("bookreeder-toc-" + etat.idLivre); } catch (e) {} }
+  etat.tocADemander = reelle && !mode && !!etat.idLivre;   // 1ʳᵉ ouverture d'un vrai fichier à TOC
+  etat.tocMode = mode || (reelle ? "existante" : "optimisee");
+  appliquerModeTOC();
+}
+// Applique un choix de table et le mémorise pour ce livre.
+function choisirModeTOC(mode) {
+  etat.tocMode = mode;
+  etat.tocADemander = false;
+  if (etat.idLivre) { try { localStorage.setItem("bookreeder-toc-" + etat.idLivre, mode); } catch (e) {} }
+  appliquerModeTOC();
+  remplirSelectChapitres();
+  placerMarqueursChapitres();
+  const p = $("panneau-toc"); if (p) p.classList.add("cache");
+}
+// Ouvre le popup de choix de table (1ʳᵉ ouverture, ou « Reconstruire »).
+function ouvrirChoixTOC() {
+  const p = $("panneau-toc"); if (p) p.classList.remove("cache");
 }
 function remplirSelectChapitres() {
-  nettoyerChapitres(etat.chapitres);   // cohérence (idempotent)
   const sel = $("nav-chapitre");
   sel.innerHTML = "";
   etat.chapitres.forEach((ch, i) => {
     const opt = document.createElement("option");
     opt.value = i;
-    opt.textContent = ch.titre;        // pas d'attribution de numéro
+    opt.textContent = ch.titre;
     sel.appendChild(opt);
   });
 }
@@ -2164,6 +2173,7 @@ function demarrerLecture() {
   afficherChunk();
   majDureeChapitre();
   if (typeof gererOrientation === "function") gererOrientation(); // paysage → minimaliste
+  if (etat.tocADemander) ouvrirChoixTOC();   // 1ʳᵉ ouverture : quelle table de matières ?
 }
 
 // =========================================================
@@ -2730,6 +2740,14 @@ function navChapPanneau(dir) {
 }
 $("nav-chap-prec").addEventListener("click", () => navChapPanneau(-1));
 $("nav-chap-suiv").addEventListener("click", () => navChapPanneau(1));
+
+// --- Choix de la table des matières (popup + lien « Reconstruire ») ---
+$("lien-reconstruire-toc")?.addEventListener("click", ouvrirChoixTOC);
+$("toc-existante")?.addEventListener("click", () => choisirModeTOC("existante"));
+$("toc-optimisee")?.addEventListener("click", () => choisirModeTOC("optimisee"));
+$("toc-annuler")?.addEventListener("click", () => $("panneau-toc").classList.add("cache"));
+// Toucher la zone hors carte ferme le popup (garde le mode courant).
+$("panneau-toc")?.addEventListener("click", (e) => { if (e.target.id === "panneau-toc") $("panneau-toc").classList.add("cache"); });
 
 // =========================================================
 //  Bibliothèque sur l'écran d'accueil

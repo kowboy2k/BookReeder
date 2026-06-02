@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=280">
+  <link rel="stylesheet" href="style.css?v=289">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -247,7 +247,21 @@
         </div>
       </div>
 
+      <button type="button" id="lien-reconstruire-toc" class="lien-texte">Reconstruire la table des matières</button>
+
       <button id="btn-fermer-navigation">Go</button>
+    </div>
+  </div>
+
+  <!-- Popup : choix de la table des matières (1ʳᵉ ouverture ou « Reconstruire ») -->
+  <div id="panneau-toc" class="cache">
+    <div class="panneau-contenu">
+      <h2>Quelle table des matières&nbsp;?</h2>
+      <div id="toc-boutons">
+        <button type="button" id="toc-existante"><span class="toc-l1">Originale</span> <span class="toc-l2">(existante)</span></button>
+        <button type="button" id="toc-optimisee"><span class="toc-l1">Optimisée</span> <span class="toc-l2">(reconstruite)</span></button>
+      </div>
+      <button type="button" id="toc-annuler">Annuler</button>
     </div>
   </div>
 
@@ -484,6 +498,7 @@
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="app.js?v=280"></script>
+  <script src="chargeur.js?v=289"></script>
+  <script src="app.js?v=289"></script>
 </body>
 </html>
