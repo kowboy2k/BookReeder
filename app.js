@@ -1988,6 +1988,9 @@ function tick() {
     return;
   }
   afficherChunk();           // calcule etat.nbCourant
+  // Si le mode loupe est ouvert : surligne le mot courant et recentre sa ligne
+  // (défilement auto seulement au changement de ligne).
+  if (!$("ecran-contexte").classList.contains("cache")) rafraichirContexte(true);
   const d = etat.modele.delai();
   // Fondu du mot : 0 → 100 % sur toute sa durée d'affichage (d).
   if (etat._enDialFondu) {
@@ -2062,7 +2065,7 @@ document.addEventListener("visibilitychange", () => {
 // Bascule l'icône des boutons play/pause (normal + épuré) :
 // true = en lecture (barres pause), false = play (triangle)
 function iconeLecture(joue) {
-  ["btn-lecture", "ep-lecture"].forEach((id) => {
+  ["btn-lecture", "ep-lecture", "ctx-play"].forEach((id) => {
     const b = $(id);
     if (!b) return;
     b.classList.toggle("icone-pause", joue);
@@ -2359,8 +2362,36 @@ function ouvrirContexte() {
   marquerCourant(true);
 }
 function fermerContexte() { if (typeof fermerBulleNote === "function") fermerBulleNote(); $("ecran-contexte").classList.add("cache"); }
-$("ctx-recul").addEventListener("click", () => { fermerBulleNote(); etat.index = phrasePrecedente(); rafraichirContexte(true); });
-$("ctx-avance").addEventListener("click", () => { fermerBulleNote(); etat.index = phraseSuivante(); rafraichirContexte(true); });
+// Saut de chapitre DANS la loupe (sans la fermer) : recalcule la cible comme
+// allerChapitre mais met simplement à jour l'index + le rendu de la loupe.
+function chapitreLoupe(dir) {
+  if (!chapitragePresent()) {
+    etat.index = Math.min(Math.max(0, etat.index + dir * 1000), etat.mots.length - 1);
+  } else {
+    const ci = etat.chapitres.indexOf(chapitreActuel());
+    let cible = ci + dir;
+    if (dir < 0 && etat.index > chapitreActuel().debut + 3) cible = ci;
+    cible = Math.min(Math.max(0, cible), etat.chapitres.length - 1);
+    etat.index = etat.chapitres[cible].debut;
+  }
+  rafraichirContexte(true);
+}
+// Flèches loupe : clic court = phrase préc./suiv. ; appui long (≈0,5 s) = chapitre.
+function installerFlecheLoupe(id, court, longg) {
+  const btn = $(id);
+  if (!btn) return;
+  let timer = null, long = false;
+  btn.addEventListener("pointerdown", () => { long = false; timer = setTimeout(() => { long = true; longg(); }, 500); });
+  ["pointerleave", "pointercancel"].forEach((ev) => btn.addEventListener(ev, () => clearTimeout(timer)));
+  btn.addEventListener("pointerup", () => clearTimeout(timer));
+  btn.addEventListener("click", () => { if (long) { long = false; return; } court(); });
+}
+installerFlecheLoupe("ctx-recul",
+  () => { fermerBulleNote(); etat.index = phrasePrecedente(); rafraichirContexte(true); },
+  () => { fermerBulleNote(); chapitreLoupe(-1); });
+installerFlecheLoupe("ctx-avance",
+  () => { fermerBulleNote(); etat.index = phraseSuivante(); rafraichirContexte(true); },
+  () => { fermerBulleNote(); chapitreLoupe(1); });
 // Trouve le mot le plus proche d'un point (x, y) — pour ne pas avoir à viser
 // précisément : on privilégie un mot sur la même ligne, sinon le plus proche.
 function spanProche(cont, x, y) {
@@ -2534,8 +2565,9 @@ function fermerLoupe(relancer) {
   const btn = $("ctx-play");
   if (!btn) return;
   let timer = null, long = false;
-  // Appui long (≈0,5 s) : ferme le mode loupe SANS attendre de relever le doigt
-  // (et sans relancer la lecture). Appui court (clic) : reprend la lecture.
+  // Appui long (≈0,5 s) : ferme le mode loupe (sans attendre de relever le doigt).
+  // Appui court (clic) : lance / met en pause la lecture DANS le mode loupe
+  // (le mot courant reste centré, défilement auto à chaque changement de ligne).
   btn.addEventListener("pointerdown", () => {
     long = false;
     timer = setTimeout(() => { long = true; fermerLoupe(false); }, 500);
@@ -2544,7 +2576,7 @@ function fermerLoupe(relancer) {
   btn.addEventListener("pointerup", () => clearTimeout(timer));
   btn.addEventListener("click", () => {
     if (long) { long = false; return; }   // déjà fermé par l'appui long
-    fermerLoupe(true);
+    basculerLecture();                     // lecture / pause dans la loupe
   });
 })();
 // Bouton loupe (droite) : ouvre la recherche dans le livre.
