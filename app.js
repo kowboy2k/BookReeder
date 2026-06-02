@@ -32,6 +32,32 @@ const etat = {
 // Un effet de dialogue est-il actif ?
 function effetDialogue(nom) { return (etat.dialoguesEffets || []).indexOf(nom) >= 0; }
 
+// --- Moteur des dialogues, chargé à la demande (dialogues.js) ---
+// Nécessaire seulement pour Multicolore (couleurs) et Élocution (rythme).
+function besoinMoteurDialogues() { return effetDialogue("multicolore") || effetDialogue("elocution"); }
+let _dlgEnCours = false;
+function chargerMoteurDialogues(apres) {
+  if (window.MoteurDialogues) { if (apres) apres(); return; }
+  if (_dlgEnCours) return;
+  _dlgEnCours = true;
+  const sc = document.querySelector('script[src*="app.js"]');
+  const m = sc && sc.src.match(/[?&]v=(\d+)/);
+  const s = document.createElement("script");
+  s.src = "dialogues.js" + (m ? "?v=" + m[1] : "");
+  s.onload = () => { _dlgEnCours = false; if (apres) apres(); };
+  s.onerror = () => { _dlgEnCours = false; };
+  document.head.appendChild(s);
+}
+// Recalcule la carte des couleurs (multicolore) si besoin ; charge le moteur au besoin.
+function recalcLocuteurs() {
+  if (!effetDialogue("multicolore")) return;
+  const fini = () => {
+    if (window.MoteurDialogues) window.MoteurDialogues.calculerLocuteurs();
+    if (!ecranLecture.classList.contains("cache")) afficherChunk();
+  };
+  if (window.MoteurDialogues) fini(); else chargerMoteurDialogues(fini);
+}
+
 // Un mot qui termine une phrase : ponctuation forte éventuellement suivie
 // d'un guillemet/parenthèse fermant. On ne regroupe jamais après lui.
 const FIN_PHRASE = /[.!?…]["»”'’)\]]*$/;
@@ -844,7 +870,7 @@ function retokeniser() {
   });
   etat.noteParMot = map;
   etat.couleurParMot = null;   // recalculé à la demande si le multicolore est actif
-  if (effetDialogue("multicolore")) calculerLocuteurs();
+  recalcLocuteurs();   // multicolore : charge le moteur au besoin et calcule les couleurs
   const total = Math.max(1, etat.mots.length);
   etat.index = Math.min(Math.round((etat.progression || 0) * (total - 1)), total - 1);
   if (etat.index < 0 || !isFinite(etat.index)) etat.index = 0;
@@ -1300,67 +1326,8 @@ function dansDialogue(i) {
   return DEBUT_REPLIQUE.test((etat.mots[debut] || "").trimStart());
 }
 
-// --- Multicolore : détection du locuteur de chaque réplique ---
-// Verbes de parole courants (incise : « dit Margaret », « Margaret s'écria »).
-const VERBES_PAROLE = /^(dit|dis|dirent|r[ée]pond(it|irent)|r[ée]pliqu(a|èrent)|s[' ]?[ée]cri(a|èrent)|demand(a|èrent)|murmur(a|èrent)|souffl(a|èrent)|lan[çc](a|èrent)|ajout(a|èrent)|repr(it|irent)|s[' ]?exclam(a|èrent)|s[' ]?[ée]tonn(a|èrent)|soupir(a|èrent)|cri(a|èrent)|fit|firent|insist(a|èrent)|pours(uivit|uivirent)|chuchot(a|èrent)|gémit|grogn(a|èrent)|interrog(ea|èrent)|questionn(a|èrent)|conclu(t|rent)|affirm(a|èrent)|d[ée]clar(a|èrent)|expliqu(a|èrent)|raill(a|èrent)|ordonn(a|èrent)|protest(a|èrent)|balbut(ia|ièrent)|annon[çc](a|èrent)|rétorqu(a|èrent)|tonn(a|èrent))$/i;
-function motNu(m) { return (m || "").replace(/[^\p{L}'-]/gu, ""); }
-// Suffixe pronominal d'inversion (« répondit-il », « demanda-t-elle », « dit-on »…).
-const SUFFIXE_PRON = /-(t-)?(il|elle|on|je|tu|nous|vous|ils|elles|le|la|les|moi|toi|lui|leur)$/i;
-// Le mot est-il un verbe de parole, même avec un sujet inversé accolé ?
-function estVerbeParole(mot) {
-  let m = (mot || "").replace(/[^\p{L}'’-]/gu, "").replace(/[’]/g, "'");
-  if (VERBES_PAROLE.test(m)) return true;
-  const radical = m.replace(SUFFIXE_PRON, "");
-  return radical !== m && VERBES_PAROLE.test(radical);
-}
-// Article INDÉFINI introduisant un NOUVEAU personnage (« un homme », « une voix »,
-// « des soldats ») → locuteur tiers. À ne pas confondre avec un pronom de reprise
-// (« il », « elle ») ou un défini/possessif (« le », « son »…) qui désignent un
-// personnage déjà présent (on garde alors sa couleur).
-const ARTICLE_INDEFINI = /^(un|une|des|d')$/i;
-// Cherche le locuteur d'une réplique commençant au mot `deb`. Renvoie un objet
-// { nom, tiers } : `nom` = identifiant du locuteur ; `tiers` = true si c'est un
-// locuteur DESCRIPTIF (« un homme », « une voix » → intervenant de passage), false
-// pour un nom propre (personnage récurrent).
-//   - APRÈS la réplique : verbe de parole + nom propre/groupe descriptif ;
-//   - AVANT : à la fin de la phrase précédente (« Margaret s'écria : »).
-function locuteurDeReplique(deb) {
-  const mots = etat.mots;
-  let fin = deb + 1; while (fin < mots.length && !estDebutPhrase(fin)) fin++;
-  // Le mot précédent finit-il par une fin forte ? (l'incise qui suit démarre en minuscule)
-  const finForte = /[?!…][”»"')\]]*$/.test((mots[fin - 1] || "").trim());
-  // APRÈS la réplique : un nom propre, sinon un groupe descriptif (déterminant + nom).
-  const limite = Math.min(fin + 8, mots.length);
-  for (let k = fin; k < limite; k++) {
-    const a = motNu(mots[k]), b = motNu(mots[k + 1] || "");
-    if (VERBES_PAROLE.test(a) && /\p{Lu}/u.test((b[0] || ""))) return { nom: b, tiers: false };   // « dit Margaret »
-    if (/\p{Lu}/u.test((a[0] || "")) && VERBES_PAROLE.test(b)) return { nom: a, tiers: false };   // « Margaret dit »
-    // Locuteur descriptif : un VERBE DE PAROLE (connu, ou inconnu juste après une
-    // fin forte ? ! …) immédiatement suivi d'un déterminant + nom commun
-    // (« ricana un homme », « lança une voix »). On n'accepte ce cas que SUR LA
-    // CONTINUATION de la réplique courante (k = fin), pas dans une réplique suivante.
-    if (k === fin) {
-      const estV = VERBES_PAROLE.test(a) || (finForte && estVerbeParole(mots[k]) === false && /^\p{Ll}/u.test(a));
-      // Tiers UNIQUEMENT si le verbe est suivi d'un ARTICLE INDÉFINI (« un homme »).
-      // « il/elle » ou un défini → reprise d'un personnage connu, pas un tiers.
-      if (estV && ARTICLE_INDEFINI.test((mots[k + 1] || "").replace(/[^\p{L}']/gu, ""))) {
-        const nomCommun = motNu(mots[k + 2] || "");
-        if (nomCommun) return { nom: (a + " " + nomCommun).toLowerCase(), tiers: true };
-      }
-    }
-    if (estDebutPhrase(k + 1) && k > fin) break;       // on ne déborde pas sur la réplique suivante
-  }
-  // AVANT la réplique : nom propre autour d'un verbe de parole.
-  let p = deb - 1; while (p >= 0 && !estDebutPhrase(p)) p--;
-  for (let k = deb - 1; k >= Math.max(0, p); k--) {
-    if (VERBES_PAROLE.test(motNu(mots[k]))) {
-      const av = motNu(mots[k - 1] || ""), ap = motNu(mots[k + 1] || "");
-      if (/\p{Lu}/u.test((av[0] || ""))) return { nom: av, tiers: false };
-      if (/\p{Lu}/u.test((ap[0] || ""))) return { nom: ap, tiers: false };
-    }
-  }
-  return { nom: "", tiers: false };
-}
+// (Détection du locuteur / incises / multicolore : déplacée dans dialogues.js,
+//  chargé à la demande quand Multicolore ou Élocution est actif.)
 // Couleurs des dialogues (principal, secondaire 1, secondaire 2). Pilotées par la
 // palette choisie dans les Réglages (etat.paletteDialogue) ; valeurs par défaut.
 let COUL_PRINCIPAL = "#74a228", COUL_SEC1 = "#aa4521", COUL_SEC2 = "#a22878";
@@ -1504,7 +1471,7 @@ function appliquerPaletteDialogue(nom, theme) {
     localStorage.setItem("bookreeder-palette-dialogue", etat.paletteDialogue);
     localStorage.setItem("bookreeder-palette-theme", etat.paletteTheme || "");
   } catch (e) {}
-  if (etat.couleurParMot) calculerLocuteurs();   // recalcule avec les nouvelles couleurs
+  if (etat.couleurParMot && window.MoteurDialogues) window.MoteurDialogues.calculerLocuteurs();   // recalcule avec les nouvelles couleurs
   if (!ecranLecture.classList.contains("cache")) afficherChunk();
   majBoutonPalette();
 }
@@ -1618,154 +1585,8 @@ document.querySelectorAll('input[type="color"]').forEach((inp) => {
 });
 // Filet de sécurité : au retour sur la page (picker fermé), on rétablit le fond.
 window.addEventListener("focus", () => document.body.classList.remove("roue-ouverte"));
-// Construit etat.couleurParMot. Principe « ping-pong » : dans un échange, les
-// répliques alternent entre 2 interlocuteurs (tour à tour). Les incises détectées
-// (« dit Margaret ») ancrent un nom sur sa parité ; le personnage principal (le
-// plus cité du livre) garde sa couleur partout.
-function calculerLocuteurs() {
-  const mots = etat.mots;
-  const map = new Map();
-  if (!mots || !mots.length) { etat.couleurParMot = map; return; }
-
-  // Début de PARAGRAPHE (bloc), pour délimiter une réplique entière même si elle
-  // contient plusieurs phrases ou une incise médiane.
-  const debutBloc = (i) => i <= 0 || (etat.debutsPhrase && etat.debutsPhrase.has(i));
-
-  // 1) Liste des répliques + locuteur détecté (si incise) ; compte global des noms.
-  //    Une réplique va du tiret jusqu'au prochain DÉBUT DE PARAGRAPHE → elle peut
-  //    donc englober plusieurs phrases (incise médiane + suite de la réplique).
-  const repliques = [];   // { deb, fin, nom }
-  const compte = {};
-  for (let i = 0; i < mots.length; i++) {
-    const estRep = debutBloc(i) && DEBUT_REPLIQUE.test((mots[i] || "").trimStart());
-    if (!estRep) continue;
-    let fin = i + 1; while (fin < mots.length && !debutBloc(fin)) fin++;
-    const loc = locuteurDeReplique(i);
-    const nom = normTitre(loc.nom);
-    if (nom && !loc.tiers) compte[nom] = (compte[nom] || 0) + 1;   // seuls les noms propres comptent pour « principal »
-    repliques.push({ deb: i, fin, nom, tiers: loc.tiers });
-    i = fin - 1;
-  }
-  if (!repliques.length) { etat.couleurParMot = map; return; }
-
-  // 2) Personnage principal = nom le plus cité.
-  let principal = "", max = 0;
-  for (const n in compte) if (compte[n] > max) { max = compte[n]; principal = n; }
-
-  // 3) Découpe en CONVERSATIONS (répliques rapprochées) ; dans chaque bloc,
-  //    alternance par tour entre 2 slots (0/1). Un nom détecté « ancre » sa parité.
-  const GAP_MAX = 80;   // mots de narration max entre 2 répliques d'un même échange
-  let b = 0;
-  while (b < repliques.length) {
-    let e = b;
-    while (e + 1 < repliques.length && repliques[e + 1].deb - repliques[e].fin <= GAP_MAX) e++;
-    // Alternance ping-pong entre 2 interlocuteurs ; les répliques « tierces »
-    // (locuteur descriptif : « un homme », « une voix ») sont mises À PART et ne
-    // comptent pas dans l'alternance (sinon elles décaleraient les couleurs).
-    const slotNom = ["", ""];
-    let par = 0;
-    const parite = [];                          // parité (0/1) de chaque réplique non-tierce
-    for (let k = b; k <= e; k++) {
-      if (repliques[k].tiers) { parite[k] = -1; continue; }   // -1 = tiers
-      parite[k] = par;
-      if (repliques[k].nom && !slotNom[par]) slotNom[par] = repliques[k].nom;
-      par = 1 - par;                            // alterne au tour suivant
-    }
-    const slot0Princ = slotNom[0] && slotNom[0] === principal;
-    const slot1Princ = slotNom[1] && slotNom[1] === principal;
-    const couleurSlot = (p) => {
-      if (p === -1) return COUL_SEC2;                       // tiers → 3e couleur
-      if (slotNom[p] && slotNom[p] === principal) return COUL_PRINCIPAL;
-      const autrePrinc = p === 0 ? slot1Princ : slot0Princ;
-      if (autrePrinc) return COUL_SEC1;                    // l'autre est le principal
-      return p === 0 ? COUL_SEC1 : COUL_SEC2;              // 2 secondaires en alternance
-    };
-    for (let k = b; k <= e; k++) {
-      const c = couleurSlot(parite[k]);
-      const r = repliques[k];
-      // Colore toute la réplique, SAUF les phrases-incises internes (« dit une
-      // voix amusée derrière eux. ») : une phrase qui n'est pas le tout début de
-      // la réplique et qui commence par un verbe de parole reste en couleur normale.
-      const inc = zonesIncise(r.deb, r.fin);     // mots à NE PAS colorer (incises)
-      for (let x = r.deb; x < r.fin; x++) if (!inc.has(x)) map.set(x, c);
-    }
-    b = e + 1;
-  }
-  etat.couleurParMot = map;
-}
-// Renvoie l'ensemble des indices de mots [deb, fin) qui appartiennent à une
-// INCISE de narration (à NE PAS colorer), au sein d'une réplique. On découpe la
-// réplique en SEGMENTS sur 3 frontières : début de phrase, fin forte (? ! …) et
-// VIRGULE. Un segment est une incise s'il commence par un verbe de parole
-// (« lança Caroline », « répondit-il »), ou s'il suit une fin forte en minuscule.
-function zonesIncise(deb, fin) {
-  const set = new Set();
-  const finSegment = (i) => {
-    const m = (etat.mots[i] || "").trim();
-    return /[?!…][”»"')\]]*$/.test(m) || /,$/.test(m.replace(/[”»"')\]]+$/, ""));
-  };
-  let s = deb;                       // début du segment courant
-  while (s < fin) {
-    // Avance jusqu'à : un début de phrase (exclu du segment) ou un mot à
-    // ponctuation forte/virgule (inclus, il termine le segment).
-    let e = s;
-    while (e < fin) {
-      if (e > s && estDebutPhrase(e)) { e--; break; }   // début de phrase → segment = [s..e-1]
-      if (finSegment(e)) break;                          // ? ! … , → ce mot termine le segment
-      e++;
-    }
-    if (e >= fin) e = fin - 1;
-    // Le segment [s..e] est-il une incise ?
-    const prem = (etat.mots[s] || "").replace(/^[^\p{L}]+/u, "");
-    const motPrec = s > deb ? (etat.mots[s - 1] || "").trim() : "";
-    const apresVirgule = /,$/.test(motPrec.replace(/[”»"')\]]+$/, ""));
-    const apresFinForte = /[?!…][”»"')\]]*$/.test(motPrec);
-    let incise = false;
-    // (a) verbe de parole dans les 3 premiers mots du segment (« lança Caroline »)
-    for (let k = s; k <= Math.min(e, s + 2); k++) { if (estVerbeParole(etat.mots[k])) { incise = true; break; } }
-    // (b) RÈGLE TYPO : segment NON initial qui démarre en MINUSCULE juste après
-    //     une FIN FORTE (? ! …) → c'est forcément une incise (« ricana un homme… »),
-    //     même si le verbe est inconnu. (Après une simple virgule c'est ambigu —
-    //     « , c'est un fait » n'est pas une incise — donc on exige le verbe, cas (a).)
-    if (!incise && s > deb && apresFinForte && prem && /\p{Ll}/u.test(prem[0])) incise = true;
-    if (incise) for (let x = s; x <= e; x++) set.add(x);
-    s = e + 1;
-  }
-  return set;
-}
-
-// Décélération d'élocution (DIALOGUES) : on ralentit progressivement les derniers
-// mots AVANT une ponctuation, pour imiter le débit parlé.
-//   virgule , ; : → 2 derniers mots : +20%, +40%
-//   point .        → 3 derniers mots : +20%, +40%, +60%
-//   interrogation ?→ 2 derniers mots : +20%, +40%
-//   suspension …   → 3 derniers mots : +20%, +40%, +60%
-//   exclamation !  → aucun (débit direct)
-// Renvoie le facteur multiplicateur (1 = normal) pour le mot d'index i.
-const RE_FIN_NETTE = /["»”'’)\]]*$/;
-function coefElocution(i) {
-  if (i < 0 || i >= etat.mots.length) return 1;
-  if (!dansDialogue(i)) return 1;               // narration : rythme inchangé
-  // Cherche, à partir de i, le 1er mot porteur d'une ponctuation de fin de groupe.
-  let j = i, signe = "";
-  for (let k = 0; k < 6 && j < etat.mots.length; k++, j++) {
-    const m = (etat.mots[j] || "").replace(RE_FIN_NETTE, "");
-    const c = m.slice(-1);
-    if ("…".indexOf(c) >= 0 || /[.,;:!?]/.test(c)) { signe = c; break; }
-    if (estDebutPhrase(j + 1)) { j = -1; break; }   // fin de phrase atteinte sans ponctuation
-  }
-  if (j < 0 || !signe) return 1;
-  // Paliers rangés du mot PORTEUR de la ponctuation (le plus ralenti) vers les
-  // précédents : index 0 = mot ponctué (+40% ou +60%), 1 = mot d'avant, etc.
-  let paliers;
-  if (signe === "!") paliers = [];                        // direct
-  else if (signe === "?") paliers = [0.4, 0.2];           // 2 mots
-  else if (signe === "," || signe === ";" || signe === ":") paliers = [0.4, 0.2]; // 2 mots
-  else paliers = [0.6, 0.4, 0.2];                         // . ou … : 3 mots
-  const dist = j - i;                            // 0 = le mot porteur de la ponctuation
-  if (dist < 0 || dist >= paliers.length) return 1;
-  return 1 + paliers[dist];
-}
+// (calculerLocuteurs / zonesIncise / coefElocution : déplacés dans dialogues.js,
+//  chargé à la demande. Le noyau y accède via window.MoteurDialogues.)
 
 function delaiChunk() {
   const P = etat.modele.params;                 // recette de rythme du modèle actif
@@ -1815,7 +1636,8 @@ function delaiChunk() {
   // est choisi. On applique le plus fort coefficient parmi les mots du groupe.
   if (effetDialogue("elocution")) {
     let coefElo = 1;
-    for (let k = debut; k < fin; k++) coefElo = Math.max(coefElo, coefElocution(k));
+    const md = window.MoteurDialogues;
+    if (md) for (let k = debut; k < fin; k++) coefElo = Math.max(coefElo, md.coefElocution(k));
     mot *= coefElo;
   }
 
@@ -3051,9 +2873,18 @@ function appliquerDialogues(val) {
   etat.dialoguesEffets = (val || "").split(",").map((s) => s.trim()).filter((s) => s && s !== "aucun");
   $("reglage-dialogues").value = val || "aucun";
   try { localStorage.setItem("bookreeder-dialogues", val || "aucun"); } catch (e) {}
-  // Le multicolore a besoin de la carte des locuteurs (calculée au chargement).
-  if (effetDialogue("multicolore") && !etat.couleurParMot && etat.mots.length) calculerLocuteurs();
-  if (!ecranLecture.classList.contains("cache")) afficherChunk();
+  const rendre = () => { if (!ecranLecture.classList.contains("cache")) afficherChunk(); };
+  if (besoinMoteurDialogues()) {
+    // Multicolore/Élocution : charge le moteur (dialogues.js) au besoin, puis
+    // calcule les couleurs (multicolore) et réaffiche.
+    const fini = () => {
+      if (effetDialogue("multicolore") && window.MoteurDialogues && etat.mots.length) window.MoteurDialogues.calculerLocuteurs();
+      rendre();
+    };
+    if (window.MoteurDialogues) fini(); else chargerMoteurDialogues(fini);
+  } else {
+    rendre();
+  }
 }
 $("reglage-dialogues").addEventListener("change", (e) => appliquerDialogues(e.target.value));
 (function initDialogues() {
