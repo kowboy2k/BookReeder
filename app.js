@@ -2065,6 +2065,9 @@ document.addEventListener("visibilitychange", () => {
 // Bascule l'icône des boutons play/pause (normal + épuré) :
 // true = en lecture (barres pause), false = play (triangle)
 function iconeLecture(joue) {
+  // Lecture auto EN loupe : la phrase s'atténue comme le reste, seul le mot lu est blanc.
+  const ctx = $("ecran-contexte");
+  if (ctx) ctx.classList.toggle("lecture-auto", joue && !ctx.classList.contains("cache"));
   ["btn-lecture", "ep-lecture", "ctx-play"].forEach((id) => {
     const b = $(id);
     if (!b) return;
@@ -2361,7 +2364,7 @@ function ouvrirContexte() {
   construireContexte();
   marquerCourant(true);
 }
-function fermerContexte() { if (typeof fermerBulleNote === "function") fermerBulleNote(); $("ecran-contexte").classList.add("cache"); }
+function fermerContexte() { if (typeof fermerBulleNote === "function") fermerBulleNote(); $("ecran-contexte").classList.remove("lecture-auto"); $("ecran-contexte").classList.add("cache"); }
 // Saut de chapitre DANS la loupe (sans la fermer) : recalcule la cible comme
 // allerChapitre mais met simplement à jour l'index + le rendu de la loupe.
 function chapitreLoupe(dir) {

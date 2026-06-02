@@ -217,6 +217,10 @@ html, body {
 /* EXCEPTION : un mot courant qui est aussi un dialogue coloré garde la couleur du
    locuteur (et non la couleur d'accentuation du repère). */
 #contexte-texte span.ctx-dlg.courant { color: var(--c-dlg); }
+/* Lecture auto EN loupe : la phrase en cours est atténuée comme le reste du
+   texte ; seul le mot lu passe en blanc (couleur du texte, pleine opacité). */
+#ecran-contexte.lecture-auto #contexte-texte span.phrase-courante { opacity: 0.5; }
+#ecran-contexte.lecture-auto #contexte-texte span.courant { color: var(--texte); opacity: 1; }
 /* Repère d'annotation en lecture rapide : petit caractère en exposant.
    Discret (couleur de la police) ou « accentué » (.accent → couleur
    d'accentuation en cours). Signale un contenu consultable en mode loupe. */
