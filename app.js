@@ -1195,12 +1195,12 @@ function ouvrirPalette() {
 }
 // La palette n'est RÉELLEMENT appliquée qu'à la fermeture. Avertissement si des
 // couleurs ont été attribuées manuellement aux personnages (elles seront effacées).
-function fermerPalette() {
+async function fermerPalette() {
   const diff = palettePreview && palettePreview !== etat.paletteDialogue;
   if (diff) {
     const ov = etat.couleursPersonnages || {};
     const manuel = Object.keys(ov).some((k) => k !== "_tiersMlibre");
-    if (manuel && !confirm("Appliquer la palette « " + palettePreview + " » ?\n\nLes couleurs que tu as attribuées manuellement aux personnages seront remplacées.")) {
+    if (manuel && !(await confirmer("Les couleurs attribuées manuellement aux personnages seront remplacées.\nAppliquer la palette « " + palettePreview + " » ?"))) {
       $("panneau-palette").classList.add("cache"); return;   // annulé : on garde la palette actuelle
     }
     if (manuel) { etat.couleursPersonnages = {}; try { localStorage.setItem("bookreeder-perso-couleurs", "{}"); } catch (e) {} }
@@ -2508,7 +2508,7 @@ const LIBELLE_TRI_BIBLIO = { ajout: "par ordre d'ajout", alpha: "alphabétique",
 // Efface le profil de lecture d'un livre (réglages + couleurs persos) en gardant
 // la progression et le livre dans la liste.
 async function proposerEffacerProfil(livre) {
-  if (!confirm("Effacer le profil de lecture de « " + (livre.titre || livre.nom) + " » ?\n\nLes réglages personnalisés et les couleurs des personnages seront remis par défaut. La progression et le livre sont conservés.")) return;
+  if (!(await confirmer("Effacer le profil de lecture de « " + (livre.titre || livre.nom) + " » ?\nLes réglages personnalisés et les couleurs des personnages seront remis par défaut. La progression et le livre sont conservés."))) return;
   const f = await lireLivre(livre.id);
   if (f) { f.profil = {}; await sauverLivre(f); }
   if (etat.idLivre === livre.id) etat.profil = {};
@@ -3252,7 +3252,7 @@ $("reglage-dialogue-lent").addEventListener("input", (e) => appliquerCoefDialogu
 function appliquerCoefElan(v) {
   etat.coefElan = v;
   $("reglage-elan").value = v;
-  $("valeur-elan").textContent = v <= 0 ? "aucun" : v.toFixed(1).replace(".", ",");
+  $("valeur-elan").textContent = v <= 0 ? "aucun" : Math.round(v * 10) + " mots";
   try { localStorage.setItem("bookreeder-coef-elan", v); } catch (e) {}
 }
 $("reglage-elan").addEventListener("input", (e) => appliquerCoefElan(+e.target.value));

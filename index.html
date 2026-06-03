@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=320">
+  <link rel="stylesheet" href="style.css?v=321">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -190,6 +190,7 @@
   <div id="panneau-dialogues-dyn" class="cache">
     <div class="panneau-contenu">
       <h2>Feuille de personnages</h2>
+      <p id="dd-aide">Appui prolongé sur le bouton Réglages pour personnaliser les dialogues.</p>
       <div class="reglage reglage-inline">
         <label for="reglage-indice-bavardage">Indice de bavardage</label>
         <select id="reglage-indice-bavardage">
@@ -324,7 +325,7 @@
       <h2>Comment ça marche</h2>
       <ul id="liste-infos">
         <li><b>Lecture rapide</b> — les mots défilent un à un ou par groupes, centrés sur la lettre repère (rouge) pour garder l'œil fixe.</li>
-        <li><b>Dialogues dynamiques</b> — rajoutez du style dans les dialogues entre les personnages ! Appui prolongé sur le bouton Réglages pour personnaliser les dialogues.</li>
+        <li><b>Dialogues dynamiques</b> — rajoutez du style dans les dialogues entre les personnages !</li>
         <li><b>Mode Minimaliste</b> — touchez la <b>zone de lecture</b> pour masquer l'interface (lecture sans distraction) ; touchez à nouveau pour revenir.</li>
         <li><b>Mode loupe</b> — appui prolongé sur le bouton lecture/pause pour afficher la lecture contextuelle + annotations. Appui prolongé en Mode Loupe permet de faire défiler le texte automatiquement.</li>
         <li><b>Lecture horizontale</b> — basculez la position des boutons en restant appuyé sur les flèches gauche/droite.</li>
@@ -439,7 +440,7 @@
       </div>
 
       <div class="reglage">
-        <label for="reglage-elan">Élan à la reprise de lecture : x <span id="valeur-elan">1,0</span></label>
+        <label for="reglage-elan">Élan à la reprise de lecture : <span id="valeur-elan">10 mots</span></label>
         <input type="range" id="reglage-elan" min="0" max="3" step="0.1" value="1">
       </div>
 
@@ -633,7 +634,7 @@
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="chargeur.js?v=320"></script>
-  <script src="app.js?v=320"></script>
+  <script src="chargeur.js?v=321"></script>
+  <script src="app.js?v=321"></script>
 </body>
 </html>
