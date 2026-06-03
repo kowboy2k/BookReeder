@@ -1313,7 +1313,7 @@ body.roue-ouverte #panneau-dialogues-dyn { background: transparent; }
   padding-bottom: 1.2rem;                      /* marge interne au-dessus du bas */
 }
 /* Espacements compacts pour que chaque page tienne sans défiler */
-#panneau-reglages .reglage { margin-bottom: 0.95rem; }
+#panneau-reglages .reglage { margin-bottom: calc(0.95rem - 2px); }
 /* Entête : flèches ‹ › + titre, toujours visible */
 #reglages-entete { flex: none; display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.9rem; }
 #reglages-entete h2 { flex: 1 1 auto; text-align: center; margin: 0; }
