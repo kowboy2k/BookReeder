@@ -2601,10 +2601,13 @@ function positionnerBulle() {
   bulle.style.top = (r.bottom + 10) + "px";
   bulle.style.right = Math.max(8, window.innerWidth - r.right) + "px";
 }
-// Masquage permanent (clic sur la bulle ou ouverture du (i)).
+// Masquage permanent (clic sur la bulle ou ouverture du (i)) : c'est SEULEMENT
+// ici qu'on marque la version comme « vue » → la bulle persiste tant qu'on ne l'a
+// pas réellement vue (même après plusieurs rechargements).
 function cacherBulleLireMoi() {
   bulleActive = false;
   $("bulle-liremoi").classList.add("cache");
+  try { const v = versionApp(); if (v) localStorage.setItem("bookreeder-vue-version", v); } catch (e) {}
 }
 // Affiche la bulle si elle est encore active ET qu'on est sur l'accueil.
 function rafraichirBulleLireMoi() {
@@ -2621,7 +2624,7 @@ $("bulle-liremoi").addEventListener("click", cacherBulleLireMoi);
   try { vue = localStorage.getItem("bookreeder-vue-version"); } catch (e) {}
   const v = versionApp();
   if (v && vue !== v) {
-    try { localStorage.setItem("bookreeder-vue-version", v); } catch (e) {}
+    // On NE marque PAS encore « vue » : ce sera fait au clic bulle / ouverture (i).
     bulleActive = true;
     setTimeout(rafraichirBulleLireMoi, 500);   // laisse le temps à la mise en page
   }
