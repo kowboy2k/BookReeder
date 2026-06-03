@@ -1263,7 +1263,7 @@ body.roue-ouverte #panneau-dialogues-dyn { background: transparent; }
 #dd-attribution { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; margin-top: 0.4rem; }
 #dd-attr-tete { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; margin-bottom: 0.2rem; }
 #dd-attr-tete h3 { margin: 0; font-size: 1.05rem; }
-#dd-cacher { flex: none; margin-bottom: 0.2rem; }
+#dd-cacher { flex: none; margin: 7px 0 15px; }
 #dd-cacher label { font-size: 0.9rem; }
 #dd-aide { font-size: 0.78rem; opacity: 0.55; margin: 0 0 0.6rem; font-family: sans-serif; }
 /* En-tête de tri : même principe discret que « Mes lectures » (texte gris + ⇅). */
