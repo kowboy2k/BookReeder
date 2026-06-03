@@ -1377,7 +1377,7 @@ const MODELES = {
       nomPropreMs: 500,        // 500 ms mini par nom propre @2,0× (cumulés si consécutifs)
       elanGrossePause: 0.65,   // élan de départ à la reprise (Play / saut)
       elanPauseMoyenne: 0.82,  // (inutilisé : l'élan ne sert plus qu'à la reprise)
-      elanAccel: 0.0175,       // +0,0175/mot : reprise étalée sur ~20 mots (0,65 → 1)
+      elanAccel: 0.0233,       // +0,0233/mot : reprise étalée sur ~15 mots (0,65 → 1)
       affichageMin: 90,        // durée mini absolue d'affichage (ms)
       motLongMax: 12,          // au-delà, un mot s'affiche seul
       lettresMax: 16,          // un groupe ne dépasse jamais ce nb de lettres
@@ -1474,6 +1474,7 @@ function tick() {
   // On vient de finir un chapitre et il en reste un autre.
   if (mode !== "off" && finChap < etat.mots.length && etat.index >= finChap) {
     etat.index = finChap;                   // prêt à reprendre au chapitre suivant
+    etat.elan = etat.modele.params.elanGrossePause || 0.65;   // élan appliqué dès le 1er mot du chapitre suivant
     if (mode === "fin") {
       etat.minuteur = setTimeout(pause, d); // pause en montrant la fin du chapitre
     } else {                                // "suivant" : enchaîner pour montrer le 1er chunk du suivant
