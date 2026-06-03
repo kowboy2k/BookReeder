@@ -22,6 +22,7 @@ const etat = {
   multAccel: 1,      // multiplicateur d'accélération courant (1 → coefAccel)
   intervalleAccel: 10, // secondes entre deux hausses de +0,1×
   elan: 1,           // « momentum » : <1 juste après une pause, remonte vers 1
+  coefElan: 1,       // élan à la reprise : 0 = aucun, ×1 ≈ 10 mots, ×3 ≈ 30 mots
   orpActif: true,
   bionic: false,     // lecture bionic (début des mots en gras)
   dialoguesEffets: [], // effets dialogues actifs : "elocution" "multicolore" "italique" "fondu"
@@ -208,6 +209,7 @@ function _rechargerReglages() {
   try { appliquerMarqueurNote(str("bookreeder-marqueur-note", "etoile")); } catch (e) {}
   try { appliquerCoefPause(num("bookreeder-coef-pause", 2)); } catch (e) {}
   try { appliquerCoefDialogue(num("bookreeder-coef-dialogue", 1.3)); } catch (e) {}
+  try { appliquerCoefElan(num("bookreeder-coef-elan", 1)); } catch (e) {}
   try { appliquerCoefAccel(num("bookreeder-coef-accel", 1)); } catch (e) {}
   try { appliquerIntervalleAccel(num("bookreeder-accel-intervalle", 10)); } catch (e) {}
   try { appliquerTailleLoupe(num("bookreeder-taille-loupe", 100)); } catch (e) {}
@@ -1221,6 +1223,18 @@ window.addEventListener("focus", () => document.body.classList.remove("roue-ouve
 // (calculerLocuteurs / zonesIncise / coefElocution : déplacés dans dialogues.js,
 //  chargé à la demande. Le noyau y accède via window.MoteurDialogues.)
 
+// Élan de reprise, piloté par le slider « Élan à la reprise » (etat.coefElan) :
+//  0 = aucun élan (reprise plein régime) ; ×1 ≈ 10 mots ; ×3 ≈ 30 mots.
+// Au départ l'élan est bas (elanGrossePause) puis remonte vers 1 sur (coefElan×10) mots.
+function elanDepart() {
+  const g = etat.modele.params.elanGrossePause || 0.65;
+  return (etat.coefElan > 0) ? g : 1;
+}
+function elanPas() {
+  const g = etat.modele.params.elanGrossePause || 0.65;
+  return (etat.coefElan > 0) ? (1 - g) / (etat.coefElan * 10) : 1;
+}
+
 function delaiChunk() {
   const P = etat.modele.params;                 // recette de rythme du modèle actif
   const base = 60000 / vitesseEff();            // ms pour un mot « moyen » (avec accélération)
@@ -1263,7 +1277,7 @@ function delaiChunk() {
   // 4) L'élan ne sert QU'À la reprise (Play, saut de phrase/chapitre) : il
   //    démarre bas à la reprise puis remonte progressivement vers 1, et ne
   //    redescend JAMAIS sur la ponctuation pendant la lecture continue.
-  etat.elan = Math.min(1, etat.elan + P.elanAccel);                     // remontée seule
+  etat.elan = Math.min(1, etat.elan + elanPas());                       // remontée seule (vitesse selon le slider)
 
   // Décélération d'élocution (dialogues) : active seulement si l'effet « élocution »
   // est choisi. On applique le plus fort coefficient parmi les mots du groupe.
@@ -1474,7 +1488,7 @@ function tick() {
   // On vient de finir un chapitre et il en reste un autre.
   if (mode !== "off" && finChap < etat.mots.length && etat.index >= finChap) {
     etat.index = finChap;                   // prêt à reprendre au chapitre suivant
-    etat.elan = etat.modele.params.elanGrossePause || 0.65;   // élan appliqué dès le 1er mot du chapitre suivant
+    etat.elan = elanDepart();   // élan appliqué dès le 1er mot du chapitre suivant
     if (mode === "fin") {
       etat.minuteur = setTimeout(pause, d); // pause en montrant la fin du chapitre
     } else {                                // "suivant" : enchaîner pour montrer le 1er chunk du suivant
@@ -1490,7 +1504,7 @@ function lecture() {
   if (etat.enLecture) return;
   if (etat.index >= etat.mots.length) etat.index = 0;
   etat.enLecture = true;
-  etat.elan = etat.modele.params.elanGrossePause || 0.65;   // reprise en douceur (remonte vers 1)
+  etat.elan = elanDepart();   // reprise en douceur (remonte vers 1)
   etat.multAccel = 1;       // l'accélération repart de la vitesse initiale
   majVitesseAffichee();
   demarrerAccel();          // (re)lance la rampe toutes les 10 s si coef > 1
@@ -1604,7 +1618,7 @@ function majDureeChapitre() {
 function deplacer(pas, continuer) {
   const reprendre = continuer && etat.continuerApresSaut && etat.enLecture;
   clearTimeout(etat.minuteur);
-  etat.elan = etat.modele.params.elanGrossePause || 0.65;   // saut : reprise en douceur
+  etat.elan = elanDepart();   // saut : reprise en douceur
   etat.index = Math.min(Math.max(0, etat.index + pas), etat.mots.length - 1);
   afficherChunk();
   majDureeChapitre();        // recalcule la durée restante après le saut
@@ -1897,7 +1911,7 @@ function allerLoupe(cible) {
   fermerBulleNote();
   clearTimeout(etat.minuteur);
   etat.index = Math.min(Math.max(0, cible), etat.mots.length - 1);
-  etat.elan = etat.modele.params.elanGrossePause || 0.65;   // saut : reprise en douceur
+  etat.elan = elanDepart();   // saut : reprise en douceur
   rafraichirContexte(true);
   if (etat.enLecture) etat.minuteur = setTimeout(tick, 1000);   // 1 s avant reprise
 }
@@ -2769,7 +2783,7 @@ $("reglage-indice-bavardage")?.addEventListener("change", (e) => {
 // existantes (après confirmation).
 function genererCouleursPersos() {
   if (!etat.persos || !etat.persos.nommes || !etat.persos.nommes.length) return;
-  if (!confirm("Générer automatiquement des couleurs distinctes pour les personnages ?\n\nCela remplacera les couleurs déjà attribuées.")) return;
+  if (!confirm("Attention, cela remplacera les couleurs déjà attribuées.")) return;
   const hsls = [COUL_PRINCIPAL, COUL_SEC1, COUL_SEC2]
     .filter((c) => /^#/.test(c)).map((c) => { const [r, g, b] = hexVersRgb(c); return rgbVersHsl(r, g, b); });
   const moy = (i, def) => hsls.length ? hsls.reduce((s, a) => s + a[i], 0) / hsls.length : def;
@@ -3032,6 +3046,21 @@ $("reglage-dialogue-lent").addEventListener("input", (e) => appliquerCoefDialogu
   let v = 1.3;
   try { const s = localStorage.getItem("bookreeder-coef-dialogue"); if (s) v = +s; } catch (e) {}
   appliquerCoefDialogue(v);
+})();
+
+// --- Élan à la reprise (0 = aucun, ×1 ≈ 10 mots, ×3 ≈ 30 mots) ---
+function appliquerCoefElan(v) {
+  etat.coefElan = v;
+  $("reglage-elan").value = v;
+  $("valeur-elan").textContent = v <= 0 ? "aucun" : v.toFixed(1).replace(".", ",");
+  try { localStorage.setItem("bookreeder-coef-elan", v); } catch (e) {}
+}
+$("reglage-elan").addEventListener("input", (e) => appliquerCoefElan(+e.target.value));
+(function initCoefElan() {
+  let v = 1;
+  try { const s = localStorage.getItem("bookreeder-coef-elan"); if (s != null && s !== "") v = +s; } catch (e) {}
+  if (!isFinite(v) || v < 0 || v > 3) v = 1;
+  appliquerCoefElan(v);
 })();
 
 // --- Accélération (expérimental) : panneau ouvert en touchant l'info de vitesse ---
