@@ -132,6 +132,24 @@ Serveur local (config preview centralisée `C:\Claude Code\.claude\launch.json`,
   (champ `profil`). La vitesse est désormais persistée (`bookreeder-vitesse`). `restaurerReglagesGeneriques`
   factorise la restauration des réglages génériques (réutilisée au démarrage et à l'ouverture).
 
+- **Couleurs par personnage** (v2.96, `dialogues.js` + panneau `#panneau-dialogues-dyn`) :
+  `analyserPersonnages()` scanne tout le livre et recense les personnages qui parlent (nom via
+  incise, genre via « -t-il/-t-elle », nb de répliques, 1ʳᵉ apparition) ; bruit filtré par
+  `NOMS_INTERDITS` (pronoms, oui/non, titres). Liste mise en cache dans `fiche.persos`.
+  `calculerLocuteurs` attribue une **couleur de BASE fixe par personnage** (couleurs de la palette
+  réparties par fréquence, `etat.baseCouleurPerso`), avec **surcharge manuelle** via
+  `etat.couleursPersonnages` (clé `bookreeder-perso-couleurs`, JSON, par livre). Tiers (« un homme »)
+  séparables M/F (`tiers-m`/`tiers-f`, ♀ pilote / ♂ suit sauf `_tiersMlibre`). Panneau
+  **« Feuille de personnages »** (`#panneau-dialogues-dyn`) ouvert par **appui long sur ⚙** (ou
+  bouton dans Réglages) : effet + palette + dropdown **« Indice de bavardage »**
+  (`#reglage-indice-bavardage` masqué/simple/podium → étoiles ★ par rang de répliques sans révéler
+  le nom) + case anti-spoiler `#reglage-cacher-noms` + **en-tête de tri cliquable** `#dd-tri`
+  (apparition / alphabétique-apparus / bavardage) + liste (roue chromatique par perso, scan trié
+  par **ordre d'apparition**, hauteur 40dvh) + **« Personnages tiers »** sous la liste (`#dd-tiers`).
+  Lien **« Générer des couleurs aléatoires »** (`genererCouleursPersos`, confirmation) : teintes
+  réparties par l'**angle d'or** (départ aléatoire), saturation/luminosité **moyennées sur la
+  palette du thème actif** (`hslVersHex`).
+
 ## Jalons
 - **Jalon 1 (FAIT)** : charger un EPUB, RSVP 1–8 mots, vitesse 200–800 mpm, ORP activable,
   découpe intelligente, contrôles clavier + tactile, base PWA hors-ligne.

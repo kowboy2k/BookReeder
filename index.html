@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=297">
+  <link rel="stylesheet" href="style.css?v=298">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -184,6 +184,51 @@
     </div>
   </div>
 
+  <!-- Panneau « Dialogues dynamiques » : appui long sur ⚙ (ou bouton dans Réglages).
+       Effet + palette + attribution d'une couleur fixe par personnage du livre. -->
+  <div id="panneau-dialogues-dyn" class="cache">
+    <div class="panneau-contenu">
+      <h2>Feuille de personnages</h2>
+      <div class="reglage reglage-inline">
+        <label for="reglage-dialogues">Effet</label>
+        <select id="reglage-dialogues">
+          <option value="aucun">Aucun effet</option>
+          <option value="elocution">Élocution</option>
+          <option value="multicolore">Multicolore</option>
+          <option value="italique">Italique</option>
+          <option value="fondu">Fondu</option>
+          <option value="elocution,multicolore">Élocution + Multicolore</option>
+          <option value="elocution,italique">Élocution + Italique</option>
+          <option value="multicolore,italique">Multicolore + Italique</option>
+          <option value="elocution,multicolore,fondu">Élocution + Multicolore + Fondu</option>
+          <option value="elocution,multicolore,italique">Élocution + Multicolore + Italique</option>
+          <option value="elocution,multicolore,italique,fondu">Tous les effets</option>
+        </select>
+      </div>
+      <div class="reglage reglage-inline">
+        <label for="btn-palette">Palette des dialogues</label>
+        <button id="btn-palette" class="select-hybride">
+          <span id="btn-palette-nom">Corail</span>
+          <span id="btn-palette-pastilles" class="pastilles-mini"></span>
+        </button>
+      </div>
+      <div class="reglage reglage-inline">
+        <label for="reglage-indice-bavardage">Indice de bavardage</label>
+        <select id="reglage-indice-bavardage">
+          <option value="masque">Masqué</option>
+          <option value="simple">Simple</option>
+          <option value="podium">Podium</option>
+        </select>
+      </div>
+      <label id="dd-cacher"><input type="checkbox" id="reglage-cacher-noms" checked> Cacher les noms pas encore apparus</label>
+      <button id="dd-tri" type="button">Par ordre d'apparition</button>
+      <div id="liste-persos"></div>
+      <div id="dd-tiers"></div>
+      <button id="btn-fermer-dialogues-dyn">OK</button>
+      <button id="btn-generer-couleurs" type="button" class="lien-texte">Générer des couleurs aléatoires</button>
+    </div>
+  </div>
+
   <!-- Panneau de recherche dans le livre (double-tap dans la zone de texte du mode loupe) -->
   <div id="panneau-recherche" class="cache">
     <div class="panneau-contenu">
@@ -202,11 +247,11 @@
       <h2>Comment ça marche</h2>
       <ul id="liste-infos">
         <li><b>Lecture rapide</b> — les mots défilent un à un ou par groupes, centrés sur la lettre repère (rouge) pour garder l'œil fixe.</li>
-        <li><b>Dialogues dynamiques</b> — rajoutez du style dans les dialogues entre les personnages !</li>
+        <li><b>Dialogues dynamiques</b> — rajoutez du style dans les dialogues entre les personnages ! Appui prolongé sur le bouton Réglages pour personnaliser les dialogues.</li>
         <li><b>Mode Minimaliste</b> — touchez la <b>zone de lecture</b> pour masquer l'interface (lecture sans distraction) ; touchez à nouveau pour revenir.</li>
-        <li><b>Mode loupe</b> — appui prolongé sur le bouton lecture/pause pour afficher la lecture contextuelle + annotations.</li>
+        <li><b>Mode loupe</b> — appui prolongé sur le bouton lecture/pause pour afficher la lecture contextuelle + annotations. Appui prolongé en Mode Loupe permet de faire défiler le texte automatiquement.</li>
         <li><b>Lecture horizontale</b> — basculez la position des boutons en restant appuyé sur les flèches gauche/droite.</li>
-        <li><b>Naviguer</b> — touchez les <b>infos de lecture</b> pour ouvrir la navigation et aller à un chapitre ou se déplacer dans le livre. En Mode Loupe, touchez la ligne d'infos du chapitre pour naviguer sans quitter la loupe.</li>
+        <li><b>Naviguer</b> — touchez les <b>infos de lecture</b> pour ouvrir la navigation et aller à un chapitre ou se déplacer dans le livre.</li>
         <li><b>Chapitres</b> — les boutons ⏮ / ⏭ sautent au chapitre précédent / suivant ; les flèches reculent / avancent d'une phrase.</li>
         <li><b>Vitesse</b> — les boutons − et + ajustent la vitesse de lecture.</li>
         <li><b>Accélération</b> — appuyez sur la <b>zone de vitesse</b> et poussez vos limites en accélérant automatiquement !</li>
@@ -441,28 +486,12 @@
         </div>
       </div>
 
+      <!-- « Dialogues dynamiques » + « Palette » sont désormais dans le panneau
+           dédié #panneau-dialogues-dyn (appui long sur ⚙). -->
       <div class="reglage reglage-inline">
-        <label for="reglage-dialogues">Dialogues dynamiques</label>
-        <select id="reglage-dialogues">
-          <option value="aucun">Aucun effet</option>
-          <option value="elocution">Élocution</option>
-          <option value="multicolore">Multicolore</option>
-          <option value="italique">Italique</option>
-          <option value="fondu">Fondu</option>
-          <option value="elocution,multicolore">Élocution + Multicolore</option>
-          <option value="elocution,italique">Élocution + Italique</option>
-          <option value="multicolore,italique">Multicolore + Italique</option>
-          <option value="elocution,multicolore,fondu">Élocution + Multicolore + Fondu</option>
-          <option value="elocution,multicolore,italique">Élocution + Multicolore + Italique</option>
-          <option value="elocution,multicolore,italique,fondu">Tous les effets</option>
-        </select>
-      </div>
-
-      <div class="reglage reglage-inline">
-        <label for="btn-palette">Palette des dialogues</label>
-        <button id="btn-palette" class="select-hybride">
-          <span id="btn-palette-nom">Corail</span>
-          <span id="btn-palette-pastilles" class="pastilles-mini"></span>
+        <label>Dialogues dynamiques</label>
+        <button id="btn-ouvrir-dialogues-dyn" class="select-hybride">
+          <span>Effets, palette &amp; couleurs des personnages ›</span>
         </button>
       </div>
 
@@ -475,14 +504,14 @@
             <option value="bulle">Bulle °</option>
             <option value="chapeau">Chapeau ^</option>
             <option value="hashtag">Hashtag ＃</option>
-            <option value="point">Point ●</option>
+            <option value="point">Pastille ●</option>
           </optgroup>
           <optgroup label="Couleur d'accentuation">
             <option value="etoile-acc" class="opt-accent">Astérisque *</option>
             <option value="bulle-acc" class="opt-accent">Bulle °</option>
             <option value="chapeau-acc" class="opt-accent">Chapeau ^</option>
             <option value="hashtag-acc" class="opt-accent">Hashtag ＃</option>
-            <option value="point-acc" class="opt-accent">Point ●</option>
+            <option value="point-acc" class="opt-accent">Pastille ●</option>
           </optgroup>
         </select>
       </div>
@@ -497,7 +526,7 @@
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="chargeur.js?v=297"></script>
-  <script src="app.js?v=297"></script>
+  <script src="chargeur.js?v=298"></script>
+  <script src="app.js?v=298"></script>
 </body>
 </html>

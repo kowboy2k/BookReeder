@@ -1052,6 +1052,12 @@ html, body {
   font-weight: normal;
 }
 #titre-lectures { flex: none; width: min(90%, 460px); }
+.tri-lien {
+  background: none; border: none; padding: 0; cursor: pointer;
+  color: var(--accent); font-family: sans-serif; font-size: 1rem;
+  text-decoration: underline;
+}
+.tri-lien::after { content: " ⇅"; opacity: 0.6; text-decoration: none; }
 .item-livre {
   display: flex;
   align-items: center;
@@ -1167,6 +1173,63 @@ body.roue-ouverte #panneau-reglages .panneau-contenu { background: transparent; 
   background: var(--fond); border-radius: 0.6rem;
 }
 #palette-apercu-haut div { margin: 0.1em 0; }
+
+/* --- Panneau « Dialogues dynamiques » (effet + palette + couleurs persos) --- */
+#panneau-dialogues-dyn {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(0,0,0,0.6); display: flex; align-items: flex-start; justify-content: center;
+  padding: max(6vh, env(safe-area-inset-top)) 0.8rem max(2dvh, calc(env(safe-area-inset-bottom) + 10px));
+  box-sizing: border-box;
+}
+#panneau-dialogues-dyn.cache { display: none; }
+body.roue-ouverte #panneau-dialogues-dyn { background: transparent; }
+#panneau-dialogues-dyn .panneau-contenu {
+  border-radius: 1rem; max-height: 92dvh; width: 100%; max-width: 460px;
+  display: flex; flex-direction: column;
+}
+#panneau-dialogues-dyn .reglage-inline { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; margin-bottom: 0.7rem; }
+#dd-attribution { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; margin-top: 0.4rem; }
+#dd-attr-tete { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; margin-bottom: 0.2rem; }
+#dd-attr-tete h3 { margin: 0; font-size: 1.05rem; }
+#dd-cacher { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; opacity: 0.85; font-family: sans-serif; cursor: pointer; }
+#dd-aide { font-size: 0.78rem; opacity: 0.55; margin: 0 0 0.6rem; font-family: sans-serif; }
+#dd-tri {
+  flex: none; width: 100%; text-align: left; background: var(--fond); color: var(--texte);
+  border: 1px solid var(--surface-bord); border-radius: 0.5rem; padding: 0.45rem 0.7rem;
+  font-family: sans-serif; font-size: 0.85rem; cursor: pointer; margin: 0.2rem 0 0.4rem;
+}
+#dd-tri::after { content: "  ⇅"; opacity: 0.55; }
+#liste-persos { flex: 0 1 auto; min-height: 0; max-height: 40dvh; overflow-y: auto; }
+#dd-tiers { flex: none; }
+#dd-tiers .perso-ligne.tiers { border-top: 2px solid var(--surface-bord); margin-top: 0; }
+.perso-ligne { display: flex; align-items: center; gap: 0.7rem; padding: 0.35rem 0.2rem; border-bottom: 1px solid var(--surface-bord); }
+.perso-pastille {
+  flex: none; width: 1.9rem; height: 1.9rem; padding: 0; cursor: pointer;
+  border: 2px solid var(--surface-bord); border-radius: 50%;
+  background: none; -webkit-appearance: none; appearance: none; overflow: hidden;
+}
+.perso-pastille::-webkit-color-swatch-wrapper { padding: 0; }
+.perso-pastille::-webkit-color-swatch { border: none; border-radius: 50%; }
+.perso-pastille::-moz-color-swatch { border: none; border-radius: 50%; }
+.perso-nom { flex: 1 1 auto; font-family: sans-serif; font-size: 0.95rem; }
+.perso-nom.masque { opacity: 0.5; font-style: italic; }
+.perso-compte { flex: none; font-size: 0.78rem; opacity: 0.45; font-family: sans-serif; }
+.perso-etoile { flex: none; font-size: 0.95rem; line-height: 1; }
+.perso-etoile.or { color: #e8b923; }
+.perso-etoile.argent { color: #c4c4c4; }
+.perso-etoile.bronze { color: #cd7f32; }
+.perso-etoile.blanc { color: #ffffff; }
+.perso-fixe { flex: none; font-size: 0.95rem; color: var(--accent); }
+.perso-ligne.tiers { border-top: 2px solid var(--surface-bord); margin-top: 0.3rem; }
+.tiers-swatches { flex: none; display: flex; gap: 0.45rem; align-items: center; }
+.tiers-swatches .perso-pastille { width: 1.6rem; height: 1.6rem; }
+.tiers-g { font-size: 1.05rem; opacity: 0.7; margin-right: -0.15rem; font-family: sans-serif; }
+#btn-generer-couleurs { flex: none; margin: 0.6rem 0 0; }
+#btn-fermer-dialogues-dyn {
+  flex: none; width: 100%; margin-top: 1rem; padding: 0.9rem;
+  background: var(--accent); color: #fff; border: none; border-radius: 0.6rem;
+  font-size: 1rem; cursor: pointer;
+}
 .palette-apercu { font-family: var(--police); font-size: 1.15rem; line-height: 1.5; }
 #btn-fermer-palette {
   flex: none; width: 100%; padding: 0.9rem; background: var(--accent); color: #fff;

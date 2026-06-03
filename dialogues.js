@@ -44,6 +44,20 @@
   // Article INDÉFINI introduisant un NOUVEAU personnage (tiers).
   const ARTICLE_INDEFINI = /^(un|une|des|d')$/i;
 
+  // Mots capitalisés (début de réplique/phrase) qui NE sont PAS des noms de
+  // personnage : pronoms, interjections, oui/non, connecteurs, titres seuls.
+  // Comparés à la forme normalisée (sans accents/casse).
+  const NOMS_INTERDITS = new Set((
+    "il elle ils elles on je tu nous vous lui leur eux moi toi ce ceci cela ca celui celle ceux celles " +
+    "non oui si eh ah oh ho bah ben bon bonne bien mal alors mais et puis or car donc enfin certes soudain " +
+    "voila voici merci pardon tiens tenez allons allez parfait jamais toujours ainsi cependant pourtant " +
+    "hum heu euh quoi comment pourquoi quand ou hein helas vraiment peut peutetre attends attendez " +
+    "ecoute ecoutez regarde regardez que qui quel quelle quels quelles dont tout toute tous toutes rien " +
+    "m mr mme mlle dr st sir"
+  ).split(/\s+/));
+  function normCle(m) { return window.Chargeur ? Chargeur.normTitre(m) : (m || "").toLowerCase(); }
+  function nomValide(cle) { return !!cle && cle.length >= 2 && !NOMS_INTERDITS.has(cle); }
+
   // Cherche le locuteur d'une réplique commençant au mot `deb`.
   // Renvoie { nom, genre, tiers } : nom = identifiant ; genre = "M"/"F"/"" (via
   // pronom inversé) ; tiers = true pour un locuteur descriptif (« un homme »).
@@ -71,13 +85,16 @@
       if (k > deb && DEBUT_REPLIQUE.test((mots[k] || "").trimStart())) break;   // pas la réplique suivante
       const a = mots[k], b = mots[k + 1] || "";
       const na = motNu(a), nb = motNu(b);
-      if (estVerbe(a) && !aPronom(a) && /\p{Lu}/u.test((nb[0] || "")) && !estVerbe(b)) return { nom: nb, genre, tiers: false };
-      if (/\p{Lu}/u.test((na[0] || "")) && !estVerbe(a) && estVerbe(b) && !aPronom(b)) return { nom: na, genre, tiers: false };
+      if (estVerbe(a) && !aPronom(a) && /\p{Lu}/u.test((nb[0] || "")) && !estVerbe(b) && nomValide(normCle(nb))) return { nom: nb, genre, tiers: false };
+      if (/\p{Lu}/u.test((na[0] || "")) && !estVerbe(a) && estVerbe(b) && !aPronom(b) && nomValide(normCle(na))) return { nom: na, genre, tiers: false };
       if (k === fin) {
         const estV = estVerbe(a) || (finForte && !estVerbe(a) && /^\p{Ll}/u.test(na));
         if (estV && ARTICLE_INDEFINI.test(nb.toLowerCase())) {
           const nc = motNu(mots[k + 2] || "");
-          if (nc) return { nom: (na + " " + nc).toLowerCase(), genre: "", tiers: true };
+          // Genre du tiers déduit de l'article (« un homme » → M, « une femme » → F).
+          const art = nb.toLowerCase();
+          const gT = art === "un" ? "M" : art === "une" ? "F" : "";
+          if (nc) return { nom: (na + " " + nc).toLowerCase(), genre: gT, tiers: true };
         }
       }
       if (k >= fin && estDebutPhrase(k + 1)) break;   // ne déborde pas sur la réplique suivante
@@ -155,11 +172,17 @@
     }
     if (!repliques.length) { etat.couleurParMot = map; return; }
 
-    let principal = "", max = 0;
-    for (const n in compte) if (compte[n] > max) { max = compte[n]; principal = n; }
     // Genre connu d'un nom (si une de ses répliques portait un pronom).
     const genreNom = {};
     for (const r of repliques) if (r.nom && r.genre && !genreNom[r.nom]) genreNom[r.nom] = r.genre;
+    // Couleur de BASE fixe par personnage : on répartit les couleurs de la palette
+    // par ordre de fréquence (le plus bavard = 1ʳᵉ couleur, etc.). Une teinte peut
+    // se répéter entre personnages éloignés (palette limitée à 3 voix). L'utilisateur
+    // peut figer une couleur précise par personnage (etat.couleursPersonnages).
+    const PALETTE_VOIX = [COUL_PRINCIPAL, COUL_SEC1, COUL_SEC2];
+    const baseCouleur = {};
+    Object.keys(compte).sort((a, b) => compte[b] - compte[a])
+      .forEach((n, i) => { baseCouleur[n] = PALETTE_VOIX[i % PALETTE_VOIX.length]; });
 
     const GAP_MAX = 80; let b = 0;
     while (b < repliques.length) {
@@ -191,21 +214,25 @@
         idx[k] = v;
         attendu = 1 - v;
       }
-      const estPrinc = (v) => voixNom[v] && voixNom[v] === principal;
-      const couleurVoix = (v) => {
-        if (v === -1) return COUL_SEC2;                 // tiers
-        if (estPrinc(v)) return COUL_PRINCIPAL;
-        if (estPrinc(1 - v)) return COUL_SEC1;          // l'autre voix est le principal
-        return v === 0 ? COUL_PRINCIPAL : COUL_SEC1;    // pas de principal identifié
-      };
+      const ov = etat.couleursPersonnages || {};   // couleurs attribuées par l'utilisateur (par livre)
+      const couleurPerso = (nom) => ov[nom] || baseCouleur[nom] || COUL_PRINCIPAL;
       for (let k = b; k <= e; k++) {
-        const c = couleurVoix(idx[k]); const r = repliques[k];
+        const r = repliques[k];
+        let c;
+        if (r.tiers) {                                   // personnage tiers (« un homme »…)
+          c = ov[r.genre === "F" ? "tiers-f" : "tiers-m"] || COUL_SEC2;
+        } else {
+          // Personnage explicite, sinon déduit de la voix (alternance) du bloc → SA couleur fixe.
+          const nom = r.nom || voixNom[idx[k]];
+          c = nom ? couleurPerso(nom) : (idx[k] === 0 ? COUL_PRINCIPAL : COUL_SEC1);
+        }
         const inc = zonesIncise(r.deb, r.fin);
         for (let x = r.deb; x < r.fin; x++) if (!inc.has(x)) map.set(x, c);
       }
       b = e + 1;
     }
     etat.couleurParMot = map;
+    etat.baseCouleurPerso = baseCouleur;   // couleur de base par personnage (pour l'UI d'attribution)
   }
 
   // --- Décélération d'élocution (diction) ---
@@ -231,6 +258,36 @@
     return 1 + paliers[dist];
   }
 
+  // Analyse TOUT le livre et recense les personnages qui parlent :
+  //  - nommes : [{ cle, nom, count, genre, first }] triés par nombre de répliques
+  //    (cle = nom normalisé pour l'attribution ; nom = libellé affiché ; first =
+  //    index du mot de leur 1ʳᵉ réplique, pour l'anti-spoiler).
+  //  - tiers : { M, F, total } (personnages descriptifs « un homme », « une femme »).
+  function analyserPersonnages() {
+    const mots = etat.mots;
+    const res = { nommes: [], tiers: { M: 0, F: 0, total: 0 } };
+    if (!mots || !mots.length) return res;
+    const debutBloc = (i) => i <= 0 || (etat.debutsPhrase && etat.debutsPhrase.has(i));
+    const info = {};
+    for (let i = 0; i < mots.length; i++) {
+      if (!(debutBloc(i) && DEBUT_REPLIQUE.test((mots[i] || "").trimStart()))) continue;
+      let fin = i + 1; while (fin < mots.length && !debutBloc(fin)) fin++;
+      const loc = locuteurDeReplique(i);
+      if (loc.tiers) {
+        res.tiers.total++;
+        if (loc.genre === "M") res.tiers.M++; else if (loc.genre === "F") res.tiers.F++;
+      } else if (loc.nom) {
+        const cle = window.Chargeur ? Chargeur.normTitre(loc.nom) : loc.nom;
+        if (!info[cle]) info[cle] = { cle, nom: loc.nom, count: 0, genre: "", first: i };
+        info[cle].count++;
+        if (loc.genre && !info[cle].genre) info[cle].genre = loc.genre;
+      }
+      i = fin - 1;
+    }
+    res.nommes = Object.values(info).sort((a, b) => a.first - b.first);   // ordre d'apparition
+    return res;
+  }
+
   // Interface exposée au noyau.
-  window.MoteurDialogues = { calculerLocuteurs, coefElocution };
+  window.MoteurDialogues = { calculerLocuteurs, coefElocution, analyserPersonnages };
 })();

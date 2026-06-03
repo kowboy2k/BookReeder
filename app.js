@@ -135,6 +135,7 @@ async function sauverPosition() {
     livre.progression = etat.mots.length ? etat.index / etat.mots.length : 0;
     livre.total = etat.mots.length;
     if (etat.profil) livre.profil = etat.profil;   // profil de lecture du livre (v2.95)
+    if (etat.persos) livre.persos = etat.persos;   // personnages détectés (v2.96)
     await sauverLivre(livre);
   }
 }
@@ -152,7 +153,8 @@ async function sauverPosition() {
 // Aucun des appels localStorage existants n'a besoin d'être modifié.
 function estCleProfil(k) {
   return typeof k === "string" && k.indexOf("bookreeder-") === 0 &&
-         k.indexOf("bookreeder-toc-") !== 0 && k !== "bookreeder-vue-version";
+         k.indexOf("bookreeder-toc-") !== 0 && k !== "bookreeder-vue-version" &&
+         k !== "bookreeder-tri-biblio";
 }
 (function installerShimProfil() {
   const proto = Storage.prototype;
@@ -210,6 +212,9 @@ function _rechargerReglages() {
   try { appliquerIntervalleAccel(num("bookreeder-accel-intervalle", 10)); } catch (e) {}
   try { appliquerTailleLoupe(num("bookreeder-taille-loupe", 100)); } catch (e) {}
   try { reglerVitesse(num("bookreeder-vitesse", 300)); } catch (e) {}
+  try { etat.couleursPersonnages = JSON.parse(g("bookreeder-perso-couleurs") || "{}") || {}; } catch (e) { etat.couleursPersonnages = {}; }
+  { const cn = $("reglage-cacher-noms"); if (cn) cn.checked = (g("bookreeder-cacher-noms") !== "0"); }
+  { const ib = $("reglage-indice-bavardage"); if (ib) ib.value = g("bookreeder-indice-bavardage") || "masque"; }
   [["reglage-infos-minimal", "bookreeder-infos-minimal"], ["reglage-infos-loupe", "bookreeder-infos-loupe"]].forEach(([id, key]) => {
     const el = $(id); if (!el) return;
     el.checked = (g(key) === "1");
@@ -389,6 +394,7 @@ function ouvrirFiche(fiche) {
   etat.progression = fiche.progression != null ? fiche.progression
     : (fiche.total ? (fiche.index || 0) / fiche.total : 0);
   etat.profil = fiche.profil || {};        // profil de lecture du livre (v2.95)
+  etat.persos = fiche.persos || null;      // personnages détectés (v2.96), scan mis en cache
   rechargerReglages();                      // applique les réglages du livre (sinon global)
   retokeniser();
   remplirSelectChapitres();
@@ -430,6 +436,7 @@ $("btn-demo").addEventListener("click", () => {
   etat.notes = [];
   etat.idLivre = null;
   etat.profil = {};
+  etat.persos = null;
   etat.nomLivre = "Démo";
   etat.titreLivre = "Texte de démo";
   etat.progression = 0;
@@ -880,6 +887,16 @@ function labVersRgb(L, a, bb) {
   return [dl(R), dl(G), dl(B)];
 }
 function rgbHex(r, g, b) { return "#" + [r, g, b].map((n) => n.toString(16).padStart(2, "0")).join(""); }
+// HSL (h en degrés, s/l en %) → hex « #rrggbb » (pour les pastilles et la coloration).
+function hslVersHex(h, s, l) {
+  h = ((h % 360) + 360) % 360; s = Math.max(0, Math.min(100, s)) / 100; l = Math.max(0, Math.min(100, l)) / 100;
+  const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = l - c / 2;
+  let r, g, b;
+  if (h < 60) [r, g, b] = [c, x, 0]; else if (h < 120) [r, g, b] = [x, c, 0];
+  else if (h < 180) [r, g, b] = [0, c, x]; else if (h < 240) [r, g, b] = [0, x, c];
+  else if (h < 300) [r, g, b] = [x, 0, c]; else [r, g, b] = [c, 0, x];
+  return rgbHex(Math.round((r + m) * 255), Math.round((g + m) * 255), Math.round((b + m) * 255));
+}
 // Couleur d'accentuation en [r,g,b] (résout hex OU hsl(...)).
 function accentRgb() {
   const c = couleurAccentuation();
@@ -1203,7 +1220,7 @@ const MODELES = {
       nomPropreMs: 500,        // 500 ms mini par nom propre @2,0× (cumulés si consécutifs)
       elanGrossePause: 0.65,   // élan de départ à la reprise (Play / saut)
       elanPauseMoyenne: 0.82,  // (inutilisé : l'élan ne sert plus qu'à la reprise)
-      elanAccel: 0.0233,       // +0,0233/mot : reprise étalée sur ~15 mots (0,65 → 1)
+      elanAccel: 0.0175,       // +0,0175/mot : reprise étalée sur ~20 mots (0,65 → 1)
       affichageMin: 90,        // durée mini absolue d'affichage (ms)
       motLongMax: 12,          // au-delà, un mot s'affiche seul
       lettresMax: 16,          // un groupe ne dépasse jamais ce nb de lettres
@@ -1912,13 +1929,13 @@ $("panneau-recherche").addEventListener("click", (e) => {
   if (e.target.id === "panneau-recherche") fermerRecherche();  // clic sur le fond
 });
 // Bouton Play de la loupe :
-//  - CLIC COURT = ferme la loupe et REPREND la lecture rapide (après 1 s) ;
+//  - CLIC COURT = ferme la loupe et REPREND la lecture rapide (après 0,5 s) ;
 //  - APPUI PROLONGÉ (≈0,5 s) = ferme la loupe SANS relancer la lecture.
 function fermerLoupe(relancer) {
   fermerBulleNote();
   fermerContexte();
   afficherChunk();
-  if (relancer) { clearTimeout(etat.minuteur); etat.minuteur = setTimeout(lecture, 1000); }
+  if (relancer) { clearTimeout(etat.minuteur); etat.minuteur = setTimeout(lecture, 500); }
 }
 (function installerCtxPlay() {
   const btn = $("ctx-play");
@@ -2219,20 +2236,43 @@ $("panneau-toc")?.addEventListener("click", (e) => { if (e.target.id === "pannea
 // =========================================================
 //  Bibliothèque sur l'écran d'accueil
 // =========================================================
+const fracLivre = (l) => l.progression != null ? l.progression : (l.total ? (l.index || 0) / l.total : 0);
+let triBiblio = "ajout";   // ajout | alpha | avancement
+try { triBiblio = localStorage.getItem("bookreeder-tri-biblio") || "ajout"; } catch (e) {}
+const LIBELLE_TRI_BIBLIO = { ajout: "par ordre d'ajout", alpha: "alphabétique", avancement: "avancement" };
+// Efface le profil de lecture d'un livre (réglages + couleurs persos) en gardant
+// la progression et le livre dans la liste.
+async function proposerEffacerProfil(livre) {
+  if (!confirm("Effacer le profil de lecture de « " + (livre.titre || livre.nom) + " » ?\n\nLes réglages personnalisés et les couleurs des personnages seront remis par défaut. La progression et le livre sont conservés.")) return;
+  const f = await lireLivre(livre.id);
+  if (f) { f.profil = {}; await sauverLivre(f); }
+  if (etat.idLivre === livre.id) etat.profil = {};
+}
 async function afficherBibliotheque() {
   const conteneur = $("bibliotheque");
   conteneur.innerHTML = "";
   const titre = $("titre-lectures");
   let livres = [];
   try { livres = (await listerLivres()) || []; } catch (e) { if (titre) titre.style.display = "none"; return; }
-  livres.sort((a, b) => b.dateAjout - a.dateAjout);
-  if (titre) titre.style.display = livres.length ? "block" : "none";
+  if (triBiblio === "alpha") livres.sort((a, b) => (a.titre || a.nom || "").localeCompare(b.titre || b.nom || "", "fr"));
+  else if (triBiblio === "avancement") livres.sort((a, b) => fracLivre(b) - fracLivre(a));
+  else livres.sort((a, b) => b.dateAjout - a.dateAjout);
+  if (titre) {
+    titre.style.display = livres.length ? "block" : "none";
+    // « Mes lectures : <mode> ⇅ » — la partie mode est cliquable (cycle le tri).
+    titre.innerHTML = "Mes lectures&nbsp;: <button id=\"tri-biblio\" class=\"tri-lien\"></button>";
+    const lien = $("tri-biblio");
+    lien.textContent = LIBELLE_TRI_BIBLIO[triBiblio];
+    lien.addEventListener("click", () => {
+      triBiblio = triBiblio === "ajout" ? "alpha" : triBiblio === "alpha" ? "avancement" : "ajout";
+      try { localStorage.setItem("bookreeder-tri-biblio", triBiblio); } catch (e) {}
+      afficherBibliotheque();
+    });
+  }
   if (!livres.length) return;
 
   livres.forEach((livre) => {
-    const frac = livre.progression != null ? livre.progression
-      : (livre.total ? (livre.index || 0) / livre.total : 0);
-    const pct = Math.round(frac * 100);
+    const pct = Math.round(fracLivre(livre) * 100);
     const item = document.createElement("div");
     item.className = "item-livre";
     item.innerHTML =
@@ -2247,7 +2287,16 @@ async function afficherBibliotheque() {
     const elAuteur = item.querySelector(".item-auteur");
     if (livre.auteur) elAuteur.textContent = livre.auteur;
     else elAuteur.remove();
-    item.querySelector(".item-infos").addEventListener("click", async () => {
+    // Clic = ouvrir ; appui long (≈0,5 s) = proposer d'effacer le profil de lecture.
+    const infos = item.querySelector(".item-infos");
+    let long = false, timer = null;
+    const annule = () => { if (timer) { clearTimeout(timer); timer = null; } };
+    infos.addEventListener("pointerdown", () => { long = false; timer = setTimeout(() => { long = true; proposerEffacerProfil(livre); }, 500); });
+    infos.addEventListener("pointerup", annule);
+    infos.addEventListener("pointerleave", annule);
+    infos.addEventListener("pointercancel", annule);
+    infos.addEventListener("click", async () => {
+      if (long) { long = false; return; }
       const frais = await lireLivre(livre.id); // position à jour
       ouvrirFiche(frais || livre);
     });
@@ -2329,13 +2378,27 @@ function montrerReglagesPage(n) {
 }
 $("reglages-prec").addEventListener("click", () => montrerReglagesPage(reglagesPage - 1));
 $("reglages-suiv").addEventListener("click", () => montrerReglagesPage(reglagesPage + 1));
-$("btn-reglages").addEventListener("click", () => {
+function ouvrirReglages() {
   pause();
   ecranLecture.classList.add("apercu");
   montrerReglagesPage(0);
   $("panneau-reglages").classList.remove("cache");
   afficherChunk();
-});
+}
+// ⚙ : clic court = Réglages ; appui long (≈0,5 s) = panneau « Dialogues dynamiques ».
+(function brancherBoutonReglages() {
+  const btn = $("btn-reglages"); let long = false, timer = null;
+  const annule = () => { if (timer) { clearTimeout(timer); timer = null; } };
+  btn.addEventListener("pointerdown", () => {
+    long = false;
+    timer = setTimeout(() => { long = true; ouvrirDialoguesDyn(); }, 500);
+  });
+  btn.addEventListener("pointerup", annule);
+  btn.addEventListener("pointerleave", annule);
+  btn.addEventListener("pointercancel", annule);
+  btn.addEventListener("click", () => { if (long) { long = false; return; } ouvrirReglages(); });
+})();
+$("btn-ouvrir-dialogues-dyn")?.addEventListener("click", () => { fermerReglages(); ouvrirDialoguesDyn(); });
 function fermerReglages() {
   $("panneau-reglages").classList.add("cache");
   ecranLecture.classList.remove("apercu");
@@ -2346,6 +2409,173 @@ $("btn-fermer-reglages")?.addEventListener("click", fermerReglages);
 $("panneau-reglages").addEventListener("click", (e) => {
   if (e.target === $("panneau-reglages")) fermerReglages();
 });
+
+// =========================================================
+//  Panneau « Dialogues dynamiques » : attribution des couleurs par personnage
+// =========================================================
+function ouvrirDialoguesDyn() {
+  pause();
+  const apres = () => {
+    if (window.MoteurDialogues) {
+      if (!etat.persos) { etat.persos = window.MoteurDialogues.analyserPersonnages(); planifierSauvegardeProfil(); }
+      if (etat.mots && etat.mots.length) window.MoteurDialogues.calculerLocuteurs();   // remplit baseCouleurPerso
+    }
+    renderListePersos();
+    ecranLecture.classList.add("apercu");
+    $("panneau-dialogues-dyn").classList.remove("cache");
+    afficherChunk();
+  };
+  if (window.MoteurDialogues) apres(); else chargerMoteurDialogues(apres);
+}
+function fermerDialoguesDyn() {
+  $("panneau-dialogues-dyn").classList.add("cache");
+  ecranLecture.classList.remove("apercu");
+  afficherChunk();
+}
+$("btn-fermer-dialogues-dyn")?.addEventListener("click", fermerDialoguesDyn);
+$("panneau-dialogues-dyn").addEventListener("click", (e) => {
+  if (e.target === $("panneau-dialogues-dyn")) fermerDialoguesDyn();
+});
+$("reglage-cacher-noms")?.addEventListener("change", (e) => {
+  try { localStorage.setItem("bookreeder-cacher-noms", e.target.checked ? "1" : "0"); } catch (err) {}
+  renderListePersos();
+});
+
+const hexOk = (c) => /^#[0-9a-fA-F]{6}$/.test(c || "");
+// Fixe (ou met à jour) la couleur d'un personnage : mémorisée par livre (profil),
+// recalcul des couleurs et re-rendu.
+function sauverCouleursPersos() {
+  try { localStorage.setItem("bookreeder-perso-couleurs", JSON.stringify(etat.couleursPersonnages || {})); } catch (e) {}
+  if (window.MoteurDialogues && etat.mots && etat.mots.length) window.MoteurDialogues.calculerLocuteurs();
+  afficherChunk();
+}
+function attribuerCouleurPerso(cle, hex) {
+  if (!etat.couleursPersonnages) etat.couleursPersonnages = {};
+  etat.couleursPersonnages[cle] = hex;
+  sauverCouleursPersos();
+  if (!$("panneau-dialogues-dyn").classList.contains("cache")) renderListePersos();
+}
+function pastillePerso(cle, hexCourant) {
+  const inp = document.createElement("input");
+  inp.type = "color"; inp.className = "perso-pastille";
+  inp.value = hexOk(hexCourant) ? hexCourant : "#888888";
+  inp.addEventListener("input", () => attribuerCouleurPerso(cle, inp.value));
+  return inp;
+}
+let triPersos = "apparition";   // apparition | alpha | bavardage
+const LIBELLE_TRI = { apparition: "Par ordre d'apparition", alpha: "Alphabétique (apparus)", bavardage: "Par bavardage" };
+function indiceBavardage() { const s = $("reglage-indice-bavardage"); return s ? s.value : "masque"; }
+// Rang de bavardage (0 = plus de répliques) par personnage, pour les étoiles.
+function rangsBavardage() {
+  const m = {};
+  ((etat.persos && etat.persos.nommes) || []).filter((p) => p.count >= 2)
+    .slice().sort((a, b) => b.count - a.count).forEach((p, i) => { m[p.cle] = i; });
+  return m;
+}
+// Étoile « poids » selon le mode : simple = ★ blanche (top 6) ; podium = 2 or, 2
+// argent, 2 bronze. Ne révèle pas l'identité.
+function etoilePoids(rang) {
+  const mode = indiceBavardage();
+  if (mode === "masque" || rang == null || rang >= 6) return null;
+  const et = document.createElement("span"); et.className = "perso-etoile"; et.textContent = "★";
+  if (mode === "simple") et.classList.add("blanc");
+  else et.classList.add(rang < 2 ? "or" : rang < 4 ? "argent" : "bronze");
+  return et;
+}
+function renderListePersos() {
+  const cont = $("liste-persos"); if (!cont) return;
+  cont.innerHTML = "";
+  const ov = etat.couleursPersonnages || {};
+  const base = etat.baseCouleurPerso || {};
+  const cacher = $("reglage-cacher-noms") ? $("reglage-cacher-noms").checked : true;
+  const rangs = rangsBavardage();
+  let liste = ((etat.persos && etat.persos.nommes) || []).filter((p) => p.count >= 2).slice();
+  if (triPersos === "bavardage") liste.sort((a, b) => b.count - a.count);
+  else if (triPersos === "alpha") liste = liste.filter((p) => p.first <= etat.index).sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
+  else liste.sort((a, b) => a.first - b.first);   // apparition
+  liste.forEach((p) => {
+    const masque = cacher && p.first > etat.index;
+    const ligne = document.createElement("div"); ligne.className = "perso-ligne";
+    ligne.appendChild(pastillePerso(p.cle, ov[p.cle] || base[p.cle]));
+    const nom = document.createElement("span");
+    nom.className = "perso-nom" + (masque ? " masque" : "");
+    nom.textContent = masque ? "Personnage à venir" : p.nom;
+    ligne.appendChild(nom);
+    const et = etoilePoids(rangs[p.cle]);
+    if (et) ligne.appendChild(et);
+    cont.appendChild(ligne);
+  });
+  const tri = $("dd-tri"); if (tri) tri.textContent = LIBELLE_TRI[triPersos];
+  renderTiers();
+}
+// Ligne « Personnages tiers », SOUS la liste (féminin à gauche pilote, masculin
+// à droite suit sauf modif manuelle).
+function renderTiers() {
+  const cont = $("dd-tiers"); if (!cont) return;
+  cont.innerHTML = "";
+  const data = etat.persos;
+  if (!data || !data.tiers || !data.tiers.total) return;
+  const ov = etat.couleursPersonnages || {};
+  const cF = ov["tiers-f"] || COUL_SEC2;
+  const cM = ov["tiers-m"] || cF;
+  const ligne = document.createElement("div"); ligne.className = "perso-ligne tiers";
+  const nom = document.createElement("span"); nom.className = "perso-nom"; nom.textContent = "Personnages tiers";
+  const sw = document.createElement("span"); sw.className = "tiers-swatches";
+  const gF = document.createElement("span"); gF.className = "tiers-g"; gF.textContent = "♀";
+  const inpF = document.createElement("input"); inpF.type = "color"; inpF.className = "perso-pastille"; inpF.value = hexOk(cF) ? cF : "#888888";
+  const gM = document.createElement("span"); gM.className = "tiers-g"; gM.textContent = "♂";
+  const inpM = document.createElement("input"); inpM.type = "color"; inpM.className = "perso-pastille"; inpM.value = hexOk(cM) ? cM : "#888888";
+  inpF.addEventListener("input", () => {
+    if (!etat.couleursPersonnages) etat.couleursPersonnages = {};
+    etat.couleursPersonnages["tiers-f"] = inpF.value;
+    if (!etat.couleursPersonnages["_tiersMlibre"]) etat.couleursPersonnages["tiers-m"] = inpF.value;
+    sauverCouleursPersos(); renderTiers();
+  });
+  inpM.addEventListener("input", () => {
+    if (!etat.couleursPersonnages) etat.couleursPersonnages = {};
+    etat.couleursPersonnages["tiers-m"] = inpM.value;
+    etat.couleursPersonnages["_tiersMlibre"] = true;
+    sauverCouleursPersos(); renderTiers();
+  });
+  sw.appendChild(gF); sw.appendChild(inpF); sw.appendChild(gM); sw.appendChild(inpM);
+  ligne.appendChild(nom); ligne.appendChild(sw);
+  cont.appendChild(ligne);
+}
+$("dd-tri")?.addEventListener("click", () => {
+  triPersos = triPersos === "apparition" ? "alpha" : triPersos === "alpha" ? "bavardage" : "apparition";
+  renderListePersos();
+});
+$("reglage-indice-bavardage")?.addEventListener("change", (e) => {
+  try { localStorage.setItem("bookreeder-indice-bavardage", e.target.value); } catch (err) {}
+  renderListePersos();
+});
+// Génère des couleurs DISTINCTES par personnage, calées sur l'intensité (saturation
+// / luminosité) de la palette du thème actif. Teintes réparties par l'angle d'or
+// → les personnages PRINCIPAUX (les plus fréquents) sont très éloignés sur la roue
+// (pas de cyan + bleu ciel, ni jaune + orange côte à côte). Remplace les couleurs
+// existantes (après confirmation).
+function genererCouleursPersos() {
+  if (!etat.persos || !etat.persos.nommes || !etat.persos.nommes.length) return;
+  if (!confirm("Générer automatiquement des couleurs distinctes pour les personnages ?\n\nCela remplacera les couleurs déjà attribuées.")) return;
+  const hsls = [COUL_PRINCIPAL, COUL_SEC1, COUL_SEC2]
+    .filter((c) => /^#/.test(c)).map((c) => { const [r, g, b] = hexVersRgb(c); return rgbVersHsl(r, g, b); });
+  const moy = (i, def) => hsls.length ? hsls.reduce((s, a) => s + a[i], 0) / hsls.length : def;
+  const S = moy(1, 62), L = moy(2, 55), h0 = Math.random() * 360;   // départ aléatoire
+  const OR = 137.508;   // angle d'or : teintes consécutives maximalement espacées
+  const persos = etat.persos.nommes.filter((p) => p.count >= 2);
+  const couleurs = {};
+  persos.forEach((p, i) => { couleurs[p.cle] = hslVersHex(h0 + i * OR, S, L); });
+  // Tiers : une teinte générique discrète, masculin = féminin (modifiable ensuite).
+  const cTiers = hslVersHex(h0 + persos.length * OR, S * 0.55, L);
+  couleurs["tiers-f"] = cTiers;
+  couleurs["tiers-m"] = cTiers;
+  etat.couleursPersonnages = couleurs;
+  try { localStorage.setItem("bookreeder-perso-couleurs", JSON.stringify(couleurs)); } catch (e) {}
+  if (window.MoteurDialogues && etat.mots && etat.mots.length) window.MoteurDialogues.calculerLocuteurs();
+  renderListePersos();
+  afficherChunk();
+}
+$("btn-generer-couleurs")?.addEventListener("click", genererCouleursPersos);
 
 $("reglage-modele")?.addEventListener("change", (e) => {
   activerModele(e.target.value);
