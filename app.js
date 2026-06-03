@@ -2739,7 +2739,7 @@ function pastillePerso(cle, hexCourant) {
   return inp;
 }
 let triPersos = "apparition";   // apparition | alpha | bavardage
-const LIBELLE_TRI = { apparition: "Par ordre d'apparition", alpha: "Alphabétique", bavardage: "Par poids de bavardage" };
+const LIBELLE_TRI = { apparition: "Par ordre d'apparition", alpha: "Par ordre alphabétique", bavardage: "Par poids de bavardage" };
 function indiceBavardage() { const s = $("reglage-indice-bavardage"); return s ? s.value : "masque"; }
 // Rang de bavardage (0 = plus de répliques) par personnage, pour les étoiles.
 function rangsBavardage() {
@@ -2772,25 +2772,31 @@ function renderListePersos() {
   liste.forEach((p) => {
     const masque = cacher && p.first > etat.index;
     const ligne = document.createElement("div"); ligne.className = "perso-ligne";
+    // Zone cliquable = <label> contenant la pastille (input color) + le nom. Taper
+    // n'importe où ouvre la roue chromatique : l'activation par <label> est native,
+    // donc honorée même sur iPhone (contrairement à un .click() programmatique).
+    const zone = document.createElement("label"); zone.className = "perso-couleur-zone";
     const past = pastillePerso(p.cle, ov[p.cle] || base[p.cle]);
-    ligne.appendChild(past);
+    zone.appendChild(past);
     const nom = document.createElement("span");
     nom.className = "perso-nom" + (masque ? " masque" : "");
     nom.textContent = masque ? "Personnage à venir" : p.nom;
-    ligne.appendChild(nom);
+    zone.appendChild(nom);
+    ligne.appendChild(zone);
     const et = etoilePoids(rangs[p.cle]);
     if (et) ligne.appendChild(et);
     const xb = document.createElement("button"); xb.className = "perso-suppr"; xb.textContent = "✕"; xb.title = "Supprimer / fusionner ce personnage";
     xb.addEventListener("click", (e) => { e.stopPropagation(); ouvrirPersoAction(p.cle, masque ? "ce personnage" : p.nom); });
     ligne.appendChild(xb);
-    // Appui long → bucket ; clic (hors ✕/pastille) → roue de couleur du perso.
+    // Appui long → bucket. On annule alors l'ouverture de la roue (preventDefault
+    // sur le clic du label, qui sinon activerait l'input color au relâchement).
     let lpT = null, long = false;
     const annuleLp = () => { if (lpT) { clearTimeout(lpT); lpT = null; } };
-    ligne.addEventListener("pointerdown", (e) => { if (e.target === xb || e.target.classList.contains("perso-pastille")) return; long = false; lpT = setTimeout(() => { long = true; ouvrirBucket(p.cle); }, 500); });
-    ligne.addEventListener("pointerup", annuleLp);
-    ligne.addEventListener("pointerleave", annuleLp);
-    ligne.addEventListener("pointercancel", annuleLp);
-    ligne.addEventListener("click", (e) => { if (e.target === xb || e.target.classList.contains("perso-pastille")) return; if (long) { long = false; return; } past.click(); });
+    zone.addEventListener("pointerdown", () => { long = false; lpT = setTimeout(() => { long = true; ouvrirBucket(p.cle); }, 500); });
+    zone.addEventListener("pointerup", annuleLp);
+    zone.addEventListener("pointerleave", annuleLp);
+    zone.addEventListener("pointercancel", annuleLp);
+    zone.addEventListener("click", (e) => { if (long) { e.preventDefault(); long = false; } });
     cont.appendChild(ligne);
   });
   const tri = $("dd-tri"); if (tri) tri.textContent = LIBELLE_TRI[triPersos];
