@@ -83,7 +83,7 @@
     return true;
   }
   // Titres/civilités à retirer de la tête d'un nom (« lord John Grey » → « John Grey »).
-  const TITRES = new Set("lord lady sir milord milady major colonel general capitaine lieutenant sergent comte comtesse duc duchesse baron baronne roi reine prince princesse docteur professeur monsieur madame mademoiselle pere mere oncle tante".split(" "));
+  const TITRES = new Set("lord lady sir milord milady major colonel general capitaine lieutenant sergent comte comtesse duc duchesse baron baronne roi reine prince princesse docteur professeur maitre maitresse dame monsieur madame mademoiselle pere mere oncle tante frere soeur cousin cousine petit petite jeune vieux vieille grand grande".split(" "));
   // Le mot à l'index j est-il un jeton de NOM PROPRE (majuscule initiale, pas un
   // verbe, hors mots interdits) ?
   function estNomToken(j) {
@@ -374,6 +374,31 @@
       if (disp.length > final[c].nom.length) final[c].nom = disp;
     });
     res.nommes = Object.values(final).sort((a, b) => a.first - b.first);   // ordre d'apparition
+    // 3) Enrichissement par la NARRATION : on déduit prénom↔nom à partir des noms
+    //    propres ACCOLÉS dans tout le texte (« John Grey », « Ian Murray »). On
+    //    n'enrichit que si une association est NETTEMENT dominante (anti-homonyme).
+    const estPropre = (j) => { const n = motNu(mots[j]); return !!n && /\p{Lu}/u.test(n[0] || "") && nomValide(normCle(n)) && !TITRES.has(normCle(n)); };
+    const suit = {}, prec = {};
+    for (let j = 0; j < mots.length - 1; j++) {
+      if (estDebutPhrase(j + 1)) continue;                 // pas à travers une fin de phrase
+      if (!estPropre(j) || !estPropre(j + 1)) continue;
+      const a = motNu(mots[j]), b = motNu(mots[j + 1]);
+      const ca = normCle(a), cb = normCle(b);
+      (suit[ca] = suit[ca] || {}); suit[ca][cb] = suit[ca][cb] || { n: 0, o: b }; suit[ca][cb].n++;
+      (prec[cb] = prec[cb] || {}); prec[cb][ca] = prec[cb][ca] || { n: 0, o: a }; prec[cb][ca].n++;
+    }
+    const meilleurVoisin = (m, w) => {
+      const d = m[w]; if (!d) return null;
+      let best = null, tot = 0;
+      for (const k in d) { tot += d[k].n; if (!best || d[k].n > best.n) best = d[k]; }
+      return (best && best.n >= 2 && best.n >= tot * 0.5) ? best : null;   // nettement dominant
+    };
+    res.nommes.forEach((e) => {
+      if (e.cle.indexOf(" ") >= 0) return;                 // déjà un nom complet
+      const av = meilleurVoisin(prec, e.cle), ap = meilleurVoisin(suit, e.cle);
+      if (av && (!ap || av.n >= ap.n)) e.nom = av.o + " " + e.nom;          // prénom devant (« John » + « Grey »)
+      else if (ap) e.nom = e.nom + " " + ap.o;                              // nom derrière (« Ian » + « Murray »)
+    });
     etat.persos = res;   // cache mémoire (réutilisé par calculerLocuteurs + l'UI)
     return res;
   }
