@@ -2369,7 +2369,7 @@ $("btn-fermer-infos").addEventListener("click", () => $("panneau-infos").classLi
 
 // --- Raccourci iOS « Partager » : popup de validation, puis lien iCloud (à venir)
 //     ou guide de création en attendant. ---
-const LIEN_RACCOURCI_IOS = "";   // lien iCloud du Raccourci (à renseigner quand fourni)
+const LIEN_RACCOURCI_IOS = "https://www.icloud.com/shortcuts/48638b4a576f48d483d33f13a5e83807";   // lien iCloud du Raccourci « Ouvrir avec BookReeder »
 $("btn-raccourci-ios")?.addEventListener("click", () => {
   $("raccourci-guide").classList.add("cache");
   $("raccourci-boutons").classList.remove("cache");
