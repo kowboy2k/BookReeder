@@ -407,7 +407,7 @@ html, body {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding-bottom: max(5vh, env(safe-area-inset-bottom));
+  padding-bottom: max(1.5vh, env(safe-area-inset-bottom));
   text-align: center;
   font-style: italic;
   font-size: 0.8rem;
