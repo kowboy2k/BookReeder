@@ -2943,25 +2943,38 @@ $("pa-oui")?.addEventListener("click", () => {                 // Supprimer le p
   b.forEach((f) => { curEnsemble("sup")[f.cle] = 1; });
   fermerPersoAction(); appliquerCuration();
 });
-$("pa-fusionner")?.addEventListener("click", () => {           // Fusionner ce perso (et son bucket) dans un autre
+let triFusion = "bavardage";   // apparition | alpha | bavardage (tri de la liste de fusion)
+function renderListeFusion() {
   const cont = $("pa-perso-liste"); cont.innerHTML = "";
-  ((etat.persos && etat.persos.nommes) || [])
-    .filter((p) => p.cle !== paPersoCourant && p.count >= 2)
-    .sort((a, b) => b.count - a.count)
-    .forEach((p) => {
-      const btn = document.createElement("button"); btn.textContent = p.nom;
-      btn.addEventListener("click", () => {
-        const b = (persoParCle(paPersoCourant) || {}).bucket || [];
-        b.forEach((f) => { curEnsemble("rat")[f.cle] = p.cle; if (etat.persosCuration.sep) delete etat.persosCuration.sep[f.cle]; });
-        fermerPersoAction(); appliquerCuration();
-      });
-      cont.appendChild(btn);
+  // Sélecteur de tri cliquable (même logique que la Feuille de personnages).
+  const tri = document.createElement("button"); tri.className = "fusion-tri";
+  tri.textContent = LIBELLE_TRI[triFusion] + "  ⇅";
+  tri.addEventListener("click", () => {
+    triFusion = triFusion === "apparition" ? "alpha" : triFusion === "alpha" ? "bavardage" : "apparition";
+    renderListeFusion();
+  });
+  cont.appendChild(tri);
+  let liste = ((etat.persos && etat.persos.nommes) || []).filter((p) => p.cle !== paPersoCourant && p.count >= 2);
+  if (triFusion === "bavardage") liste.sort((a, b) => b.count - a.count);
+  else if (triFusion === "alpha") liste = liste.filter((p) => p.first <= etat.index).sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
+  else liste.sort((a, b) => a.first - b.first);
+  liste.forEach((p) => {
+    const btn = document.createElement("button"); btn.textContent = p.nom;
+    btn.addEventListener("click", () => {
+      const b = (persoParCle(paPersoCourant) || {}).bucket || [];
+      b.forEach((f) => { curEnsemble("rat")[f.cle] = p.cle; if (etat.persosCuration.sep) delete etat.persosCuration.sep[f.cle]; });
+      fermerPersoAction(); appliquerCuration();
     });
+    cont.appendChild(btn);
+  });
   const annuler = document.createElement("button"); annuler.className = "liste-annuler"; annuler.textContent = "Annuler";
   annuler.addEventListener("click", fermerPersoAction);
   cont.appendChild(annuler);
+}
+$("pa-fusionner")?.addEventListener("click", () => {           // Fusionner ce perso (et son bucket) dans un autre
+  renderListeFusion();
   $("pa-choix").classList.add("cache"); $("pa-fusionner").classList.add("cache");
-  cont.classList.remove("cache");
+  $("pa-perso-liste").classList.remove("cache");
 });
 // Génère des couleurs DISTINCTES par personnage, calées sur l'intensité (saturation
 // / luminosité) de la palette du thème actif. Teintes réparties par l'angle d'or
