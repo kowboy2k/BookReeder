@@ -1089,17 +1089,31 @@ let couleursPerso = ["#74a228", "#aa4521", "#a22878"];
 // ou "perso" pour la palette personnalisée (3 roues chromatiques).
 // Applique une palette. `theme` = thème SOURCE de la palette (peut différer du
 // thème de fond : palette et thème sont indépendants). Par défaut, le thème mémorisé.
+// Toutes les palettes, tous thèmes confondus (+ « Accentuation »).
+function palettesToutes() {
+  const out = [];
+  ORDRE_THEMES.forEach((t) => (PALETTES[t] || []).forEach((p) => out.push({ nom: p.nom, c: p.c, theme: t })));
+  out.push(Object.assign({ theme: "" }, paletteAccentuation()));
+  return out;
+}
+// Couleur de police effective (pour « Aucune » : dialogues en couleur uniforme).
+function couleurPoliceCourante() {
+  const c = (getComputedStyle(document.documentElement).getPropertyValue("--couleur-police") || "").trim();
+  return c || (getComputedStyle(document.documentElement).getPropertyValue("--texte") || "#dddddd").trim();
+}
 function appliquerPaletteDialogue(nom, theme) {
-  if (nom === "perso") {
-    etat.paletteDialogue = "perso";
+  if (nom === "aucune") {
+    etat.paletteDialogue = "aucune"; etat.paletteTheme = "";
+  } else if (nom === "perso") {
+    etat.paletteDialogue = "perso"; etat.paletteTheme = "";
     [COUL_PRINCIPAL, COUL_SEC1, COUL_SEC2] = couleursPerso;
   } else {
-    const src = theme || etat.paletteTheme || themeActif();
-    const liste = palettesDuTheme(src);
-    let p = liste.find((x) => x.nom === nom);
-    if (!p) { p = palettesDuTheme(themeActif())[0]; etat.paletteTheme = themeActif(); }
-    else etat.paletteTheme = src;
-    etat.paletteDialogue = p.nom;
+    let p = null, src = theme || "";
+    if (src) p = palettesDuTheme(src).find((x) => x.nom === nom);
+    if (!p) { for (const t of ORDRE_THEMES) { const f = (PALETTES[t] || []).find((x) => x.nom === nom); if (f) { p = f; src = t; break; } } }
+    if (!p && nom === "Accentuation") { p = paletteAccentuation(); src = ""; }
+    if (!p) { src = themeActif(); p = palettesDuTheme(src)[0]; }
+    etat.paletteTheme = src; etat.paletteDialogue = p.nom;
     [COUL_PRINCIPAL, COUL_SEC1, COUL_SEC2] = p.c;
   }
   try {
@@ -1112,43 +1126,44 @@ function appliquerPaletteDialogue(nom, theme) {
 }
 // Couleurs effectives de la palette courante (pour le bouton + les pastilles).
 function couleursPaletteCourante() {
+  if (etat.paletteDialogue === "aucune") { const c = couleurPoliceCourante(); return [c, c, c]; }
   if (etat.paletteDialogue === "perso") return couleursPerso;
   const liste = palettesDuTheme(etat.paletteTheme || themeActif());
   const p = liste.find((x) => x.nom === etat.paletteDialogue) || liste[0];
   return p.c;
 }
-// Met à jour le bouton hybride (nom + 3 pastilles de la palette courante).
+// Met à jour le(s) bouton(s) palette (nom + 3 pastilles de la palette courante).
 function majBoutonPalette() {
-  const nom = etat.paletteDialogue === "perso" ? "Perso" : (etat.paletteDialogue || "Corail");
-  const elNom = $("btn-palette-nom"); if (elNom) elNom.textContent = nom;
-  const elPast = $("btn-palette-pastilles");
-  if (elPast) elPast.innerHTML = couleursPaletteCourante().map((col) => '<span class="pastille-mini" style="background:' + col + '"></span>').join("");
+  const nom = etat.paletteDialogue === "aucune" ? "Aucune"
+    : etat.paletteDialogue === "perso" ? "Perso" : (etat.paletteDialogue || "Mars");
+  const past = couleursPaletteCourante().map((col) => '<span class="pastille-mini" style="background:' + col + '"></span>').join("");
+  document.querySelectorAll(".btn-palette-nom").forEach((e) => { e.textContent = nom; });
+  document.querySelectorAll(".btn-palette-pastilles").forEach((e) => { e.innerHTML = past; });
 }
 const NOMS_THEMES = { midnight: "Midnight", mono: "Dark Mono", black: "Deep Black", sepia: "Sépia" };
 const ORDRE_THEMES = ["midnight", "mono", "black", "sepia"];
-let paletteThemeApercu = "midnight";   // thème dont on visualise les palettes (≠ thème de fond éventuellement)
-// Rend la section « Palette du thème X » du thème en aperçu.
+// Liste UNIQUE de palettes (tous thèmes confondus), « Aucune » et « Perso » en tête.
 function rendrePaletteListe() {
-  $("palette-titre-theme").textContent = "Palette " + (NOMS_THEMES[paletteThemeApercu] || "");
-  const liste = palettesDuTheme(paletteThemeApercu);
   const esc = (s) => (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;");
-  $("palette-liste").innerHTML = liste.map((p) => {
-    // « choisie » seulement si c'est la palette active ET du même thème source
-    // (« Accentuation » est commune à tous les thèmes).
-    const memeSource = p.nom === "Accentuation" || (etat.paletteTheme || themeActif()) === paletteThemeApercu;
-    const sel = (etat.paletteDialogue === p.nom && memeSource) ? " choisie" : "";
-    return '<button class="palette-item' + sel + '" data-nom="' + esc(p.nom) + '"' +
-      ' data-couleurs="' + p.c.join(",") + '">' +
-      '<div class="palette-tete"><b>' + esc(p.nom) + '</b>' +
-      '<span class="pastilles-mini">' + p.c.map((c) => '<span class="pastille-mini" style="background:' + c + '"></span>').join("") + '</span></div>' +
-      '</button>';
-  }).join("");
-  rendrePerso();
-  majApercuHaut();   // l'aperçu du haut reflète la palette active
+  const item = (label, cols, dataNom) => {
+    const sel = etat.paletteDialogue === dataNom ? " choisie" : "";
+    return '<button class="palette-item' + sel + '" data-nom="' + esc(dataNom) + '" data-couleurs="' + cols.join(",") + '">' +
+      '<div class="palette-tete"><b>' + esc(label) + '</b><span class="pastilles-mini">' +
+      cols.map((c) => '<span class="pastille-mini" style="background:' + c + '"></span>').join("") + '</span></div></button>';
+  };
+  const fp = couleurPoliceCourante();
+  let html = item("Aucune", [fp, fp, fp], "aucune") + item("Perso", couleursPerso, "perso");
+  palettesToutes().forEach((p) => { html += item(p.nom, p.c, p.nom); });
+  $("palette-liste").innerHTML = html;
+  // Roues « Perso » visibles seulement quand « Perso » est sélectionnée.
+  const roues = $("palette-perso-roues");
+  if (roues) {
+    roues.classList.toggle("cache", etat.paletteDialogue !== "perso");
+    ["voix1-couleur", "voix2-couleur", "voix3-couleur"].forEach((id, i) => { const el = $(id); if (el && /^#/.test(couleursPerso[i] || "")) el.value = couleursPerso[i]; });
+  }
+  majApercuHaut();
 }
-// Met à jour le bloc d'aperçu unique en haut : 3 répliques colorées (une par
-// couleur de la palette) ; les incises (« dit-elle », « répondit Claire »)
-// gardent la couleur du texte (non colorées).
+// Bloc d'aperçu : 3 répliques colorées (une par couleur) ; les incises gardent la couleur du texte.
 function majApercuHaut(c) {
   const cols = c || couleursPaletteCourante();
   const el = $("palette-apercu-haut");
@@ -1157,53 +1172,30 @@ function majApercuHaut(c) {
     '<div><span style="color:' + cols[1] + '">— Oui, tout à fait !</span> répondit Claire. <span style="color:' + cols[1] + '">C\'est stupéfiant…</span></div>' +
     '<div><span style="color:' + cols[2] + '">— Mais que faites vous ici ?</span></div>';
 }
-// Rend la carte « Mes couleurs » (pastilles) selon les 3 roues.
-function rendrePerso() {
-  $("palette-perso-pastilles").innerHTML = couleursPerso.map((c) => '<span class="pastille-mini" style="background:' + c + '"></span>').join("");
-  $("palette-item-perso").classList.toggle("choisie", etat.paletteDialogue === "perso");
-}
-function ouvrirPalette() {
-  paletteThemeApercu = themeActif();         // on démarre sur le thème de fond actuel
-  rendrePaletteListe();
-  $("panneau-palette").classList.remove("cache");
-}
+function ouvrirPalette() { rendrePaletteListe(); $("panneau-palette").classList.remove("cache"); }
 function fermerPalette() { $("panneau-palette").classList.add("cache"); }
-function naviguerThemePalette(pas) {
-  const i = ORDRE_THEMES.indexOf(paletteThemeApercu);
-  paletteThemeApercu = ORDRE_THEMES[(i + pas + ORDRE_THEMES.length) % ORDRE_THEMES.length];
-  rendrePaletteListe();
-}
-$("btn-palette").addEventListener("click", ouvrirPalette);
+document.querySelectorAll(".dd-palette-btn").forEach((b) => b.addEventListener("click", ouvrirPalette));
 $("btn-fermer-palette").addEventListener("click", fermerPalette);
 $("panneau-palette").addEventListener("click", (e) => { if (e.target.id === "panneau-palette") fermerPalette(); });
-$("palette-theme-prec").addEventListener("click", () => naviguerThemePalette(-1));
-$("palette-theme-suiv").addEventListener("click", () => naviguerThemePalette(1));
-// Choix d'une palette : on applique ses couleurs SANS changer le thème de fond
-// (palette et thème sont indépendants). On retient le thème source de la palette.
+// Choix d'une palette (Aucune / Perso / palette de n'importe quel thème).
 $("palette-liste").addEventListener("click", (e) => {
   const it = e.target.closest(".palette-item");
   if (!it) return;
-  appliquerPaletteDialogue(it.dataset.nom, paletteThemeApercu);
+  appliquerPaletteDialogue(it.dataset.nom);
   rendrePaletteListe();
 });
-// Aperçu dynamique au survol (PC) : le bloc du haut montre la palette survolée.
 $("palette-liste").addEventListener("pointerover", (e) => {
   const it = e.target.closest(".palette-item");
   if (it && it.dataset.couleurs) majApercuHaut(it.dataset.couleurs.split(","));
 });
 $("palette-liste").addEventListener("pointerleave", () => majApercuHaut());
-// Sélection de la palette personnalisée (clic sur sa carte).
-$("palette-item-perso").addEventListener("click", () => { appliquerPaletteDialogue("perso"); rendrePaletteListe(); });
-$("palette-item-perso").addEventListener("pointerover", () => majApercuHaut(couleursPerso));
-$("palette-item-perso").addEventListener("pointerleave", () => majApercuHaut());
 // Roues chromatiques Voix 1/2/3 : mettent à jour la palette perso en direct.
 ["voix1-couleur", "voix2-couleur", "voix3-couleur"].forEach((id, i) => {
   $(id).addEventListener("input", (e) => {
     couleursPerso[i] = e.target.value;
     try { localStorage.setItem("bookreeder-perso-voix", JSON.stringify(couleursPerso)); } catch (err) {}
-    appliquerPaletteDialogue("perso");   // bascule sur perso et applique
-    rendrePaletteListe();                // met à jour la sélection (retire .choisie des autres)
-    $("palette-item-perso").scrollIntoView({ block: "nearest" });   // focus sur « Mes couleurs »
+    appliquerPaletteDialogue("perso");
+    rendrePaletteListe();
   });
 });
 // Pendant l'ouverture d'une roue chromatique native, ne pas assombrir l'arrière-plan
@@ -2838,7 +2830,7 @@ function ajusterCadre() {
 // Effets de dialogue (élocution / multicolore / italique / fondu), mémorisés.
 function appliquerDialogues(val) {
   etat.dialoguesEffets = (val || "").split(",").map((s) => s.trim()).filter((s) => s && s !== "aucun");
-  $("reglage-dialogues").value = val || "aucun";
+  document.querySelectorAll(".dd-effet-select").forEach((s) => { s.value = val || "aucun"; });   // synchro Feuille ⇄ Réglages
   try { localStorage.setItem("bookreeder-dialogues", val || "aucun"); } catch (e) {}
   const rendre = () => { if (!ecranLecture.classList.contains("cache")) afficherChunk(); };
   if (besoinMoteurDialogues()) {
@@ -2853,7 +2845,7 @@ function appliquerDialogues(val) {
     rendre();
   }
 }
-$("reglage-dialogues").addEventListener("change", (e) => appliquerDialogues(e.target.value));
+document.querySelectorAll(".dd-effet-select").forEach((s) => s.addEventListener("change", (e) => appliquerDialogues(e.target.value)));
 (function initDialogues() {
   let v = "aucun";
   try { v = localStorage.getItem("bookreeder-dialogues") || "aucun"; } catch (e) {}

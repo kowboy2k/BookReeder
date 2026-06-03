@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=306">
+  <link rel="stylesheet" href="style.css?v=307">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -166,21 +166,12 @@
   <!-- Panneau de choix de la palette des dialogues : palettes du thème + personnalisée -->
   <div id="panneau-palette" class="cache">
     <div class="panneau-contenu">
-      <div id="palette-barre-theme">
-        <button id="palette-theme-prec" aria-label="Thème précédent">‹</button>
-        <h3 id="palette-titre-theme">Palette Midnight</h3>
-        <button id="palette-theme-suiv" aria-label="Thème suivant">›</button>
-      </div>
+      <h3 id="palette-titre-theme">Palette des dialogues</h3>
       <!-- Aperçu unique, en haut, qui change selon la palette choisie -->
       <div id="palette-apercu-haut" class="palette-apercu"></div>
       <div id="palette-defilable">
         <div id="palette-liste"></div>
-        <button id="palette-item-perso" class="palette-item" data-nom="perso">
-          <div class="palette-tete"><b>Perso</b>
-            <span id="palette-perso-pastilles" class="pastilles-mini"></span>
-          </div>
-        </button>
-        <div id="palette-perso-roues">
+        <div id="palette-perso-roues" class="cache">
           <input type="color" class="roue-voix" id="voix1-couleur" value="#74a228" aria-label="Voix 1">
           <input type="color" class="roue-voix" id="voix2-couleur" value="#aa4521" aria-label="Voix 2">
           <input type="color" class="roue-voix" id="voix3-couleur" value="#a22878" aria-label="Voix 3">
@@ -212,14 +203,14 @@
       </div>
       <div class="reglage reglage-inline">
         <label for="btn-palette">Palette des dialogues</label>
-        <button id="btn-palette" class="select-hybride">
-          <span id="btn-palette-nom">Corail</span>
-          <span id="btn-palette-pastilles" class="pastilles-mini"></span>
+        <button id="btn-palette" class="select-hybride dd-palette-btn">
+          <span class="btn-palette-nom">Mars</span>
+          <span class="btn-palette-pastilles pastilles-mini"></span>
         </button>
       </div>
       <div class="reglage reglage-inline">
         <label for="reglage-dialogues">Effet</label>
-        <select id="reglage-dialogues">
+        <select id="reglage-dialogues" class="dd-effet-select">
           <option value="aucun">Aucun effet</option>
           <option value="elocution">Élocution</option>
           <option value="multicolore">Multicolore</option>
@@ -504,6 +495,30 @@
       </div><!-- /page 1 -->
       <div class="reglages-page cache" data-page="2">
 
+      <div class="reglage reglage-inline">
+        <label for="reglage-dialogues-r3">Dialogues dynamiques</label>
+        <select id="reglage-dialogues-r3" class="dd-effet-select">
+          <option value="aucun">Aucun effet</option>
+          <option value="elocution">Élocution</option>
+          <option value="multicolore">Multicolore</option>
+          <option value="italique">Italique</option>
+          <option value="fondu">Fondu</option>
+          <option value="elocution,multicolore">Élocution + Multicolore</option>
+          <option value="elocution,italique">Élocution + Italique</option>
+          <option value="multicolore,italique">Multicolore + Italique</option>
+          <option value="elocution,multicolore,fondu">Élocution + Multicolore + Fondu</option>
+          <option value="elocution,multicolore,italique">Élocution + Multicolore + Italique</option>
+          <option value="elocution,multicolore,italique,fondu">Tous les effets</option>
+        </select>
+      </div>
+      <div class="reglage reglage-inline">
+        <label>Palette des dialogues</label>
+        <button id="btn-palette-r3" class="select-hybride dd-palette-btn">
+          <span class="btn-palette-nom">Mars</span>
+          <span class="btn-palette-pastilles pastilles-mini"></span>
+        </button>
+      </div>
+
       <div class="reglage reglage-duo">
         <label class="case-inline">Cartouche ORP <input type="checkbox" id="reglage-cadre" checked></label>
         <label class="case-inline">Repère central <input type="checkbox" id="reglage-orp" checked></label>
@@ -582,7 +597,7 @@
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="chargeur.js?v=306"></script>
-  <script src="app.js?v=306"></script>
+  <script src="chargeur.js?v=307"></script>
+  <script src="app.js?v=307"></script>
 </body>
 </html>

@@ -209,6 +209,8 @@
   function calculerLocuteurs() {
     const mots = etat.mots; const map = new Map();
     if (!mots || !mots.length) { etat.couleurParMot = map; return; }
+    // Palette « Aucune » : couleur uniforme → aucune coloration par personnage.
+    if (etat.paletteDialogue === "aucune") { etat.couleurParMot = map; etat.baseCouleurPerso = {}; return; }
     const debutBloc = (i) => i <= 0 || (etat.debutsPhrase && etat.debutsPhrase.has(i));
 
     // Résolution des noms (mot seul → nom complet canonique) construite sur tout le livre.
