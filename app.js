@@ -258,20 +258,17 @@ $("btn-coller-url")?.addEventListener("click", collerUrl);
 async function chargerArticleDepuisUrl(url) {
   const msg = $("message-chargement");
   url = (url || "").trim();
-  if (!/^https?:\/\//i.test(url)) { msg.textContent = "Lien invalide."; return; }
+  if (!/^https?:\/\//i.test(url)) { msg.textContent = ""; return; }
   msg.textContent = "Récupération du lien…";
   try {
     const rep = await fetch(CORS_PROXY + encodeURIComponent(url));
     if (!rep.ok) throw new Error("HTTP " + rep.status);
     const type = (rep.headers.get("content-type") || "").toLowerCase();
-    if (/epub|pdf|octet-stream/.test(type) || /\.(epub|pdf)(\?|#|$)/i.test(url)) {
-      msg.textContent = "EPUB/PDF en ligne : nécessite ton relais privé (bientôt). Pour l'instant, articles seulement.";
-      return;
-    }
+    if (/epub|pdf|octet-stream/.test(type) || /\.(epub|pdf)(\?|#|$)/i.test(url)) { msg.textContent = ""; return; }
     const html = await rep.text();
     chargerArticle(html, url);
   } catch (e) {
-    msg.textContent = "Échec : " + e.message + " — le site bloque peut-être l'accès.";
+    msg.textContent = "";   // erreur : on n'affiche rien (l'utilisateur refera un copier/coller)
   }
 }
 async function collerUrl() {
@@ -385,7 +382,7 @@ function chargerArticle(html, url) {
   const doc = new DOMParser().parseFromString(html, "text/html");
   const { titre, source, chapitres } = extraireArticle(doc, url);
   const assez = chapitres.some((c) => (c.texte || "").length > 200);
-  if (!chapitres.length || !assez) { msg.textContent = "Texte de l'article introuvable sur cette page."; return; }
+  if (!chapitres.length || !assez) { msg.textContent = ""; return; }
   carteCasseReset();
   etat.chapitresTexte = chapitres;
   etat.notes = [];
