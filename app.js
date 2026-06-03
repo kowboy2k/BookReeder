@@ -969,22 +969,26 @@ const PALETTES = {
     { nom: "Mars",      c: ["#cf5a33", "#b0479a", "#74a228"] },
     { nom: "Lagon",     c: ["#3fa9c9", "#8abf3a", "#d98a3a"] },
     { nom: "Verger",    c: ["#8abf3a", "#d3a946", "#d22d21"] },
+    { nom: "Aurore",    c: ["#5ac0a0", "#d9b53f", "#c95a8f"] },
   ],
   // Mêmes palettes que Midnight, déclinées selon le contraste de chaque thème :
   black: [   // Deep Black : teintes franches (échangées depuis Sépia)
     { nom: "Néon",      c: ["#bc4824", "#8f3d8f", "#278647"] },
     { nom: "Cosmos",    c: ["#2e6f9e", "#309161", "#b67820"] },
     { nom: "Spectre",   c: ["#358d35", "#c48c1c", "#b62d20"] },
+    { nom: "Ombre",     c: ["#3a86c4", "#c0392b", "#27a06a"] },
   ],
   mono: [    // Dark Mono : teintes douces (désaturées, saturation +15 %)
     { nom: "Galet",     c: ["#b07867", "#987474", "#77914d"] },
     { nom: "Brouillard",c: ["#719eac", "#8da36b", "#bc946b"] },
     { nom: "Lichen",    c: ["#8da36b", "#b8a575", "#b9564e"] },
+    { nom: "Brume",     c: ["#7d8fb0", "#9bb07d", "#b08a7d"] },
   ],
   sepia: [   // Sépia : teintes vives + claires (échangées depuis Deep Black)
     { nom: "Terre",     c: ["#e27e5d", "#cd67b8", "#98d82f"] },
     { nom: "Ardoise",   c: ["#67c2de", "#a8d85e", "#eaa966"] },
     { nom: "Automne",   c: ["#a8d85e", "#e5c371", "#eb5045"] },
+    { nom: "Miel",      c: ["#e0a85d", "#7ec2de", "#d86f9f"] },
   ],
 };
 // Palettes affichées pour un thème = 3 palettes fixes + 1 palette « Accentuation »
@@ -1082,7 +1086,7 @@ function paletteAccentuation() {
   const [r, g, b] = accentRgb();
   const [L, A, B] = rgbVersLab(r, g, b);
   const v = (db) => rgbHex(...labVersRgb(L, A, B + db));
-  return { nom: "Accentuation", accent: true, c: [v(0), v(-60), v(60)] };
+  return { nom: "Accentuation +", accent: true, c: [v(0), v(-60), v(60)] };
 }
 // Couleurs courantes de la palette PERSONNALISÉE (Voix 1/2/3), mémorisées.
 let couleursPerso = ["#74a228", "#aa4521", "#a22878"];
@@ -1112,7 +1116,7 @@ function appliquerPaletteDialogue(nom, theme) {
     let p = null, src = theme || "";
     if (src) p = palettesDuTheme(src).find((x) => x.nom === nom);
     if (!p) { for (const t of ORDRE_THEMES) { const f = (PALETTES[t] || []).find((x) => x.nom === nom); if (f) { p = f; src = t; break; } } }
-    if (!p && nom === "Accentuation") { p = paletteAccentuation(); src = ""; }
+    if (!p && nom === "Accentuation +") { p = paletteAccentuation(); src = ""; }
     if (!p) { src = themeActif(); p = palettesDuTheme(src)[0]; }
     etat.paletteTheme = src; etat.paletteDialogue = p.nom;
     [COUL_PRINCIPAL, COUL_SEC1, COUL_SEC2] = p.c;
@@ -1144,26 +1148,35 @@ function majBoutonPalette() {
 const NOMS_THEMES = { midnight: "Midnight", mono: "Dark Mono", black: "Deep Black", sepia: "Sépia" };
 const ORDRE_THEMES = ["midnight", "mono", "black", "sepia"];
 let paletteThemeApercu = "midnight";   // thème dont on visualise les palettes
-// Liste des palettes DU THÈME en aperçu : « Aucune », « Accentuation », « Perso »
-// en tête, puis les palettes du thème ; les 3 roues Perso sont hors liste, dessous.
+let palettePreview = null;             // sélection PROVISOIRE (appliquée à la fermeture)
+// Couleurs d'une palette par son nom (pour l'aperçu provisoire).
+function couleursDePalette(nom) {
+  if (nom === "aucune") { const c = couleurPoliceCourante(); return [c, c, c]; }
+  if (nom === "perso") return couleursPerso;
+  if (nom === "Accentuation +") return paletteAccentuation().c;
+  for (const t of ORDRE_THEMES) { const p = (PALETTES[t] || []).find((x) => x.nom === nom); if (p) return p.c; }
+  const c = couleurPoliceCourante(); return [c, c, c];
+}
+// Liste : palettes du thème, puis « Aucune », « Accentuation + », « Perso ».
+// Les 3 roues Perso sont hors liste, dessous.
 function rendrePaletteListe() {
   $("palette-titre-theme").textContent = "Palette " + (NOMS_THEMES[paletteThemeApercu] || "");
   const esc = (s) => (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;");
   const item = (label, cols, dataNom, theme) => {
-    const sel = etat.paletteDialogue === dataNom ? " choisie" : "";
+    const sel = palettePreview === dataNom ? " choisie" : "";
     return '<button class="palette-item' + sel + '" data-nom="' + esc(dataNom) + '" data-theme="' + (theme || "") + '" data-couleurs="' + cols.join(",") + '">' +
       '<div class="palette-tete"><b>' + esc(label) + '</b><span class="pastilles-mini">' +
       cols.map((c) => '<span class="pastille-mini" style="background:' + c + '"></span>').join("") + '</span></div></button>';
   };
   const fp = couleurPoliceCourante();
-  const acc = paletteAccentuation();
-  let html = item("Aucune", [fp, fp, fp], "aucune", "") +
-    item("Accentuation", acc.c, "Accentuation", "") +
-    item("Perso", couleursPerso, "perso", "");
+  let html = "";
   (PALETTES[paletteThemeApercu] || []).forEach((p) => { html += item(p.nom, p.c, p.nom, paletteThemeApercu); });
+  html += item("Aucune", [fp, fp, fp], "aucune", "") +
+    item("Accentuation +", paletteAccentuation().c, "Accentuation +", "") +
+    item("Perso", couleursPerso, "perso", "");
   $("palette-liste").innerHTML = html;
   ["voix1-couleur", "voix2-couleur", "voix3-couleur"].forEach((id, i) => { const el = $(id); if (el && /^#/.test(couleursPerso[i] || "")) el.value = couleursPerso[i]; });
-  majApercuHaut();
+  majApercuHaut(couleursDePalette(palettePreview));
 }
 // Bloc d'aperçu : 3 répliques colorées (une par couleur) ; les incises gardent la couleur du texte.
 function majApercuHaut(c) {
@@ -1174,8 +1187,32 @@ function majApercuHaut(c) {
     '<div><span style="color:' + cols[1] + '">— Oui, tout à fait !</span> répondit Claire. <span style="color:' + cols[1] + '">C\'est stupéfiant…</span></div>' +
     '<div><span style="color:' + cols[2] + '">— Mais que faites vous ici ?</span></div>';
 }
-function ouvrirPalette() { paletteThemeApercu = etat.paletteTheme || themeActif(); rendrePaletteListe(); $("panneau-palette").classList.remove("cache"); }
-function fermerPalette() { $("panneau-palette").classList.add("cache"); }
+function ouvrirPalette() {
+  palettePreview = etat.paletteDialogue || "aucune";
+  paletteThemeApercu = etat.paletteTheme || themeActif();
+  rendrePaletteListe();
+  $("panneau-palette").classList.remove("cache");
+}
+// La palette n'est RÉELLEMENT appliquée qu'à la fermeture. Avertissement si des
+// couleurs ont été attribuées manuellement aux personnages (elles seront effacées).
+function fermerPalette() {
+  const diff = palettePreview && palettePreview !== etat.paletteDialogue;
+  if (diff) {
+    const ov = etat.couleursPersonnages || {};
+    const manuel = Object.keys(ov).some((k) => k !== "_tiersMlibre");
+    if (manuel && !confirm("Appliquer la palette « " + palettePreview + " » ?\n\nLes couleurs que tu as attribuées manuellement aux personnages seront remplacées.")) {
+      $("panneau-palette").classList.add("cache"); return;   // annulé : on garde la palette actuelle
+    }
+    if (manuel) { etat.couleursPersonnages = {}; try { localStorage.setItem("bookreeder-perso-couleurs", "{}"); } catch (e) {} }
+    const theme = (palettePreview === "perso" || palettePreview === "aucune" || palettePreview === "Accentuation +") ? "" : paletteThemeApercu;
+    appliquerPaletteDialogue(palettePreview, theme);
+    if (typeof renderListePersos === "function") renderListePersos();
+  } else if (palettePreview === "perso") {
+    appliquerPaletteDialogue("perso");   // perso retouché : ré-applique (sans toucher aux couleurs manuelles)
+    if (typeof renderListePersos === "function") renderListePersos();
+  }
+  $("panneau-palette").classList.add("cache");
+}
 function naviguerThemePalette(pas) {
   const i = ORDRE_THEMES.indexOf(paletteThemeApercu);
   paletteThemeApercu = ORDRE_THEMES[(i + pas + ORDRE_THEMES.length) % ORDRE_THEMES.length];
@@ -1186,24 +1223,24 @@ $("btn-fermer-palette").addEventListener("click", fermerPalette);
 $("panneau-palette").addEventListener("click", (e) => { if (e.target.id === "panneau-palette") fermerPalette(); });
 $("palette-theme-prec").addEventListener("click", () => naviguerThemePalette(-1));
 $("palette-theme-suiv").addEventListener("click", () => naviguerThemePalette(1));
-// Choix d'une palette (Aucune / Accentuation / Perso / palette du thème affiché).
+// Choix d'une palette = sélection PROVISOIRE (appliquée seulement à la fermeture).
 $("palette-liste").addEventListener("click", (e) => {
   const it = e.target.closest(".palette-item");
   if (!it) return;
-  appliquerPaletteDialogue(it.dataset.nom, it.dataset.theme || undefined);
+  palettePreview = it.dataset.nom;
   rendrePaletteListe();
 });
 $("palette-liste").addEventListener("pointerover", (e) => {
   const it = e.target.closest(".palette-item");
   if (it && it.dataset.couleurs) majApercuHaut(it.dataset.couleurs.split(","));
 });
-$("palette-liste").addEventListener("pointerleave", () => majApercuHaut());
-// Roues chromatiques Voix 1/2/3 : mettent à jour la palette perso en direct.
+$("palette-liste").addEventListener("pointerleave", () => majApercuHaut(couleursDePalette(palettePreview)));
+// Roues Voix 1/2/3 : modifient la palette Perso (provisoire) en direct.
 ["voix1-couleur", "voix2-couleur", "voix3-couleur"].forEach((id, i) => {
   $(id).addEventListener("input", (e) => {
     couleursPerso[i] = e.target.value;
     try { localStorage.setItem("bookreeder-perso-voix", JSON.stringify(couleursPerso)); } catch (err) {}
-    appliquerPaletteDialogue("perso");
+    palettePreview = "perso";
     rendrePaletteListe();
   });
 });
@@ -2724,20 +2761,32 @@ function renderListePersos() {
   liste.forEach((p) => {
     const masque = cacher && p.first > etat.index;
     const ligne = document.createElement("div"); ligne.className = "perso-ligne";
-    ligne.appendChild(pastillePerso(p.cle, ov[p.cle] || base[p.cle]));
+    const past = pastillePerso(p.cle, ov[p.cle] || base[p.cle]);
+    ligne.appendChild(past);
     const nom = document.createElement("span");
     nom.className = "perso-nom" + (masque ? " masque" : "");
     nom.textContent = masque ? "Personnage à venir" : p.nom;
     ligne.appendChild(nom);
     const et = etoilePoids(rangs[p.cle]);
     if (et) ligne.appendChild(et);
-    // Appui long sur la ligne (hors pastille) → bucket des formes détectées.
-    let lpT = null;
+    const xb = document.createElement("button"); xb.className = "perso-suppr"; xb.textContent = "✕"; xb.title = "Supprimer ce personnage";
+    xb.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      if (await confirmer("Supprimer ce personnage ?")) {
+        const b = (persoParCle(p.cle) || {}).bucket || [];
+        b.forEach((f) => { curEnsemble("sup")[f.cle] = 1; });
+        appliquerCuration();
+      }
+    });
+    ligne.appendChild(xb);
+    // Appui long → bucket ; clic (hors ✕/pastille) → roue de couleur du perso.
+    let lpT = null, long = false;
     const annuleLp = () => { if (lpT) { clearTimeout(lpT); lpT = null; } };
-    ligne.addEventListener("pointerdown", (e) => { if (e.target.classList.contains("perso-pastille")) return; lpT = setTimeout(() => ouvrirBucket(p.cle), 500); });
+    ligne.addEventListener("pointerdown", (e) => { if (e.target === xb || e.target.classList.contains("perso-pastille")) return; long = false; lpT = setTimeout(() => { long = true; ouvrirBucket(p.cle); }, 500); });
     ligne.addEventListener("pointerup", annuleLp);
     ligne.addEventListener("pointerleave", annuleLp);
     ligne.addEventListener("pointercancel", annuleLp);
+    ligne.addEventListener("click", (e) => { if (e.target === xb || e.target.classList.contains("perso-pastille")) return; if (long) { long = false; return; } past.click(); });
     cont.appendChild(ligne);
   });
   const tri = $("dd-tri"); if (tri) tri.textContent = LIBELLE_TRI[triPersos];
@@ -2797,6 +2846,18 @@ function appliquerCuration() {
   if (!ecranLecture.classList.contains("cache")) afficherChunk();
 }
 function persoParCle(cle) { return ((etat.persos && etat.persos.nommes) || []).find((p) => p.cle === cle); }
+// Petite fenêtre de confirmation générique (Oui/Non) → promesse booléenne.
+function confirmer(message) {
+  return new Promise((resolve) => {
+    const p = $("panneau-confirm"); if (!p) { resolve(window.confirm(message)); return; }
+    $("confirm-titre").textContent = message;
+    const oui = $("confirm-oui"), non = $("confirm-non");
+    const fin = (v) => { p.classList.add("cache"); oui.removeEventListener("click", onO); non.removeEventListener("click", onN); resolve(v); };
+    const onO = () => fin(true), onN = () => fin(false);
+    oui.addEventListener("click", onO); non.addEventListener("click", onN);
+    p.classList.remove("cache");
+  });
+}
 function ouvrirBucket(cle) { bucketCleCourant = cle; renderBucket(); $("panneau-bucket").classList.remove("cache"); }
 function renderBucket() {
   const p = persoParCle(bucketCleCourant);

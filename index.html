@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=311">
+  <link rel="stylesheet" href="style.css?v=312">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -175,11 +175,11 @@
       <div id="palette-apercu-haut" class="palette-apercu"></div>
       <div id="palette-defilable">
         <div id="palette-liste"></div>
-        <div id="palette-perso-roues">
-          <input type="color" class="roue-voix" id="voix1-couleur" value="#74a228" aria-label="Voix 1">
-          <input type="color" class="roue-voix" id="voix2-couleur" value="#aa4521" aria-label="Voix 2">
-          <input type="color" class="roue-voix" id="voix3-couleur" value="#a22878" aria-label="Voix 3">
-        </div>
+      </div>
+      <div id="palette-perso-roues">
+        <input type="color" class="roue-voix" id="voix1-couleur" value="#74a228" aria-label="Voix 1">
+        <input type="color" class="roue-voix" id="voix2-couleur" value="#aa4521" aria-label="Voix 2">
+        <input type="color" class="roue-voix" id="voix3-couleur" value="#a22878" aria-label="Voix 3">
       </div>
       <button id="btn-fermer-palette">OK</button>
     </div>
@@ -190,13 +190,6 @@
   <div id="panneau-dialogues-dyn" class="cache">
     <div class="panneau-contenu">
       <h2>Feuille de personnages</h2>
-      <button id="dd-tri" type="button">Par ordre d'apparition</button>
-      <div id="liste-persos"></div>
-      <div id="dd-tiers"></div>
-      <div class="reglage reglage-case" id="dd-cacher">
-        <label for="reglage-cacher-noms">Masquer les personnages à venir (anti-spoil)</label>
-        <input type="checkbox" id="reglage-cacher-noms" checked>
-      </div>
       <div class="reglage reglage-inline">
         <label for="reglage-indice-bavardage">Indice de bavardage</label>
         <select id="reglage-indice-bavardage">
@@ -204,13 +197,6 @@
           <option value="simple">Simple</option>
           <option value="podium">Podium</option>
         </select>
-      </div>
-      <div class="reglage reglage-inline">
-        <label for="btn-palette">Palette des dialogues</label>
-        <button id="btn-palette" class="select-hybride dd-palette-btn">
-          <span class="btn-palette-nom">Mars</span>
-          <span class="btn-palette-pastilles pastilles-mini"></span>
-        </button>
       </div>
       <div class="reglage reglage-inline">
         <label for="reglage-dialogues">Effet</label>
@@ -228,6 +214,13 @@
           <option value="elocution,multicolore,italique,fondu">Tous les effets</option>
         </select>
       </div>
+      <div class="reglage reglage-case" id="dd-cacher">
+        <label for="reglage-cacher-noms">Masquer les personnages à venir (anti-spoil)</label>
+        <input type="checkbox" id="reglage-cacher-noms" checked>
+      </div>
+      <button id="dd-tri" type="button">Par ordre d'apparition</button>
+      <div id="liste-persos"></div>
+      <div id="dd-tiers"></div>
       <button id="btn-fermer-dialogues-dyn">OK</button>
       <button id="btn-generer-couleurs" type="button" class="lien-texte">Générer des couleurs aléatoires</button>
     </div>
@@ -275,6 +268,17 @@
       </div>
       <button id="ba-supprimer">Supprimer</button>
       <div id="ba-perso-liste" class="cache"></div>
+    </div>
+  </div>
+
+  <!-- Confirmation générique (Oui / Non) -->
+  <div id="panneau-confirm" class="cache">
+    <div class="panneau-contenu">
+      <h2 id="confirm-titre">?</h2>
+      <div id="confirm-boutons">
+        <button id="confirm-oui">Oui</button>
+        <button id="confirm-non">Non</button>
+      </div>
     </div>
   </div>
 
@@ -522,21 +526,6 @@
       </div><!-- /page 1 -->
       <div class="reglages-page cache" data-page="2">
 
-      <div class="reglage reglage-duo">
-        <label class="case-inline">Cartouche ORP <input type="checkbox" id="reglage-cadre" checked></label>
-        <label class="case-inline">Repère central <input type="checkbox" id="reglage-orp" checked></label>
-      </div>
-
-      <div class="reglage" id="bloc-ecart-reperes">
-        <label for="reglage-ecart-reperes">Écartement des repères : <span id="valeur-ecart-reperes">40</span> px</label>
-        <input type="range" id="reglage-ecart-reperes" min="10" max="120" step="2" value="40">
-      </div>
-
-      <div class="reglage">
-        <label for="reglage-long-reperes">Longueur des repères : <span id="valeur-long-reperes">14</span> px</label>
-        <input type="range" id="reglage-long-reperes" min="4" max="40" step="2" value="14">
-      </div>
-
       <div class="reglage reglage-inline">
         <label for="reglage-theme">Thème</label>
         <select id="reglage-theme">
@@ -561,23 +550,6 @@
       </div>
 
       <div class="reglage reglage-inline">
-        <label for="reglage-dialogues-r3">Dialogues dynamiques</label>
-        <select id="reglage-dialogues-r3" class="dd-effet-select">
-          <option value="aucun">Aucun effet</option>
-          <option value="elocution">Élocution</option>
-          <option value="multicolore">Multicolore</option>
-          <option value="italique">Italique</option>
-          <option value="fondu">Fondu</option>
-          <option value="elocution,multicolore">Élocution + Multicolore</option>
-          <option value="elocution,italique">Élocution + Italique</option>
-          <option value="multicolore,italique">Multicolore + Italique</option>
-          <option value="elocution,multicolore,fondu">Élocution + Multicolore + Fondu</option>
-          <option value="elocution,multicolore,italique">Élocution + Multicolore + Italique</option>
-          <option value="elocution,multicolore,italique,fondu">Tous les effets</option>
-        </select>
-      </div>
-
-      <div class="reglage reglage-inline">
         <label for="reglage-marqueur-note">Marqueur d'annotations</label>
         <select id="reglage-marqueur-note">
           <option value="aucun">Aucun</option>
@@ -599,11 +571,43 @@
       </div>
 
       <div class="reglage reglage-inline">
+        <label for="reglage-dialogues-r3">Dialogues dynamiques</label>
+        <select id="reglage-dialogues-r3" class="dd-effet-select">
+          <option value="aucun">Aucun effet</option>
+          <option value="elocution">Élocution</option>
+          <option value="multicolore">Multicolore</option>
+          <option value="italique">Italique</option>
+          <option value="fondu">Fondu</option>
+          <option value="elocution,multicolore">Élocution + Multicolore</option>
+          <option value="elocution,italique">Élocution + Italique</option>
+          <option value="multicolore,italique">Multicolore + Italique</option>
+          <option value="elocution,multicolore,fondu">Élocution + Multicolore + Fondu</option>
+          <option value="elocution,multicolore,italique">Élocution + Multicolore + Italique</option>
+          <option value="elocution,multicolore,italique,fondu">Tous les effets</option>
+        </select>
+      </div>
+
+      <div class="reglage reglage-inline">
         <label>Palette des dialogues</label>
         <button id="btn-palette-r3" class="select-hybride dd-palette-btn">
           <span class="btn-palette-nom">Mars</span>
           <span class="btn-palette-pastilles pastilles-mini"></span>
         </button>
+      </div>
+
+      <div class="reglage reglage-duo">
+        <label class="case-inline">Cartouche ORP <input type="checkbox" id="reglage-cadre" checked></label>
+        <label class="case-inline">Repère central <input type="checkbox" id="reglage-orp" checked></label>
+      </div>
+
+      <div class="reglage" id="bloc-ecart-reperes">
+        <label for="reglage-ecart-reperes">Écartement des repères : <span id="valeur-ecart-reperes">40</span> px</label>
+        <input type="range" id="reglage-ecart-reperes" min="10" max="120" step="2" value="40">
+      </div>
+
+      <div class="reglage">
+        <label for="reglage-long-reperes">Longueur des repères : <span id="valeur-long-reperes">14</span> px</label>
+        <input type="range" id="reglage-long-reperes" min="4" max="40" step="2" value="14">
       </div>
 
       </div><!-- /page 2 -->
@@ -616,7 +620,7 @@
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="chargeur.js?v=311"></script>
-  <script src="app.js?v=311"></script>
+  <script src="chargeur.js?v=312"></script>
+  <script src="app.js?v=312"></script>
 </body>
 </html>
