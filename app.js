@@ -1142,25 +1142,26 @@ function majBoutonPalette() {
 }
 const NOMS_THEMES = { midnight: "Midnight", mono: "Dark Mono", black: "Deep Black", sepia: "Sépia" };
 const ORDRE_THEMES = ["midnight", "mono", "black", "sepia"];
-// Liste UNIQUE de palettes (tous thèmes confondus), « Aucune » et « Perso » en tête.
+let paletteThemeApercu = "midnight";   // thème dont on visualise les palettes
+// Liste des palettes DU THÈME en aperçu : « Aucune », « Accentuation », « Perso »
+// en tête, puis les palettes du thème ; les 3 roues Perso sont hors liste, dessous.
 function rendrePaletteListe() {
+  $("palette-titre-theme").textContent = "Palette " + (NOMS_THEMES[paletteThemeApercu] || "");
   const esc = (s) => (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;");
-  const item = (label, cols, dataNom) => {
+  const item = (label, cols, dataNom, theme) => {
     const sel = etat.paletteDialogue === dataNom ? " choisie" : "";
-    return '<button class="palette-item' + sel + '" data-nom="' + esc(dataNom) + '" data-couleurs="' + cols.join(",") + '">' +
+    return '<button class="palette-item' + sel + '" data-nom="' + esc(dataNom) + '" data-theme="' + (theme || "") + '" data-couleurs="' + cols.join(",") + '">' +
       '<div class="palette-tete"><b>' + esc(label) + '</b><span class="pastilles-mini">' +
       cols.map((c) => '<span class="pastille-mini" style="background:' + c + '"></span>').join("") + '</span></div></button>';
   };
   const fp = couleurPoliceCourante();
-  let html = item("Aucune", [fp, fp, fp], "aucune") + item("Perso", couleursPerso, "perso");
-  palettesToutes().forEach((p) => { html += item(p.nom, p.c, p.nom); });
+  const acc = paletteAccentuation();
+  let html = item("Aucune", [fp, fp, fp], "aucune", "") +
+    item("Accentuation", acc.c, "Accentuation", "") +
+    item("Perso", couleursPerso, "perso", "");
+  (PALETTES[paletteThemeApercu] || []).forEach((p) => { html += item(p.nom, p.c, p.nom, paletteThemeApercu); });
   $("palette-liste").innerHTML = html;
-  // Roues « Perso » visibles seulement quand « Perso » est sélectionnée.
-  const roues = $("palette-perso-roues");
-  if (roues) {
-    roues.classList.toggle("cache", etat.paletteDialogue !== "perso");
-    ["voix1-couleur", "voix2-couleur", "voix3-couleur"].forEach((id, i) => { const el = $(id); if (el && /^#/.test(couleursPerso[i] || "")) el.value = couleursPerso[i]; });
-  }
+  ["voix1-couleur", "voix2-couleur", "voix3-couleur"].forEach((id, i) => { const el = $(id); if (el && /^#/.test(couleursPerso[i] || "")) el.value = couleursPerso[i]; });
   majApercuHaut();
 }
 // Bloc d'aperçu : 3 répliques colorées (une par couleur) ; les incises gardent la couleur du texte.
@@ -1172,16 +1173,23 @@ function majApercuHaut(c) {
     '<div><span style="color:' + cols[1] + '">— Oui, tout à fait !</span> répondit Claire. <span style="color:' + cols[1] + '">C\'est stupéfiant…</span></div>' +
     '<div><span style="color:' + cols[2] + '">— Mais que faites vous ici ?</span></div>';
 }
-function ouvrirPalette() { rendrePaletteListe(); $("panneau-palette").classList.remove("cache"); }
+function ouvrirPalette() { paletteThemeApercu = etat.paletteTheme || themeActif(); rendrePaletteListe(); $("panneau-palette").classList.remove("cache"); }
 function fermerPalette() { $("panneau-palette").classList.add("cache"); }
+function naviguerThemePalette(pas) {
+  const i = ORDRE_THEMES.indexOf(paletteThemeApercu);
+  paletteThemeApercu = ORDRE_THEMES[(i + pas + ORDRE_THEMES.length) % ORDRE_THEMES.length];
+  rendrePaletteListe();
+}
 document.querySelectorAll(".dd-palette-btn").forEach((b) => b.addEventListener("click", ouvrirPalette));
 $("btn-fermer-palette").addEventListener("click", fermerPalette);
 $("panneau-palette").addEventListener("click", (e) => { if (e.target.id === "panneau-palette") fermerPalette(); });
-// Choix d'une palette (Aucune / Perso / palette de n'importe quel thème).
+$("palette-theme-prec").addEventListener("click", () => naviguerThemePalette(-1));
+$("palette-theme-suiv").addEventListener("click", () => naviguerThemePalette(1));
+// Choix d'une palette (Aucune / Accentuation / Perso / palette du thème affiché).
 $("palette-liste").addEventListener("click", (e) => {
   const it = e.target.closest(".palette-item");
   if (!it) return;
-  appliquerPaletteDialogue(it.dataset.nom);
+  appliquerPaletteDialogue(it.dataset.nom, it.dataset.theme || undefined);
   rendrePaletteListe();
 });
 $("palette-liste").addEventListener("pointerover", (e) => {
