@@ -2644,7 +2644,7 @@ function ouvrirDialoguesDyn() {
   pause();
   const apres = () => {
     if (window.MoteurDialogues) {
-      if (!etat.persos) { etat.persos = window.MoteurDialogues.analyserPersonnages(); planifierSauvegardeProfil(); }
+      if (!etat.persos || !etat.persos.resolution) { etat.persos = window.MoteurDialogues.analyserPersonnages(); planifierSauvegardeProfil(); }
       if (etat.mots && etat.mots.length) window.MoteurDialogues.calculerLocuteurs();   // remplit baseCouleurPerso
     }
     renderListePersos();

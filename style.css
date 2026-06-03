@@ -1155,7 +1155,7 @@ html, body {
 /* Panneau de choix de palette : ancré en haut (≈position centrée actuelle) pour
    pouvoir s'étendre uniquement vers le bas sans remonter. */
 #panneau-palette {
-  position: fixed; inset: 0; z-index: 60;
+  position: fixed; inset: 0; z-index: 80;   /* au-dessus du panneau « Feuille de personnages » (60) */
   background: rgba(0,0,0,0.6); display: flex; align-items: flex-start; justify-content: center;
   /* Marge basse +10px pour dégager la barre iPhone */
   padding: max(7vh, env(safe-area-inset-top)) 0.8rem max(2dvh, calc(env(safe-area-inset-bottom) + 10px));
@@ -1241,12 +1241,12 @@ body.roue-ouverte #panneau-dialogues-dyn { background: transparent; }
 #dd-aide { font-size: 0.78rem; opacity: 0.55; margin: 0 0 0.6rem; font-family: sans-serif; }
 /* En-tête de tri : même principe discret que « Mes lectures » (texte gris + ⇅). */
 #dd-tri {
-  flex: none; align-self: flex-start; background: none; border: none; padding: 0.2rem 0;
-  color: var(--gris); font-family: sans-serif; font-size: 0.9rem; cursor: pointer; text-decoration: none;
+  flex: none; align-self: flex-start; background: none; border: none; padding: 0.2rem 0 0.5rem;
+  color: var(--texte); font-family: sans-serif; font-size: 1rem; cursor: pointer; text-decoration: none;
 }
 #dd-tri::after { content: " ⇅"; opacity: 0.55; }
 #liste-persos { flex: 0 1 auto; min-height: 0; max-height: 30dvh; overflow-y: auto; }
-#dd-tiers { flex: none; }
+#dd-tiers { flex: none; border-bottom: 1px solid var(--surface-bord); padding-bottom: 0.5rem; margin-bottom: 0.7rem; }
 #dd-tiers .perso-ligne.tiers { border: none; margin-top: 0; }
 .perso-ligne { display: flex; align-items: center; gap: 0.7rem; padding: 0.35rem 0.2rem; border-bottom: 1px solid var(--surface-bord); }
 .perso-pastille {

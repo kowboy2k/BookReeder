@@ -48,15 +48,66 @@
   // personnage : pronoms, interjections, oui/non, connecteurs, titres seuls.
   // Comparés à la forme normalisée (sans accents/casse).
   const NOMS_INTERDITS = new Set((
+    // pronoms / déterminants
     "il elle ils elles on je tu nous vous lui leur eux moi toi ce ceci cela ca celui celle ceux celles " +
-    "non oui si eh ah oh ho bah ben bon bonne bien mal alors mais et puis or car donc enfin certes soudain " +
-    "voila voici merci pardon tiens tenez allons allez parfait jamais toujours ainsi cependant pourtant " +
-    "hum heu euh quoi comment pourquoi quand ou hein helas vraiment peut peutetre attends attendez " +
-    "ecoute ecoutez regarde regardez que qui quel quelle quels quelles dont tout toute tous toutes rien " +
-    "m mr mme mlle dr st sir"
-  ).split(/\s+/));
+    "mon ma mes ton ta tes son sa ses notre nos votre vos leurs cet cette ces le la les un une des " +
+    // oui / non / interjections
+    "non oui si ouais ouaip nan eh ah oh ho bah ben hein hum hmm mmm mm euh heu beuh pff chut bref " +
+    "bonjour bonsoir salut adieu merci pardon bravo helas tant pis " +
+    // connecteurs / adverbes
+    "et mais ou or car donc puis alors aussi ainsi enfin certes soudain cependant pourtant neanmoins toutefois " +
+    "bien mal bon bonne tres trop assez plus moins jamais toujours encore deja parfois souvent peutetre " +
+    "vraiment surtout meme presque ne pas plutot ici la-bas dehors dedans " +
+    // interrogatifs / relatifs
+    "quoi comment pourquoi quand ou que qui quel quelle quels quelles dont lequel laquelle combien " +
+    // verbes courants à l'impératif/début de réplique (faux positifs fréquents)
+    "viens venez va vas allez allons tiens tenez regarde regardez ecoute ecoutez attends attendez " +
+    "arrete arretez vois voyez dis dites sais savez crois croyez tais arrive entre sors monte descends " +
+    "laisse laissez prends prenez donne donnez ferme fermez ouvre ouvrez assez " +
+    // titres / vocatifs / divers communs (pas des noms propres de perso)
+    "monsieur madame mademoiselle messieurs mesdames mesdemoiselles sir milord milady seigneur dieu mon-dieu " +
+    "tout toute tous toutes rien quelque quelques chaque " +
+    "juif juifs juive juives chretien chretiens anglais anglaise francais francaise " +
+    "m mr mme mlle dr st sainte saint"
+  ).split(/\s+/).filter(Boolean));
   function normCle(m) { return window.Chargeur ? Chargeur.normTitre(m) : (m || "").toLowerCase(); }
-  function nomValide(cle) { return !!cle && cle.length >= 2 && !NOMS_INTERDITS.has(cle); }
+  // Filtre rigoureux des faux positifs : pas trop court, pas de contraction
+  // (J'ai, Qu'as-tu, D'accord…), pas de verbe+pronom inversé (Qu'avez-vous,
+  // Viens-tu…), et hors liste de mots courants.
+  function nomValide(cle) {
+    if (!cle || cle.length < 2) return false;
+    if (cle.indexOf("'") >= 0) return false;                                  // contraction / élision
+    if (/-(vous|tu|il|elle|on|nous|ils|elles|moi|toi|le|la|les|en|y|ce|toi)$/.test(cle)) return false;  // verbe + pronom
+    if (NOMS_INTERDITS.has(cle)) return false;
+    if (NOMS_INTERDITS.has(cle.replace(/-/g, ""))) return false;              // « peut-être » → « peutetre »
+    return true;
+  }
+  // Titres/civilités à retirer de la tête d'un nom (« lord John Grey » → « John Grey »).
+  const TITRES = new Set("lord lady sir milord milady major colonel general capitaine lieutenant sergent comte comtesse duc duchesse baron baronne roi reine prince princesse docteur professeur monsieur madame mademoiselle pere mere oncle tante".split(" "));
+  // Le mot à l'index j est-il un jeton de NOM PROPRE (majuscule initiale, pas un
+  // verbe, hors mots interdits) ?
+  function estNomToken(j) {
+    if (j < 0 || j >= etat.mots.length) return false;
+    const n = motNu(etat.mots[j]);
+    if (!n || !/\p{Lu}/u.test(n[0] || "")) return false;
+    if (estVerbe(etat.mots[j])) return false;
+    return nomValide(normCle(n));
+  }
+  // Capture la séquence CONTIGUË de noms propres autour de `idx` (sens +1 = vers
+  // l'avant, -1 = vers l'arrière), sans franchir de frontière de phrase, titres de
+  // tête retirés. Renvoie « Prénom Nom » (casse d'origine) ou "".
+  function phraseNom(idx, sens) {
+    const toks = [];
+    let j = idx;
+    while (estNomToken(j) && toks.length < 4) {
+      if (sens > 0) toks.push(motNu(etat.mots[j])); else toks.unshift(motNu(etat.mots[j]));
+      if (sens > 0) { if (j + 1 < etat.mots.length && estDebutPhrase(j + 1)) break; }
+      else { if (estDebutPhrase(j)) break; }
+      j += sens;
+    }
+    while (toks.length && TITRES.has(normCle(toks[0]))) toks.shift();
+    return toks.join(" ");
+  }
 
   // Cherche le locuteur d'une réplique commençant au mot `deb`.
   // Renvoie { nom, genre, tiers } : nom = identifiant ; genre = "M"/"F"/"" (via
@@ -85,8 +136,8 @@
       if (k > deb && DEBUT_REPLIQUE.test((mots[k] || "").trimStart())) break;   // pas la réplique suivante
       const a = mots[k], b = mots[k + 1] || "";
       const na = motNu(a), nb = motNu(b);
-      if (estVerbe(a) && !aPronom(a) && /\p{Lu}/u.test((nb[0] || "")) && !estVerbe(b) && nomValide(normCle(nb))) return { nom: nb, genre, tiers: false };
-      if (/\p{Lu}/u.test((na[0] || "")) && !estVerbe(a) && estVerbe(b) && !aPronom(b) && nomValide(normCle(na))) return { nom: na, genre, tiers: false };
+      if (estVerbe(a) && !aPronom(a) && estNomToken(k + 1)) { const ph = phraseNom(k + 1, +1); if (ph) return { nom: ph, genre, tiers: false }; }
+      if (estNomToken(k) && !estVerbe(a) && estVerbe(b) && !aPronom(b)) { const ph = phraseNom(k, -1); if (ph) return { nom: ph, genre, tiers: false }; }
       if (k === fin) {
         const estV = estVerbe(a) || (finForte && !estVerbe(a) && /^\p{Ll}/u.test(na));
         if (estV && ARTICLE_INDEFINI.test(nb.toLowerCase())) {
@@ -160,12 +211,15 @@
     if (!mots || !mots.length) { etat.couleurParMot = map; return; }
     const debutBloc = (i) => i <= 0 || (etat.debutsPhrase && etat.debutsPhrase.has(i));
 
+    // Résolution des noms (mot seul → nom complet canonique) construite sur tout le livre.
+    const resol = (etat.persos && etat.persos.resolution) || analyserPersonnages().resolution || {};
     const repliques = []; const compte = {};
     for (let i = 0; i < mots.length; i++) {
       if (!(debutBloc(i) && DEBUT_REPLIQUE.test((mots[i] || "").trimStart()))) continue;
       let fin = i + 1; while (fin < mots.length && !debutBloc(fin)) fin++;
       const loc = locuteurDeReplique(i);
-      const nom = loc.tiers ? "" : (window.Chargeur ? Chargeur.normTitre(loc.nom) : loc.nom);
+      let nom = "";
+      if (!loc.tiers && loc.nom) { const ph = loc.nom.split(/\s+/).map(normCle).join(" "); nom = resol[ph] || ph; }
       if (nom) compte[nom] = (compte[nom] || 0) + 1;
       repliques.push({ deb: i, fin, nom, genre: loc.genre || "", tiers: !!loc.tiers });
       i = fin - 1;
@@ -265,10 +319,11 @@
   //  - tiers : { M, F, total } (personnages descriptifs « un homme », « une femme »).
   function analyserPersonnages() {
     const mots = etat.mots;
-    const res = { nommes: [], tiers: { M: 0, F: 0, total: 0 } };
-    if (!mots || !mots.length) return res;
+    const res = { nommes: [], tiers: { M: 0, F: 0, total: 0 }, resolution: {} };
+    if (!mots || !mots.length) { etat.persos = res; return res; }
     const debutBloc = (i) => i <= 0 || (etat.debutsPhrase && etat.debutsPhrase.has(i));
-    const info = {};
+    // 1) Recense chaque PHRASE de nom détectée (« John Grey », « Grey », « John »…).
+    const parPhrase = {};   // cle normalisée -> { tokens(orig), cleTokens, count, genre, first }
     for (let i = 0; i < mots.length; i++) {
       if (!(debutBloc(i) && DEBUT_REPLIQUE.test((mots[i] || "").trimStart()))) continue;
       let fin = i + 1; while (fin < mots.length && !debutBloc(fin)) fin++;
@@ -277,14 +332,47 @@
         res.tiers.total++;
         if (loc.genre === "M") res.tiers.M++; else if (loc.genre === "F") res.tiers.F++;
       } else if (loc.nom) {
-        const cle = window.Chargeur ? Chargeur.normTitre(loc.nom) : loc.nom;
-        if (!info[cle]) info[cle] = { cle, nom: loc.nom, count: 0, genre: "", first: i };
-        info[cle].count++;
-        if (loc.genre && !info[cle].genre) info[cle].genre = loc.genre;
+        const tokens = loc.nom.split(/\s+/).filter(Boolean);
+        const cleTokens = tokens.map(normCle);
+        const cle = cleTokens.join(" ");
+        if (cle) {
+          if (!parPhrase[cle]) parPhrase[cle] = { tokens, cleTokens, count: 0, genre: "", first: i };
+          parPhrase[cle].count++;
+          if (loc.genre && !parPhrase[cle].genre) parPhrase[cle].genre = loc.genre;
+        }
       }
       i = fin - 1;
     }
-    res.nommes = Object.values(info).sort((a, b) => a.first - b.first);   // ordre d'apparition
+    // 2) Résolution : un mot seul rejoint un nom complet S'IL N'Y EN A QU'UN qui le
+    //    contient (sinon homonymes → on le laisse distinct).
+    const entries = Object.values(parPhrase);
+    const multi = entries.filter((e) => e.tokens.length >= 2);
+    const display = {};   // canon -> tokens(orig) du nom le plus complet
+    multi.forEach((m) => { const c = m.cleTokens.join(" "); if (!display[c] || m.tokens.length > display[c].length) display[c] = m.tokens; });
+    const canonDe = (e) => {
+      if (e.tokens.length >= 2) return e.cleTokens.join(" ");
+      const w = e.cleTokens[0];
+      // On ne rattache un mot seul que s'il est le NOM DE FAMILLE (dernier mot)
+      // d'un SEUL nom complet (« Fettes » → « John Fettes »). Un PRÉNOM seul
+      // (« John ») reste distinct : trop ambigu (plusieurs John possibles).
+      const conteneurs = [...new Set(
+        multi.filter((m) => m.cleTokens[m.cleTokens.length - 1] === w).map((m) => m.cleTokens.join(" "))
+      )];
+      return conteneurs.length === 1 ? conteneurs[0] : w;
+    };
+    const final = {};
+    entries.forEach((e) => {
+      const c = canonDe(e);
+      res.resolution[e.cleTokens.join(" ")] = c;
+      const disp = (display[c] || e.tokens).join(" ");
+      if (!final[c]) final[c] = { cle: c, nom: disp, count: 0, genre: "", first: Infinity };
+      final[c].count += e.count;
+      final[c].first = Math.min(final[c].first, e.first);
+      if (e.genre && !final[c].genre) final[c].genre = e.genre;
+      if (disp.length > final[c].nom.length) final[c].nom = disp;
+    });
+    res.nommes = Object.values(final).sort((a, b) => a.first - b.first);   // ordre d'apparition
+    etat.persos = res;   // cache mémoire (réutilisé par calculerLocuteurs + l'UI)
     return res;
   }
 

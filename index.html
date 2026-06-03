@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=305">
+  <link rel="stylesheet" href="style.css?v=306">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -195,6 +195,28 @@
   <div id="panneau-dialogues-dyn" class="cache">
     <div class="panneau-contenu">
       <h2>Feuille de personnages</h2>
+      <button id="dd-tri" type="button">Par ordre d'apparition</button>
+      <div id="liste-persos"></div>
+      <div id="dd-tiers"></div>
+      <div class="reglage reglage-case" id="dd-cacher">
+        <label for="reglage-cacher-noms">Masquer les personnages à venir (anti-spoil)</label>
+        <input type="checkbox" id="reglage-cacher-noms" checked>
+      </div>
+      <div class="reglage reglage-inline">
+        <label for="reglage-indice-bavardage">Indice de bavardage</label>
+        <select id="reglage-indice-bavardage">
+          <option value="masque">Masqué</option>
+          <option value="simple">Simple</option>
+          <option value="podium">Podium</option>
+        </select>
+      </div>
+      <div class="reglage reglage-inline">
+        <label for="btn-palette">Palette des dialogues</label>
+        <button id="btn-palette" class="select-hybride">
+          <span id="btn-palette-nom">Corail</span>
+          <span id="btn-palette-pastilles" class="pastilles-mini"></span>
+        </button>
+      </div>
       <div class="reglage reglage-inline">
         <label for="reglage-dialogues">Effet</label>
         <select id="reglage-dialogues">
@@ -211,28 +233,6 @@
           <option value="elocution,multicolore,italique,fondu">Tous les effets</option>
         </select>
       </div>
-      <div class="reglage reglage-inline">
-        <label for="btn-palette">Palette des dialogues</label>
-        <button id="btn-palette" class="select-hybride">
-          <span id="btn-palette-nom">Corail</span>
-          <span id="btn-palette-pastilles" class="pastilles-mini"></span>
-        </button>
-      </div>
-      <div class="reglage reglage-inline">
-        <label for="reglage-indice-bavardage">Indice de bavardage</label>
-        <select id="reglage-indice-bavardage">
-          <option value="masque">Masqué</option>
-          <option value="simple">Simple</option>
-          <option value="podium">Podium</option>
-        </select>
-      </div>
-      <div class="reglage reglage-case" id="dd-cacher">
-        <label for="reglage-cacher-noms">Masquer les personnages à venir (anti-spoil)</label>
-        <input type="checkbox" id="reglage-cacher-noms" checked>
-      </div>
-      <button id="dd-tri" type="button">Par ordre d'apparition</button>
-      <div id="liste-persos"></div>
-      <div id="dd-tiers"></div>
       <button id="btn-fermer-dialogues-dyn">OK</button>
       <button id="btn-generer-couleurs" type="button" class="lien-texte">Générer des couleurs aléatoires</button>
     </div>
@@ -582,7 +582,7 @@
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="chargeur.js?v=305"></script>
-  <script src="app.js?v=305"></script>
+  <script src="chargeur.js?v=306"></script>
+  <script src="app.js?v=306"></script>
 </body>
 </html>
