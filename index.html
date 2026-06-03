@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=299">
+  <link rel="stylesheet" href="style.css?v=300">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -21,7 +21,7 @@
     <div id="accueil-haut">
       <button id="btn-infos" title="Aide / fonctionnalités" aria-label="Aide">ⓘ</button>
       <img id="logo" src="BookReeder.svg" alt="BookReeder">
-      <p class="sous-titre">Lecture rapide d'eBooks sur PC, Mac et mobile</p>
+      <p class="sous-titre">Lecture rapide sur PC, Mac et mobile</p>
       <div class="rangee-ouvrir">
         <label class="bouton-ouvrir">
           <span class="bouton-titre">Ouvrir un fichier…</span>
@@ -29,10 +29,11 @@
           <input type="file" id="input-fichier" accept=".epub,.pdf,.txt" hidden>
         </label>
         <button id="btn-coller-url" class="bouton-url" title="Charger un article depuis un lien copié">
-          <span>Coller</span><span>URL</span>
+          <span class="bouton-titre">Coller</span>
+          <span class="bouton-formats">(URL)</span>
         </button>
       </div>
-      <button id="btn-demo" class="lien-demo">Essayer avec un texte de démo</button>
+      <button id="btn-demo" class="lien-demo">Essayer avec le texte de démo</button>
       <p id="message-chargement" class="message"></p>
     </div>
 
@@ -231,6 +232,17 @@
       <div id="dd-tiers"></div>
       <button id="btn-fermer-dialogues-dyn">OK</button>
       <button id="btn-generer-couleurs" type="button" class="lien-texte">Générer des couleurs aléatoires</button>
+    </div>
+  </div>
+
+  <!-- Confirmation : garder un article en ligne dans la bibliothèque -->
+  <div id="panneau-garder-article" class="cache">
+    <div class="panneau-contenu">
+      <h2>Garder l'article en mémoire&nbsp;?</h2>
+      <div id="garder-boutons">
+        <button id="garder-oui">Oui</button>
+        <button id="garder-non">Non</button>
+      </div>
     </div>
   </div>
 
@@ -531,7 +543,7 @@
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="chargeur.js?v=299"></script>
-  <script src="app.js?v=299"></script>
+  <script src="chargeur.js?v=300"></script>
+  <script src="app.js?v=300"></script>
 </body>
 </html>

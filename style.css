@@ -381,9 +381,8 @@ html, body {
 .bouton-url {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.1rem;
   background: #555; color: #fff; border: none; border-radius: 0.6rem;
-  aspect-ratio: 1 / 1; padding: 0 0.6rem; cursor: pointer; font-family: sans-serif;
+  aspect-ratio: 1 / 1; padding: 0 0.6rem; cursor: pointer; font-family: sans-serif; text-align: center;
 }
-.bouton-url span { font-size: 1.05rem; font-weight: 600; line-height: 1.15; }
 .bouton-url:active { transform: scale(0.97); }
 .bouton-titre { font-weight: 700; }
 .bouton-formats { font-size: 0.8rem; font-weight: 300; opacity: 0.85; }
@@ -1180,6 +1179,19 @@ body.roue-ouverte #panneau-reglages .panneau-contenu { background: transparent; 
   background: var(--fond); border-radius: 0.6rem;
 }
 #palette-apercu-haut div { margin: 0.1em 0; }
+
+/* --- Confirmation « Garder l'article ? » (Oui / Non) --- */
+#panneau-garder-article {
+  position: fixed; inset: 0; z-index: 70; background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center; padding: 1rem;
+}
+#panneau-garder-article.cache { display: none; }
+#panneau-garder-article .panneau-contenu { border-radius: 1rem; max-width: 380px; width: 100%; text-align: center; }
+#panneau-garder-article h2 { margin: 0; }
+#garder-boutons { display: flex; gap: 1rem; margin-top: 1.6rem; }
+#garder-boutons button { flex: 1; padding: 0.8rem; border: none; border-radius: 0.6rem; font-size: 1rem; cursor: pointer; font-family: sans-serif; }
+#garder-oui { background: var(--accent); color: #fff; }
+#garder-non { background: var(--fond); color: var(--texte); border: 1px solid var(--surface-bord); }
 
 /* --- Panneau « Dialogues dynamiques » (effet + palette + couleurs persos) --- */
 #panneau-dialogues-dyn {

@@ -253,12 +253,12 @@ $("input-fichier").addEventListener("change", async (e) => {
 // (articles texte uniquement ; EPUB/PDF en ligne viendront avec un relais privé).
 const CORS_PROXY = "https://corsproxy.io/?url=";
 $("btn-coller-url")?.addEventListener("click", collerUrl);
-async function collerUrl() {
+// Récupère et charge un article depuis une URL (presse-papier, paramètre ?url=,
+// ou partage Android via le manifeste).
+async function chargerArticleDepuisUrl(url) {
   const msg = $("message-chargement");
-  let url = "";
-  try { url = ((await navigator.clipboard.readText()) || "").trim(); }
-  catch (e) { msg.textContent = "Accès au presse-papier refusé : copie un lien puis réessaie."; return; }
-  if (!/^https?:\/\//i.test(url)) { msg.textContent = "Aucun lien valide dans le presse-papier."; return; }
+  url = (url || "").trim();
+  if (!/^https?:\/\//i.test(url)) { msg.textContent = "Lien invalide."; return; }
   msg.textContent = "Récupération du lien…";
   try {
     const rep = await fetch(CORS_PROXY + encodeURIComponent(url));
@@ -274,13 +274,46 @@ async function collerUrl() {
     msg.textContent = "Échec : " + e.message + " — le site bloque peut-être l'accès.";
   }
 }
-// Trouve le conteneur de texte le plus dense (max de texte dans des <p> directs).
-function meilleurConteneur(body) {
-  let best = body, bestLen = 0;
-  body.querySelectorAll("div, section, main, article").forEach((el) => {
-    let len = 0;
-    el.querySelectorAll(":scope > p").forEach((p) => { len += (p.textContent || "").length; });
-    if (len > bestLen) { bestLen = len; best = el; }
+async function collerUrl() {
+  const msg = $("message-chargement");
+  let url = "";
+  try { url = ((await navigator.clipboard.readText()) || "").trim(); }
+  catch (e) { msg.textContent = "Accès au presse-papier refusé : copie un lien puis réessaie."; return; }
+  if (!/^https?:\/\//i.test(url)) { msg.textContent = "Aucun lien valide dans le presse-papier."; return; }
+  chargerArticleDepuisUrl(url);
+}
+// Ouverture via un lien partagé : ?url=… (Raccourci iOS) ou ?text=/?title= (partage
+// Android via le manifeste, l'URL pouvant être noyée dans le texte). Lancé au démarrage.
+(function ouvrirLienPartage() {
+  try {
+    const p = new URLSearchParams(location.search);
+    let u = (p.get("url") || "").trim();
+    if (!u) { const m = ((p.get("text") || "") + " " + (p.get("title") || "")).match(/https?:\/\/\S+/); if (m) u = m[0]; }
+    if (/^https?:\/\//i.test(u)) {
+      history.replaceState(null, "", location.pathname);   // nettoie l'URL (pas de rechargement en boucle)
+      chargerArticleDepuisUrl(u);
+    }
+  } catch (e) {}
+})();
+// Trouve le bloc de CONTENU (façon Readability) : on score chaque conteneur selon
+// le volume de ses paragraphes, en pénalisant la densité de liens (les colonnes
+// « à lire aussi / bons plans » sont gorgées de liens → écartées).
+function meilleurConteneur(doc) {
+  const scores = new Map();
+  const add = (el, s) => { if (!el || el === doc.body || el === doc.documentElement) return; scores.set(el, (scores.get(el) || 0) + s); };
+  doc.querySelectorAll("p").forEach((p) => {
+    const len = (p.textContent || "").trim().length;
+    if (len < 25) return;
+    const sc = 1 + Math.min((len / 100) | 0, 3) + len / 100;
+    add(p.parentElement, sc);
+    add(p.parentElement && p.parentElement.parentElement, sc / 2);
+  });
+  let best = doc.body, bestScore = 0;
+  scores.forEach((s, el) => {
+    const txt = el.textContent.length || 1;
+    let lien = 0; el.querySelectorAll("a").forEach((a) => { lien += (a.textContent || "").length; });
+    const adj = s * (1 - lien / txt);   // pénalise les blocs très « liens »
+    if (adj > bestScore) { bestScore = adj; best = el; }
   });
   return best;
 }
@@ -294,18 +327,53 @@ function extraireArticle(doc, url) {
     (doc.title || "").trim() || "Article";
   titre = titre.replace(/\s*[|–—\-]\s*[^|–—\-]{1,40}$/, "").trim() || titre;  // retire « | Nom du site »
   let source = ""; try { source = new URL(url).hostname.replace(/^www\./, ""); } catch (e) {}
-  const racine = doc.querySelector("article") || doc.querySelector('[role="main"], main') || meilleurConteneur(doc.body);
+  const racine = meilleurConteneur(doc);
   racine.querySelectorAll(
     "script,style,nav,header,footer,aside,form,noscript,iframe,figcaption,button," +
     "[role=navigation],[role=banner],[role=complementary]," +
     "[class*=ad-],[class*=-ad],[id*=ad-],[class*=pub],[class*=share],[class*=social]," +
-    "[class*=newsletter],[class*=comment],[class*=related],[class*=promo],[class*=cookie]"
+    "[class*=newsletter],[class*=comment],[class*=related],[class*=promo],[class*=cookie]," +
+    "[class*=seemore],[class*=see-more],[class*=lire-aussi],[class*=read-also],[class*=teaser],[class*=encart]"
   ).forEach((e) => e.remove());
-  const chapitres = []; let cur = { titre: titre, texte: [] };
-  racine.querySelectorAll("h2, h3, p, blockquote, li, pre").forEach((b) => {
+  // Découpe en parties : tout ce qui précède le 1er <h2> = « Introduction » (chapô +
+  // attaque) ; chaque <h2> ouvre une nouvelle partie. On ignore les titres/paragraphes
+  // qui ne sont qu'un lien (encarts « à lire aussi » insérés dans le corps).
+  // Titres de sections « hors article » (renvois, encarts, références…) : dès qu'on
+  // en croise une APRÈS du vrai contenu, on coupe (tout ce qui suit est du parasite).
+  const normSec = (s) => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+  const RE_SECTION_PARASITE = /^(#|notes?( et references?)?$|references?$|voir aussi|liens? externes?|bibliographie|annexes?|sources?$|articles? connexes?|pour en savoir plus|sur le meme (sujet|theme)|dans la meme rubrique|a (lire|voir) aussi|cela vous interessera|bons plans|definitions? associees?|explorez|en continu|commentaires?|partager|sur le meme)/;
+  // Un élément est-il un TITRE de section ? (générique, pas seulement <h2>) :
+  // balises h1–h6, role=heading, balise maison <intertitre>, ou classe évocatrice
+  // (intertitre, sous-titre, subtitle, crosshead, section-title…).
+  const estTitreSection = (b) => {
+    if (/^H[1-6]$/.test(b.tagName) || b.tagName === "INTERTITRE") return true;
+    if ((b.getAttribute("role") || "") === "heading") return true;
+    return /intertitre|inter-titre|sous-titre|sous_titre|subtitle|cross-?head|section-?title|chapter/i.test((b.className || "") + "");
+  };
+  const titreN = normSec(titre);
+  const chapitres = []; let cur = { titre: "Introduction", texte: [] };
+  let stop = false;
+  const aDuContenu = () => chapitres.some((c) => c.texte.length > 120) || cur.texte.join(" ").length > 120;
+  racine.querySelectorAll(
+    "h1,h2,h3,h4,h5,h6,[role=heading],intertitre,[class*=intertitre],p,blockquote,li,pre"
+  ).forEach((b) => {
+    if (stop) return;
     const t = (b.textContent || "").replace(/\s+/g, " ").trim();
     if (!t || t.length < 2) return;
-    if (b.tagName === "H2") {
+    if (b.closest("a")) return;                                              // élément à l'intérieur d'un lien (teaser, renvoi)
+    const a = b.querySelector("a");
+    if (a && (a.textContent || "").trim().length >= t.length - 2) return;   // élément = simple lien
+    if (estTitreSection(b)) {
+      if (t.length > 140) { cur.texte.push(t); return; }   // « titre » trop long = en fait du texte
+      const tn = normSec(t);
+      if (tn === titreN) return;                            // c'est le titre de l'article, pas une section
+      if (RE_SECTION_PARASITE.test(tn)) {
+        if (aDuContenu()) {   // fin du corps : on coupe tout ce qui suit
+          if (cur.texte.length) chapitres.push({ titre: cur.titre, texte: cur.texte.join("\n") });
+          cur = { titre: "", texte: [] }; stop = true;
+        }
+        return;   // on n'ouvre jamais de partie pour un titre parasite
+      }
       if (cur.texte.length) chapitres.push({ titre: cur.titre, texte: cur.texte.join("\n") });
       cur = { titre: t, texte: [] };
     } else { cur.texte.push(t); }
@@ -2169,11 +2237,26 @@ $("btn-chap-prec").addEventListener("click", () => allerChapitre(-1));
 $("btn-chap-suiv").addEventListener("click", () => allerChapitre(1));
 
 // Article chargé en ligne (non enregistré) : à la fermeture, proposer de le garder.
+// Petite fenêtre Oui/Non (remplace confirm natif). Renvoie une promesse booléenne.
+function demanderGarderArticle() {
+  return new Promise((resolve) => {
+    const panneau = $("panneau-garder-article");
+    const oui = $("garder-oui"), non = $("garder-non");
+    const fin = (val) => {
+      panneau.classList.add("cache");
+      oui.removeEventListener("click", onOui); non.removeEventListener("click", onNon);
+      resolve(val);
+    };
+    const onOui = () => fin(true), onNon = () => fin(false);
+    oui.addEventListener("click", onOui); non.addEventListener("click", onNon);
+    panneau.classList.remove("cache");
+  });
+}
 async function garderArticleSiBesoin() {
   if (!etat.articleEnAttente) return;
   const a = etat.articleEnAttente;
   etat.articleEnAttente = null;
-  if (!confirm("Garder l'article « " + a.titre + " » en mémoire ?")) return;
+  if (!(await demanderGarderArticle())) return;
   const total = etat.mots.length;
   const fiche = {
     id: "url|" + a.url, nom: a.titre, titre: a.titre, auteur: a.source || "",

@@ -156,7 +156,14 @@ Serveur local (config preview centralisée `C:\Claude Code\.claude\launch.json`,
   menus/pubs). Article chargé **non enregistré** (`etat.articleEnAttente`) ; à la fermeture (✖),
   `garderArticleSiBesoin` propose de l'ajouter à la bibliothèque (nom du site comme « auteur »).
   Limite du proxy gratuit : **texte seulement, < 1 Mo** → EPUB/PDF en ligne nécessiteront un relais
-  privé (Cloudflare Worker). Heuristique d'extraction = v1 à affiner.
+  privé (Cloudflare Worker). Extraction robuste (`extraireArticle`) : conteneur le plus dense
+  (`meilleurConteneur`, score paragraphes − densité de liens), titres de section **génériques**
+  (H1–H6, `role=heading`, `<intertitre>`, classes « sous-titre »…), retrait des liens/teasers
+  (`closest("a")`, classes seemore/lire-aussi…) et coupe des **sections parasites** (`RE_SECTION_PARASITE` :
+  références, « à lire aussi », bons plans…) ; 1ʳᵉ partie = « Introduction ».
+- **Partage / lien direct** : `chargerArticleDepuisUrl` + ouverture via **`?url=`** (Raccourci iOS) ou
+  `?text=`/`?title=` (partage **Android** déclaré par `share_target` dans le manifeste). Bouton
+  « Ajouter le Raccourci » (lien iCloud) à intégrer quand l'utilisateur fournira le lien.
 
 ## Jalons
 - **Jalon 1 (FAIT)** : charger un EPUB, RSVP 1–8 mots, vitesse 200–800 mpm, ORP activable,
