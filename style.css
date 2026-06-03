@@ -1307,7 +1307,6 @@ body.roue-ouverte #panneau-dialogues-dyn { background: transparent; }
 .perso-fixe { flex: none; font-size: 0.95rem; color: var(--accent); }
 .perso-ligne.tiers { border: none; margin-top: 0.3rem; }
 .tiers-swatches { flex: none; display: flex; gap: 0.45rem; align-items: center; }
-.tiers-swatches .perso-pastille { width: 1.6rem; height: 1.6rem; }
 .tiers-g { font-size: 1.05rem; opacity: 0.7; margin-right: -0.15rem; font-family: sans-serif; }
 #btn-generer-couleurs { flex: none; margin: 0.6rem 0 0; }
 #btn-fermer-dialogues-dyn {

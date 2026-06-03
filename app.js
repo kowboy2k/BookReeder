@@ -2594,6 +2594,12 @@ function versionApp() {
 // Elle reste « active » (réapparaît à chaque retour à l'accueil) tant qu'on n'a
 // pas cliqué dessus ou ouvert le (i).
 let bulleActive = false;
+// La bulle n'est « autorisée » à apparaître qu'une fois la vérification de mise à
+// jour du service worker terminée : si un rechargement auto est imminent (nouvelle
+// version), on garde la bulle masquée pour qu'elle n'apparaisse qu'APRÈS le reload
+// (sinon elle clignote : apparaît → reload → réapparaît).
+let bulleAutorisee = false;
+function autoriserBulle() { bulleAutorisee = true; rafraichirBulleLireMoi(); }
 function positionnerBulle() {
   const btn = $("btn-infos"), bulle = $("bulle-liremoi");
   if (!btn || !bulle) return;
@@ -2614,7 +2620,7 @@ function rafraichirBulleLireMoi() {
   const bulle = $("bulle-liremoi");
   if (!bulle) return;
   const surAccueil = !ecranAccueil.classList.contains("cache");
-  if (bulleActive && surAccueil) { positionnerBulle(); bulle.classList.remove("cache"); }
+  if (bulleActive && bulleAutorisee && surAccueil) { positionnerBulle(); bulle.classList.remove("cache"); }
   else { bulle.classList.add("cache"); }
 }
 $("btn-infos").addEventListener("click", cacherBulleLireMoi);
@@ -2626,8 +2632,10 @@ $("bulle-liremoi").addEventListener("click", cacherBulleLireMoi);
   if (v && vue !== v) {
     // On NE marque PAS encore « vue » : ce sera fait au clic bulle / ouverture (i).
     bulleActive = true;
-    setTimeout(rafraichirBulleLireMoi, 500);   // laisse le temps à la mise en page
   }
+  // Sans service worker, aucun rechargement auto possible → on peut autoriser tout
+  // de suite (le bloc SW s'en charge sinon, après sa vérification de mise à jour).
+  if (!("serviceWorker" in navigator)) setTimeout(autoriserBulle, 500);
 })();
 
 // Réglages : on met en pause et on fait monter la zone de lecture en aperçu (1/3
@@ -3582,12 +3590,17 @@ if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("sw.js").then((reg) => {
     swRegistration = reg;
     const verifier = () => reg.update().catch(() => {});
-    verifier();                                   // vérifie au démarrage
+    // Vérification au démarrage : si une nouvelle version va prendre la main (on
+    // avait déjà un contrôleur ET un worker s'installe), on laisse la bulle masquée
+    // — elle apparaîtra après le rechargement auto. Sinon, on l'autorise.
+    reg.update().then(() => {
+      if (!(avaitControleur && (reg.installing || reg.waiting))) autoriserBulle();
+    }).catch(() => autoriserBulle());
     // …et à chaque fois qu'on revient sur l'onglet / rouvre l'app
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden) verifier();
     });
-  }).catch(() => {});
+  }).catch(() => autoriserBulle());
 }
 
 // Bouton « Vérifier les mises à jour… » du panneau Infos
