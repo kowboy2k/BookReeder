@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=316">
+  <link rel="stylesheet" href="style.css?v=317">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -199,7 +199,7 @@
         </select>
       </div>
       <div class="reglage reglage-inline">
-        <label for="reglage-dialogues">Effet</label>
+        <label for="reglage-dialogues">Effets</label>
         <select id="reglage-dialogues" class="dd-effet-select">
           <option value="aucun">Aucun effet</option>
           <option value="elocution">Élocution</option>
@@ -268,6 +268,19 @@
       </div>
       <button id="ba-supprimer">Supprimer</button>
       <div id="ba-perso-liste" class="cache"></div>
+    </div>
+  </div>
+
+  <!-- Action sur un personnage (depuis la liste) : supprimer / fusionner -->
+  <div id="panneau-perso-action" class="cache">
+    <div class="panneau-contenu">
+      <h2>Supprimer «&nbsp;<span id="pa-nom"></span>&nbsp;» ou fusionner à un autre personnage ?</h2>
+      <div id="pa-choix">
+        <button id="pa-oui">Oui</button>
+        <button id="pa-non">Non</button>
+      </div>
+      <button id="pa-fusionner">Fusionner</button>
+      <div id="pa-perso-liste" class="cache"></div>
     </div>
   </div>
 
@@ -620,7 +633,7 @@
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="chargeur.js?v=316"></script>
-  <script src="app.js?v=316"></script>
+  <script src="chargeur.js?v=317"></script>
+  <script src="app.js?v=317"></script>
 </body>
 </html>

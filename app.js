@@ -2772,15 +2772,8 @@ function renderListePersos() {
     ligne.appendChild(nom);
     const et = etoilePoids(rangs[p.cle]);
     if (et) ligne.appendChild(et);
-    const xb = document.createElement("button"); xb.className = "perso-suppr"; xb.textContent = "✕"; xb.title = "Supprimer ce personnage";
-    xb.addEventListener("click", async (e) => {
-      e.stopPropagation();
-      if (await confirmer("Supprimer ce personnage ?")) {
-        const b = (persoParCle(p.cle) || {}).bucket || [];
-        b.forEach((f) => { curEnsemble("sup")[f.cle] = 1; });
-        appliquerCuration();
-      }
-    });
+    const xb = document.createElement("button"); xb.className = "perso-suppr"; xb.textContent = "✕"; xb.title = "Supprimer / fusionner ce personnage";
+    xb.addEventListener("click", (e) => { e.stopPropagation(); ouvrirPersoAction(p.cle, masque ? "ce personnage" : p.nom); });
     ligne.appendChild(xb);
     // Appui long → bucket ; clic (hors ✕/pastille) → roue de couleur du perso.
     let lpT = null, long = false;
@@ -2875,10 +2868,9 @@ function renderBucket() {
     const nom = document.createElement("span"); nom.className = "bucket-nom" + (pref[p.cle] === f.nom ? " prefere" : "");
     nom.textContent = masque ? "—" : f.nom;
     nom.addEventListener("click", () => { (etat.persosCuration = etat.persosCuration || {}).pref = etat.persosCuration.pref || {}; etat.persosCuration.pref[p.cle] = f.nom; appliquerCuration(); renderBucket(); });
-    const cpt = document.createElement("span"); cpt.className = "bucket-compte"; cpt.textContent = f.count;
     const x = document.createElement("button"); x.className = "bucket-x"; x.textContent = "✕"; x.title = "Retirer cette forme";
     x.addEventListener("click", (e) => { e.stopPropagation(); ouvrirBucketAction(f.cle, f.nom); });
-    ligne.appendChild(nom); ligne.appendChild(cpt); ligne.appendChild(x);
+    ligne.appendChild(nom); ligne.appendChild(x);
     cont.appendChild(ligne);
   });
 }
@@ -2920,6 +2912,41 @@ $("ba-oui")?.addEventListener("click", () => {                 // rattacher à u
     cont.appendChild(b);
   });
   $("ba-choix").classList.add("cache"); $("ba-supprimer").classList.add("cache");
+  cont.classList.remove("cache");
+});
+
+// --- Action sur un personnage (✕ dans la liste) : supprimer / fusionner ---
+let paPersoCourant = null;
+function ouvrirPersoAction(cle, nom) {
+  paPersoCourant = cle;
+  $("pa-nom").textContent = nom;
+  $("pa-perso-liste").classList.add("cache");
+  $("pa-choix").classList.remove("cache"); $("pa-fusionner").classList.remove("cache");
+  $("panneau-perso-action").classList.remove("cache");
+}
+function fermerPersoAction() { $("panneau-perso-action").classList.add("cache"); }
+$("panneau-perso-action")?.addEventListener("click", (e) => { if (e.target === $("panneau-perso-action")) fermerPersoAction(); });
+$("pa-non")?.addEventListener("click", fermerPersoAction);
+$("pa-oui")?.addEventListener("click", () => {                 // Supprimer le personnage (toutes ses formes → texte normal)
+  const b = (persoParCle(paPersoCourant) || {}).bucket || [];
+  b.forEach((f) => { curEnsemble("sup")[f.cle] = 1; });
+  fermerPersoAction(); appliquerCuration();
+});
+$("pa-fusionner")?.addEventListener("click", () => {           // Fusionner ce perso (et son bucket) dans un autre
+  const cont = $("pa-perso-liste"); cont.innerHTML = "";
+  ((etat.persos && etat.persos.nommes) || [])
+    .filter((p) => p.cle !== paPersoCourant && p.count >= 2)
+    .sort((a, b) => b.count - a.count)
+    .forEach((p) => {
+      const btn = document.createElement("button"); btn.textContent = p.nom;
+      btn.addEventListener("click", () => {
+        const b = (persoParCle(paPersoCourant) || {}).bucket || [];
+        b.forEach((f) => { curEnsemble("rat")[f.cle] = p.cle; if (etat.persosCuration.sep) delete etat.persosCuration.sep[f.cle]; });
+        fermerPersoAction(); appliquerCuration();
+      });
+      cont.appendChild(btn);
+    });
+  $("pa-choix").classList.add("cache"); $("pa-fusionner").classList.add("cache");
   cont.classList.remove("cache");
 });
 // Génère des couleurs DISTINCTES par personnage, calées sur l'intensité (saturation
