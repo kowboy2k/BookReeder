@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=300">
+  <link rel="stylesheet" href="style.css?v=301">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -235,6 +235,28 @@
     </div>
   </div>
 
+  <!-- Création d'un raccourci iOS « Partager » -->
+  <div id="panneau-raccourci" class="cache">
+    <div class="panneau-contenu">
+      <h2>Créer un raccourci iOS pour intégrer BookReeder aux applications dans «&nbsp;Partager&nbsp;» ?</h2>
+      <div id="raccourci-guide" class="cache">
+        <p class="raccourci-intro">Dans l'app <b>Raccourcis</b> (iPhone) :</p>
+        <ol class="raccourci-etapes">
+          <li>Nouveau raccourci → réglages (ⓘ) → active <b>« Afficher dans la feuille de partage »</b> (entrée : URL).</li>
+          <li>Action <b>« Coder en URL »</b> appliquée à <b>Entrée du raccourci</b>.</li>
+          <li>Action <b>« Texte »</b> : colle l'adresse ci‑dessous, puis ajoute la variable <b>codée</b>.</li>
+          <li>Action <b>« Ouvrir les URL »</b> avec ce Texte.</li>
+        </ol>
+        <button id="raccourci-copier">Copier l'adresse BookReeder</button>
+        <button id="raccourci-fermer-guide">Fermer</button>
+      </div>
+      <div id="raccourci-boutons">
+        <button id="raccourci-oui">Oui</button>
+        <button id="raccourci-non">Non</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Confirmation : garder un article en ligne dans la bibliothèque -->
   <div id="panneau-garder-article" class="cache">
     <div class="panneau-contenu">
@@ -277,7 +299,16 @@
       </ul>
       <button id="btn-ajouter-accueil">📲 Ajouter à l'écran d'accueil</button>
       <p id="aide-install" class="aide-install"></p>
-      <button id="btn-maj">🔄 Vérifier les mises à jour…</button>
+      <div class="ligne-maj">
+        <button id="btn-maj">🔄 Vérifier les mises à jour…</button>
+        <button id="btn-raccourci-ios" title="Ajouter BookReeder au menu Partager (iOS)" aria-label="Créer un raccourci Partager">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 15V3"></path>
+            <path d="M8 7l4-4 4 4"></path>
+            <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"></path>
+          </svg>
+        </button>
+      </div>
       <p id="statut-maj" class="aide-install"></p>
       <button id="btn-fermer-infos">Ok</button>
     </div>
@@ -543,7 +574,7 @@
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="chargeur.js?v=300"></script>
-  <script src="app.js?v=300"></script>
+  <script src="chargeur.js?v=301"></script>
+  <script src="app.js?v=301"></script>
 </body>
 </html>

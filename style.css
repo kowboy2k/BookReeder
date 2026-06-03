@@ -381,7 +381,7 @@ html, body {
 .bouton-url {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.1rem;
   background: #555; color: #fff; border: none; border-radius: 0.6rem;
-  aspect-ratio: 1 / 1; padding: 0 0.6rem; cursor: pointer; font-family: sans-serif; text-align: center;
+  aspect-ratio: 1 / 1; padding: 0 0.6rem; cursor: pointer; font-family: sans-serif; text-align: center; font-size: 1.1rem;
 }
 .bouton-url:active { transform: scale(0.97); }
 .bouton-titre { font-weight: 700; }
@@ -556,6 +556,32 @@ html, body {
   cursor: pointer;
 }
 #btn-ajouter-accueil:active, #btn-maj:active { transform: scale(0.98); }
+.ligne-maj { display: flex; gap: 0.5rem; align-items: stretch; margin-bottom: 0.6rem; }
+.ligne-maj #btn-maj { width: auto; flex: 1; margin-bottom: 0; }
+#btn-raccourci-ios {
+  flex: none; display: flex; align-items: center; justify-content: center;
+  background: transparent; color: var(--texte); border: 1px solid var(--surface-bord);
+  border-radius: 0.6rem; padding: 0 0.9rem; cursor: pointer;
+}
+#btn-raccourci-ios:active { transform: scale(0.98); }
+/* Popup création de raccourci iOS */
+#panneau-raccourci {
+  position: fixed; inset: 0; z-index: 70; background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center; padding: 1rem;
+}
+#panneau-raccourci.cache { display: none; }
+#panneau-raccourci .panneau-contenu { border-radius: 1rem; max-width: 420px; width: 100%; text-align: center; }
+#panneau-raccourci h2 { margin: 0; font-size: 1.1rem; line-height: 1.35; }
+#raccourci-boutons { display: flex; gap: 1rem; margin-top: 1.6rem; }
+#raccourci-boutons button { flex: 1; padding: 0.8rem; border: none; border-radius: 0.6rem; font-size: 1rem; cursor: pointer; font-family: sans-serif; }
+#raccourci-oui { background: var(--accent); color: #fff; }
+#raccourci-non { background: var(--fond); color: var(--texte); border: 1px solid var(--surface-bord); }
+.raccourci-intro { margin: 1rem 0 0.4rem; font-family: sans-serif; }
+.raccourci-etapes { text-align: left; font-family: sans-serif; font-size: 0.9rem; line-height: 1.4; margin: 0 0 0.8rem; padding-left: 1.2rem; }
+.raccourci-etapes li { margin-bottom: 0.4rem; }
+#raccourci-copier, #raccourci-fermer-guide { width: 100%; padding: 0.7rem; border-radius: 0.6rem; font-size: 0.95rem; cursor: pointer; margin-top: 0.4rem; }
+#raccourci-copier { background: var(--accent); color: #fff; border: none; }
+#raccourci-fermer-guide { background: var(--fond); color: var(--texte); border: 1px solid var(--surface-bord); }
 .aide-install {
   margin: 0 0 0.8rem;
   font-size: 0.85rem;

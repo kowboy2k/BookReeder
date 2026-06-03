@@ -275,11 +275,10 @@ async function chargerArticleDepuisUrl(url) {
   }
 }
 async function collerUrl() {
-  const msg = $("message-chargement");
   let url = "";
   try { url = ((await navigator.clipboard.readText()) || "").trim(); }
-  catch (e) { msg.textContent = "Accès au presse-papier refusé : copie un lien puis réessaie."; return; }
-  if (!/^https?:\/\//i.test(url)) { msg.textContent = "Aucun lien valide dans le presse-papier."; return; }
+  catch (e) { return; }                       // accès refusé / annulé : on ne fait rien (pas de message)
+  if (!/^https?:\/\//i.test(url)) return;     // rien de valide dans le presse-papier : silencieux
   chargerArticleDepuisUrl(url);
 }
 // Ouverture via un lien partagé : ?url=… (Raccourci iOS) ou ?text=/?title= (partage
@@ -2367,6 +2366,29 @@ $("contexte-infos").addEventListener("click", () => {
 // Panneau d'aide / fonctionnalités (accueil)
 $("btn-infos").addEventListener("click", () => $("panneau-infos").classList.remove("cache"));
 $("btn-fermer-infos").addEventListener("click", () => $("panneau-infos").classList.add("cache"));
+
+// --- Raccourci iOS « Partager » : popup de validation, puis lien iCloud (à venir)
+//     ou guide de création en attendant. ---
+const LIEN_RACCOURCI_IOS = "";   // lien iCloud du Raccourci (à renseigner quand fourni)
+$("btn-raccourci-ios")?.addEventListener("click", () => {
+  $("raccourci-guide").classList.add("cache");
+  $("raccourci-boutons").classList.remove("cache");
+  $("panneau-raccourci").classList.remove("cache");
+});
+$("raccourci-non")?.addEventListener("click", () => $("panneau-raccourci").classList.add("cache"));
+$("panneau-raccourci")?.addEventListener("click", (e) => { if (e.target === $("panneau-raccourci")) $("panneau-raccourci").classList.add("cache"); });
+$("raccourci-oui")?.addEventListener("click", () => {
+  if (LIEN_RACCOURCI_IOS) { window.open(LIEN_RACCOURCI_IOS, "_blank"); $("panneau-raccourci").classList.add("cache"); return; }
+  // Pas encore de lien : on affiche les étapes pour le créer soi-même.
+  $("raccourci-boutons").classList.add("cache");
+  $("raccourci-guide").classList.remove("cache");
+});
+$("raccourci-fermer-guide")?.addEventListener("click", () => $("panneau-raccourci").classList.add("cache"));
+$("raccourci-copier")?.addEventListener("click", async () => {
+  const base = location.origin + location.pathname + "?url=";
+  try { await navigator.clipboard.writeText(base); $("raccourci-copier").textContent = "Adresse copiée ✓"; }
+  catch (e) { $("raccourci-copier").textContent = base; }
+});
 
 // --- Ajouter à l'écran d'accueil (PWA) ---
 // Android/Chrome : on capte l'invite native pour la déclencher au clic.
