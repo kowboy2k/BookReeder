@@ -2739,7 +2739,7 @@ function pastillePerso(cle, hexCourant) {
   return inp;
 }
 let triPersos = "apparition";   // apparition | alpha | bavardage
-const LIBELLE_TRI = { apparition: "Par ordre d'apparition", alpha: "Alphabétique (apparus)", bavardage: "Par bavardage" };
+const LIBELLE_TRI = { apparition: "Par ordre d'apparition", alpha: "Alphabétique (apparus)", bavardage: "Par poids de bavardage" };
 function indiceBavardage() { const s = $("reglage-indice-bavardage"); return s ? s.value : "masque"; }
 // Rang de bavardage (0 = plus de répliques) par personnage, pour les étoiles.
 function rangsBavardage() {
@@ -2919,6 +2919,9 @@ $("ba-oui")?.addEventListener("click", () => {                 // rattacher à u
     });
     cont.appendChild(b);
   });
+  const annuler = document.createElement("button"); annuler.className = "liste-annuler"; annuler.textContent = "Annuler";
+  annuler.addEventListener("click", fermerBucketAction);
+  cont.appendChild(annuler);
   $("ba-choix").classList.add("cache"); $("ba-supprimer").classList.add("cache");
   cont.classList.remove("cache");
 });
@@ -2954,6 +2957,9 @@ $("pa-fusionner")?.addEventListener("click", () => {           // Fusionner ce p
       });
       cont.appendChild(btn);
     });
+  const annuler = document.createElement("button"); annuler.className = "liste-annuler"; annuler.textContent = "Annuler";
+  annuler.addEventListener("click", fermerPersoAction);
+  cont.appendChild(annuler);
   $("pa-choix").classList.add("cache"); $("pa-fusionner").classList.add("cache");
   cont.classList.remove("cache");
 });
