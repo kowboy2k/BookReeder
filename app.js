@@ -215,6 +215,7 @@ function _rechargerReglages() {
   try { appliquerTailleLoupe(num("bookreeder-taille-loupe", 100)); } catch (e) {}
   try { reglerVitesse(num("bookreeder-vitesse", 300)); } catch (e) {}
   try { etat.couleursPersonnages = JSON.parse(g("bookreeder-perso-couleurs") || "{}") || {}; } catch (e) { etat.couleursPersonnages = {}; }
+  try { etat.persosCuration = JSON.parse(g("bookreeder-persos-curation") || "{}") || {}; } catch (e) { etat.persosCuration = {}; }
   { const cn = $("reglage-cacher-noms"); if (cn) cn.checked = (g("bookreeder-cacher-noms") !== "0"); }
   { const ib = $("reglage-indice-bavardage"); if (ib) ib.value = g("bookreeder-indice-bavardage") || "masque"; }
   [["reglage-infos-minimal", "bookreeder-infos-minimal"], ["reglage-infos-loupe", "bookreeder-infos-loupe"]].forEach(([id, key]) => {
@@ -2730,6 +2731,13 @@ function renderListePersos() {
     ligne.appendChild(nom);
     const et = etoilePoids(rangs[p.cle]);
     if (et) ligne.appendChild(et);
+    // Appui long sur la ligne (hors pastille) → bucket des formes détectées.
+    let lpT = null;
+    const annuleLp = () => { if (lpT) { clearTimeout(lpT); lpT = null; } };
+    ligne.addEventListener("pointerdown", (e) => { if (e.target.classList.contains("perso-pastille")) return; lpT = setTimeout(() => ouvrirBucket(p.cle), 500); });
+    ligne.addEventListener("pointerup", annuleLp);
+    ligne.addEventListener("pointerleave", annuleLp);
+    ligne.addEventListener("pointercancel", annuleLp);
     cont.appendChild(ligne);
   });
   const tri = $("dd-tri"); if (tri) tri.textContent = LIBELLE_TRI[triPersos];
@@ -2775,6 +2783,80 @@ $("dd-tri")?.addEventListener("click", () => {
 $("reglage-indice-bavardage")?.addEventListener("change", (e) => {
   try { localStorage.setItem("bookreeder-indice-bavardage", e.target.value); } catch (err) {}
   renderListePersos();
+});
+
+// =========================================================
+//  Bucket d'un personnage : formes détectées, curation (par livre)
+// =========================================================
+let bucketCleCourant = null, baFormeCourante = null;
+function sauverCuration() { try { localStorage.setItem("bookreeder-persos-curation", JSON.stringify(etat.persosCuration || {})); } catch (e) {} }
+function appliquerCuration() {
+  sauverCuration();
+  if (window.MoteurDialogues) { window.MoteurDialogues.analyserPersonnages(); if (etat.mots && etat.mots.length) window.MoteurDialogues.calculerLocuteurs(); }
+  renderListePersos();
+  if (!ecranLecture.classList.contains("cache")) afficherChunk();
+}
+function persoParCle(cle) { return ((etat.persos && etat.persos.nommes) || []).find((p) => p.cle === cle); }
+function ouvrirBucket(cle) { bucketCleCourant = cle; renderBucket(); $("panneau-bucket").classList.remove("cache"); }
+function renderBucket() {
+  const p = persoParCle(bucketCleCourant);
+  if (!p) { $("panneau-bucket").classList.add("cache"); return; }
+  const cacher = $("reglage-cacher-noms") ? $("reglage-cacher-noms").checked : true;
+  const masque = cacher && p.first > etat.index;
+  $("bucket-titre").textContent = masque ? "Personnage à venir" : p.nom;
+  const pref = (etat.persosCuration && etat.persosCuration.pref) || {};
+  const cont = $("bucket-liste"); cont.innerHTML = "";
+  (p.bucket || []).slice().sort((a, b) => b.count - a.count).forEach((f) => {
+    const ligne = document.createElement("div"); ligne.className = "bucket-ligne";
+    const nom = document.createElement("span"); nom.className = "bucket-nom" + (pref[p.cle] === f.nom ? " prefere" : "");
+    nom.textContent = masque ? "—" : f.nom;
+    nom.addEventListener("click", () => { (etat.persosCuration = etat.persosCuration || {}).pref = etat.persosCuration.pref || {}; etat.persosCuration.pref[p.cle] = f.nom; appliquerCuration(); renderBucket(); });
+    const cpt = document.createElement("span"); cpt.className = "bucket-compte"; cpt.textContent = f.count;
+    const x = document.createElement("button"); x.className = "bucket-x"; x.textContent = "✕"; x.title = "Retirer cette forme";
+    x.addEventListener("click", (e) => { e.stopPropagation(); ouvrirBucketAction(f.cle, f.nom); });
+    ligne.appendChild(nom); ligne.appendChild(cpt); ligne.appendChild(x);
+    cont.appendChild(ligne);
+  });
+}
+$("btn-fermer-bucket")?.addEventListener("click", () => $("panneau-bucket").classList.add("cache"));
+$("panneau-bucket")?.addEventListener("click", (e) => { if (e.target === $("panneau-bucket")) $("panneau-bucket").classList.add("cache"); });
+
+function curEnsemble(k) { etat.persosCuration = etat.persosCuration || {}; return (etat.persosCuration[k] = etat.persosCuration[k] || {}); }
+function ouvrirBucketAction(formCle, formNom) {
+  baFormeCourante = formCle;
+  $("ba-terme").textContent = formNom;
+  $("ba-perso-liste").classList.add("cache");
+  $("ba-choix").classList.remove("cache"); $("ba-supprimer").classList.remove("cache");
+  $("panneau-bucket-action").classList.remove("cache");
+}
+function fermerBucketAction() { $("panneau-bucket-action").classList.add("cache"); }
+$("panneau-bucket-action")?.addEventListener("click", (e) => { if (e.target === $("panneau-bucket-action")) fermerBucketAction(); });
+$("ba-non")?.addEventListener("click", () => {                 // personnage à part
+  curEnsemble("sep")[baFormeCourante] = 1;
+  if (etat.persosCuration.rat) delete etat.persosCuration.rat[baFormeCourante];
+  fermerBucketAction(); appliquerCuration(); renderBucket();
+});
+$("ba-supprimer")?.addEventListener("click", () => {           // texte normal
+  curEnsemble("sup")[baFormeCourante] = 1;
+  fermerBucketAction(); appliquerCuration(); renderBucket();
+});
+$("ba-oui")?.addEventListener("click", () => {                 // rattacher à un autre personnage
+  const cont = $("ba-perso-liste"); cont.innerHTML = "";
+  ((etat.persos && etat.persos.nommes) || [])
+    .filter((p) => p.cle !== bucketCleCourant && p.count >= 2)
+    .sort((a, b) => b.count - a.count)
+    .forEach((p) => {
+    const b = document.createElement("button"); b.textContent = p.nom;
+    b.addEventListener("click", () => {
+      curEnsemble("rat")[baFormeCourante] = p.cle;
+      if (etat.persosCuration.sep) delete etat.persosCuration.sep[baFormeCourante];
+      fermerBucketAction(); appliquerCuration();
+      bucketCleCourant = p.cle; renderBucket();
+    });
+    cont.appendChild(b);
+  });
+  $("ba-choix").classList.add("cache"); $("ba-supprimer").classList.add("cache");
+  cont.classList.remove("cache");
 });
 // Génère des couleurs DISTINCTES par personnage, calées sur l'intensité (saturation
 // / luminosité) de la palette du thème actif. Teintes réparties par l'angle d'or

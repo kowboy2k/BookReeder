@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=310">
+  <link rel="stylesheet" href="style.css?v=311">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -252,6 +252,29 @@
         <button id="raccourci-oui">Oui</button>
         <button id="raccourci-non">Non</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Bucket d'un personnage : formes détectées (appui long sur un nom) -->
+  <div id="panneau-bucket" class="cache">
+    <div class="panneau-contenu">
+      <h2 id="bucket-titre">Personnage</h2>
+      <p id="bucket-aide">Touche une forme pour l'afficher en titre ; ✕ pour la retirer.</p>
+      <div id="bucket-liste"></div>
+      <button id="btn-fermer-bucket">OK</button>
+    </div>
+  </div>
+
+  <!-- Action sur une forme : rattacher / séparer / supprimer -->
+  <div id="panneau-bucket-action" class="cache">
+    <div class="panneau-contenu">
+      <h2>Rattacher «&nbsp;<span id="ba-terme"></span>&nbsp;» à un autre personnage ?</h2>
+      <div id="ba-choix">
+        <button id="ba-oui">Oui</button>
+        <button id="ba-non">Non</button>
+      </div>
+      <button id="ba-supprimer">Supprimer</button>
+      <div id="ba-perso-liste" class="cache"></div>
     </div>
   </div>
 
@@ -593,7 +616,7 @@
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="chargeur.js?v=310"></script>
-  <script src="app.js?v=310"></script>
+  <script src="chargeur.js?v=311"></script>
+  <script src="app.js?v=311"></script>
 </body>
 </html>
