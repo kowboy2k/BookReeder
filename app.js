@@ -2739,7 +2739,7 @@ function pastillePerso(cle, hexCourant) {
   return inp;
 }
 let triPersos = "apparition";   // apparition | alpha | bavardage
-const LIBELLE_TRI = { apparition: "Par ordre d'apparition", alpha: "Alphabétique (apparus)", bavardage: "Par poids de bavardage" };
+const LIBELLE_TRI = { apparition: "Par ordre d'apparition", alpha: "Alphabétique", bavardage: "Par poids de bavardage" };
 function indiceBavardage() { const s = $("reglage-indice-bavardage"); return s ? s.value : "masque"; }
 // Rang de bavardage (0 = plus de répliques) par personnage, pour les étoiles.
 function rangsBavardage() {
@@ -2767,7 +2767,7 @@ function renderListePersos() {
   const rangs = rangsBavardage();
   let liste = ((etat.persos && etat.persos.nommes) || []).filter((p) => p.count >= 2).slice();
   if (triPersos === "bavardage") liste.sort((a, b) => b.count - a.count);
-  else if (triPersos === "alpha") liste = liste.filter((p) => p.first <= etat.index).sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
+  else if (triPersos === "alpha") liste.sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
   else liste.sort((a, b) => a.first - b.first);   // apparition
   liste.forEach((p) => {
     const masque = cacher && p.first > etat.index;
@@ -2956,7 +2956,7 @@ function renderListeFusion() {
   cont.appendChild(tri);
   let liste = ((etat.persos && etat.persos.nommes) || []).filter((p) => p.cle !== paPersoCourant && p.count >= 2);
   if (triFusion === "bavardage") liste.sort((a, b) => b.count - a.count);
-  else if (triFusion === "alpha") liste = liste.filter((p) => p.first <= etat.index).sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
+  else if (triFusion === "alpha") liste.sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
   else liste.sort((a, b) => a.first - b.first);
   liste.forEach((p) => {
     const btn = document.createElement("button"); btn.textContent = p.nom;
