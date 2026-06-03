@@ -245,6 +245,99 @@ $("input-fichier").addEventListener("change", async (e) => {
   }
 });
 
+// =========================================================
+//  « Coller URL » : charger un article en ligne (relais CORS)
+// =========================================================
+// BookReeder est un site sans serveur → un relais (proxy CORS) est nécessaire pour
+// récupérer une page d'un autre domaine. Test via le relais public corsproxy.io
+// (articles texte uniquement ; EPUB/PDF en ligne viendront avec un relais privé).
+const CORS_PROXY = "https://corsproxy.io/?url=";
+$("btn-coller-url")?.addEventListener("click", collerUrl);
+async function collerUrl() {
+  const msg = $("message-chargement");
+  let url = "";
+  try { url = ((await navigator.clipboard.readText()) || "").trim(); }
+  catch (e) { msg.textContent = "Accès au presse-papier refusé : copie un lien puis réessaie."; return; }
+  if (!/^https?:\/\//i.test(url)) { msg.textContent = "Aucun lien valide dans le presse-papier."; return; }
+  msg.textContent = "Récupération du lien…";
+  try {
+    const rep = await fetch(CORS_PROXY + encodeURIComponent(url));
+    if (!rep.ok) throw new Error("HTTP " + rep.status);
+    const type = (rep.headers.get("content-type") || "").toLowerCase();
+    if (/epub|pdf|octet-stream/.test(type) || /\.(epub|pdf)(\?|#|$)/i.test(url)) {
+      msg.textContent = "EPUB/PDF en ligne : nécessite ton relais privé (bientôt). Pour l'instant, articles seulement.";
+      return;
+    }
+    const html = await rep.text();
+    chargerArticle(html, url);
+  } catch (e) {
+    msg.textContent = "Échec : " + e.message + " — le site bloque peut-être l'accès.";
+  }
+}
+// Trouve le conteneur de texte le plus dense (max de texte dans des <p> directs).
+function meilleurConteneur(body) {
+  let best = body, bestLen = 0;
+  body.querySelectorAll("div, section, main, article").forEach((el) => {
+    let len = 0;
+    el.querySelectorAll(":scope > p").forEach((p) => { len += (p.textContent || "").length; });
+    if (len > bestLen) { bestLen = len; best = el; }
+  });
+  return best;
+}
+// Extrait { titre, source, chapitres } d'une page d'article (heuristique : on
+// écarte menus/pubs/partages, on garde le bloc le plus dense, on coupe en sections
+// sur les <h2>).
+function extraireArticle(doc, url) {
+  const meta = (sel) => { const m = doc.querySelector(sel); return m ? (m.getAttribute("content") || "").trim() : ""; };
+  let titre = meta('meta[property="og:title"]') || meta('meta[name="twitter:title"]') ||
+    (doc.querySelector("h1") && doc.querySelector("h1").textContent.trim()) ||
+    (doc.title || "").trim() || "Article";
+  titre = titre.replace(/\s*[|–—\-]\s*[^|–—\-]{1,40}$/, "").trim() || titre;  // retire « | Nom du site »
+  let source = ""; try { source = new URL(url).hostname.replace(/^www\./, ""); } catch (e) {}
+  const racine = doc.querySelector("article") || doc.querySelector('[role="main"], main') || meilleurConteneur(doc.body);
+  racine.querySelectorAll(
+    "script,style,nav,header,footer,aside,form,noscript,iframe,figcaption,button," +
+    "[role=navigation],[role=banner],[role=complementary]," +
+    "[class*=ad-],[class*=-ad],[id*=ad-],[class*=pub],[class*=share],[class*=social]," +
+    "[class*=newsletter],[class*=comment],[class*=related],[class*=promo],[class*=cookie]"
+  ).forEach((e) => e.remove());
+  const chapitres = []; let cur = { titre: titre, texte: [] };
+  racine.querySelectorAll("h2, h3, p, blockquote, li, pre").forEach((b) => {
+    const t = (b.textContent || "").replace(/\s+/g, " ").trim();
+    if (!t || t.length < 2) return;
+    if (b.tagName === "H2") {
+      if (cur.texte.length) chapitres.push({ titre: cur.titre, texte: cur.texte.join("\n") });
+      cur = { titre: t, texte: [] };
+    } else { cur.texte.push(t); }
+  });
+  if (cur.texte.length) chapitres.push({ titre: cur.titre, texte: cur.texte.join("\n") });
+  return { titre, source, chapitres };
+}
+function chargerArticle(html, url) {
+  const msg = $("message-chargement");
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const { titre, source, chapitres } = extraireArticle(doc, url);
+  const assez = chapitres.some((c) => (c.texte || "").length > 200);
+  if (!chapitres.length || !assez) { msg.textContent = "Texte de l'article introuvable sur cette page."; return; }
+  carteCasseReset();
+  etat.chapitresTexte = chapitres;
+  etat.notes = [];
+  etat.idLivre = null;
+  etat.profil = {};
+  etat.persos = null;
+  etat.nomLivre = titre;
+  etat.titreLivre = titre;
+  etat.progression = 0;
+  etat.articleEnAttente = { titre, url, source };   // proposera de garder à la fermeture (✖)
+  rechargerReglages();
+  retokeniser();
+  remplirSelectChapitres();
+  placerMarqueursChapitres();
+  demarrerLecture();
+  msg.textContent = "";
+}
+function carteCasseReset() { try { if (window.Chargeur) Chargeur.reinitCasse(); } catch (e) {} }
+
 // Découpe un texte brut en « passages » d'environ 1500 mots (pour la navigation
 // et des pauses de fin de chapitre raisonnables). Court → un seul bloc « Début ».
 function chapitresDepuisTexte(texte) {
@@ -2075,8 +2168,25 @@ $("btn-avance").addEventListener("click", () => deplacer(phraseSuivante() - etat
 $("btn-chap-prec").addEventListener("click", () => allerChapitre(-1));
 $("btn-chap-suiv").addEventListener("click", () => allerChapitre(1));
 
+// Article chargé en ligne (non enregistré) : à la fermeture, proposer de le garder.
+async function garderArticleSiBesoin() {
+  if (!etat.articleEnAttente) return;
+  const a = etat.articleEnAttente;
+  etat.articleEnAttente = null;
+  if (!confirm("Garder l'article « " + a.titre + " » en mémoire ?")) return;
+  const total = etat.mots.length;
+  const fiche = {
+    id: "url|" + a.url, nom: a.titre, titre: a.titre, auteur: a.source || "",
+    dateAjout: Date.now(), chapitresTexte: etat.chapitresTexte, notes: etat.notes || [],
+    persos: etat.persos || null, profil: etat.profil || {},
+    progression: total ? etat.index / total : 0, total,
+  };
+  await sauverLivre(fiche);
+  etat.idLivre = fiche.id;   // pour que la position se sauvegarde ensuite
+}
 $("btn-fermer").addEventListener("click", async () => {
   pause();
+  await garderArticleSiBesoin();
   await sauverPosition();
   ecranLecture.classList.add("cache");
   ecranAccueil.classList.remove("cache");

@@ -150,6 +150,14 @@ Serveur local (config preview centralisée `C:\Claude Code\.claude\launch.json`,
   réparties par l'**angle d'or** (départ aléatoire), saturation/luminosité **moyennées sur la
   palette du thème actif** (`hslVersHex`).
 
+- **« Coller URL » (articles en ligne)** : bouton accueil → lit le presse-papier, récupère la page
+  via un **relais CORS** (`CORS_PROXY`, corsproxy.io — site sans serveur donc proxy obligatoire) et
+  extrait titre + corps (`extraireArticle` : bloc le plus dense, sections sur `<h2>`, écarte
+  menus/pubs). Article chargé **non enregistré** (`etat.articleEnAttente`) ; à la fermeture (✖),
+  `garderArticleSiBesoin` propose de l'ajouter à la bibliothèque (nom du site comme « auteur »).
+  Limite du proxy gratuit : **texte seulement, < 1 Mo** → EPUB/PDF en ligne nécessiteront un relais
+  privé (Cloudflare Worker). Heuristique d'extraction = v1 à affiner.
+
 ## Jalons
 - **Jalon 1 (FAIT)** : charger un EPUB, RSVP 1–8 mots, vitesse 200–800 mpm, ORP activable,
   découpe intelligente, contrôles clavier + tactile, base PWA hors-ligne.
