@@ -1651,11 +1651,12 @@ function majDureeChapitre() {
   const totalMin = dureeEstimeeMs(etat.index, fin) / 60000;   // ms → minutes
   const h = Math.floor(totalMin / 60);
   const m = Math.round(totalMin % 60);
-  // Sous 1 h, on n'affiche que les minutes ; au-delà, format XhYYm.
+  // Sous 1 h, on n'affiche que les minutes ; au-delà, format XhYY.
   let txt;
-  if (h > 0) txt = `${h}h${String(m).padStart(2, "0")}m`;
-  else if (m === 0) txt = "< 0m";         // moins d'une minute
-  else txt = `${m}m`;
+  if (h > 0) txt = `${h}h${String(m).padStart(2, "0")}`;
+  else if (totalMin < 1) txt = "< 1 min";   // moins d'une minute
+  else if (totalMin < 2) txt = "> 1 min";   // entre 1 et 2 min (estimation trop imprécise)
+  else txt = `${m} min`;
   el.textContent = `Durée du chapitre : ${txt}`;
 }
 
