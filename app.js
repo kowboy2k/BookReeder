@@ -213,6 +213,7 @@ function _rechargerReglages() {
   try { appliquerCoefAccel(num("bookreeder-coef-accel", 1)); } catch (e) {}
   try { appliquerIntervalleAccel(num("bookreeder-accel-intervalle", 10)); } catch (e) {}
   try { appliquerTailleLoupe(num("bookreeder-taille-loupe", 100)); } catch (e) {}
+  try { appliquerDimLoupe(num("bookreeder-dim-loupe", 50)); } catch (e) {}
   try { reglerVitesse(num("bookreeder-vitesse", 300)); } catch (e) {}
   try { etat.couleursPersonnages = JSON.parse(g("bookreeder-perso-couleurs") || "{}") || {}; } catch (e) { etat.couleursPersonnages = {}; }
   try { etat.persosCuration = JSON.parse(g("bookreeder-persos-curation") || "{}") || {}; } catch (e) { etat.persosCuration = {}; }
@@ -3583,6 +3584,21 @@ $("reglage-taille-loupe").addEventListener("input", (e) => appliquerTailleLoupe(
   try { const s = localStorage.getItem("bookreeder-taille-loupe"); if (s) v = +s; } catch (e) {}
   if (!isFinite(v) || v < 50 || v > 200) v = 100;   // ignore les valeurs hors plage
   appliquerTailleLoupe(v);
+})();
+// Assombrissement du texte atténué en Mode Loupe : 0 % = aucun (opacité 1),
+// 100 % = invisible (opacité 0). Opacité = 1 − dim%/100. Défaut 50 %.
+function appliquerDimLoupe(v) {
+  document.documentElement.style.setProperty("--dim-loupe", (1 - v / 100).toString());
+  $("reglage-dim-loupe").value = v;
+  $("valeur-dim-loupe").textContent = v;
+  try { localStorage.setItem("bookreeder-dim-loupe", v); } catch (e) {}
+}
+$("reglage-dim-loupe").addEventListener("input", (e) => appliquerDimLoupe(+e.target.value));
+(function initDimLoupe() {
+  let v = 50;
+  try { const s = localStorage.getItem("bookreeder-dim-loupe"); if (s != null && s !== "") v = +s; } catch (e) {}
+  if (!isFinite(v) || v < 0 || v > 100) v = 50;
+  appliquerDimLoupe(v);
 })();
 $("reglage-espace-lettres").addEventListener("input", (e) => {
   document.documentElement.style.setProperty("--espace-lettres", e.target.value + "px");

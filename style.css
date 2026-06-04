@@ -207,7 +207,7 @@ html, body {
 #contexte-texte::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 3px; }
 #contexte-texte .ctx-bloc { margin: 0 0 0.9em; }      /* saut de ligne entre paragraphes */
 #contexte-texte .ctx-titre { font-weight: 900; }       /* titre/chapitre en Black */
-#contexte-texte span[data-i] { opacity: 0.5; }         /* texte atténué (50 %) */
+#contexte-texte span[data-i] { opacity: var(--dim-loupe, 0.5); }   /* texte atténué (réglable) */
 #contexte-texte span.phrase-courante { opacity: 1; }   /* phrase en cours à 100 % */
 /* Couleur du locuteur (multicolore) sur les mots de dialogue. */
 #contexte-texte span.ctx-dlg { color: var(--c-dlg); }
@@ -219,7 +219,7 @@ html, body {
 #contexte-texte span.ctx-dlg.courant { color: var(--c-dlg); }
 /* Lecture auto EN loupe : la phrase en cours est atténuée comme le reste du
    texte ; seul le mot lu passe en blanc (couleur du texte, pleine opacité). */
-#ecran-contexte.lecture-auto #contexte-texte span.phrase-courante { opacity: 0.5; }
+#ecran-contexte.lecture-auto #contexte-texte span.phrase-courante { opacity: var(--dim-loupe, 0.5); }
 #ecran-contexte.lecture-auto #contexte-texte span.courant { color: var(--texte); opacity: 1; }
 /* Repère d'annotation en lecture rapide : petit caractère en exposant.
    Discret (couleur de la police) ou « accentué » (.accent → couleur
