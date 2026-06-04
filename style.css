@@ -1173,7 +1173,7 @@ html, body {
 body.roue-ouverte #panneau-palette { background: transparent; }
 body.roue-ouverte #panneau-reglages .panneau-contenu { background: transparent; box-shadow: none; }
 /* La carte s'ajuste au contenu (pas de vide), avec défilement si trop haute */
-#panneau-palette .panneau-contenu { border-radius: 1rem; max-height: 92dvh; display: flex; flex-direction: column; }
+#panneau-palette .panneau-contenu { border-radius: 1rem; height: 92dvh; display: flex; flex-direction: column; }
 /* Barre de navigation entre thèmes (‹ Nom du thème ›) */
 #palette-barre-theme { flex: none; display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.8rem; }
 #palette-barre-theme h3 { flex: 1 1 auto; text-align: center; margin: 0; }
@@ -1181,7 +1181,7 @@ body.roue-ouverte #panneau-reglages .panneau-contenu { background: transparent; 
   flex: none; width: 2.4rem; height: 2.4rem; border-radius: 50%; border: 1px solid var(--surface-bord);
   background: var(--fond); color: var(--texte); font-size: 1.3rem; cursor: pointer;
 }
-#palette-defilable { flex: 1 1 auto; min-height: 0; overflow-y: auto; margin-bottom: 1rem; }
+#palette-defilable { flex: 1 1 auto; min-height: 0; overflow-y: auto; margin-bottom: 0.7rem; }
 #palette-titre-theme, .palette-titre-perso {
   text-align: center; font-family: sans-serif; font-size: 1.05rem; font-weight: 700;
   margin: 0.4rem 0 0.9rem;
@@ -1201,7 +1201,7 @@ body.roue-ouverte #panneau-reglages .panneau-contenu { background: transparent; 
 .palette-item {
   display: block; width: 100%; text-align: left; cursor: pointer;
   background: var(--fond); border: 2px solid transparent; border-radius: 0.6rem;
-  padding: 0.6rem 0.8rem; margin-bottom: 0.45rem; color: var(--texte);
+  padding: 0.5rem 0.8rem; margin-bottom: 0.3rem; color: var(--texte);
 }
 .palette-item.choisie { border-color: var(--accent); }
 .palette-tete { display: flex; align-items: center; gap: 0.6rem; font-family: sans-serif; font-size: 0.95rem; }
@@ -1243,7 +1243,10 @@ body.roue-ouverte #panneau-reglages .panneau-contenu { background: transparent; 
 .bucket-compte { flex: none; font-size: 0.78rem; opacity: 0.5; font-family: sans-serif; }
 .bucket-x { flex: none; background: none; border: none; color: var(--gris); font-size: 1.3rem; line-height: 1; cursor: pointer; padding: 0 0.3rem; }
 #btn-fermer-bucket { flex: none; width: 100%; margin-top: 1rem; padding: 0.9rem; background: var(--accent); color: #fff; border: none; border-radius: 0.6rem; font-size: 1rem; cursor: pointer; }
-#panneau-bucket-action h2, #panneau-perso-action h2 { margin: 0; font-size: 1.1rem; }
+/* Style unifié des titres de messages d'alerte / confirmation */
+#panneau-confirm h2, #panneau-bucket-action h2, #panneau-perso-action h2, #panneau-garder-article h2 {
+  margin: 0; font-size: 1rem; font-weight: 400; line-height: 1.45;
+}
 #ba-choix, #pa-choix { display: flex; gap: 1rem; margin: 1.4rem 0 0.7rem; }
 #ba-choix button, #ba-supprimer, #pa-choix button, #pa-fusionner { padding: 0.8rem; border-radius: 0.6rem; font-size: 1rem; cursor: pointer; font-family: sans-serif; }
 #ba-choix button, #pa-choix button { flex: 1; border: none; }
@@ -1293,7 +1296,7 @@ body.roue-ouverte #panneau-dialogues-dyn { background: transparent; }
 }
 #panneau-confirm.cache { display: none; }
 #panneau-confirm .panneau-contenu { border-radius: 1rem; max-width: 380px; width: 100%; text-align: center; }
-#panneau-confirm h2 { margin: 0; white-space: pre-line; }
+#panneau-confirm h2 { white-space: pre-line; }   /* taille via le style unifié des alertes */
 #confirm-boutons { display: flex; gap: 1rem; margin-top: 1.6rem; }
 #confirm-boutons button { flex: 1; padding: 0.8rem; border: none; border-radius: 0.6rem; font-size: 1rem; cursor: pointer; font-family: sans-serif; }
 #confirm-oui { background: var(--accent); color: #fff; }

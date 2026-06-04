@@ -8,3 +8,5 @@ test*.epub
 ebooks/
 # Journal personnel des instructions (ne pas committer)
 CLAUDE - instructions *.txt
+# Dossiers personnels / sous licence (commencant par #)
+\#*/

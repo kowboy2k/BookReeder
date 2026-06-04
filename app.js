@@ -486,6 +486,18 @@ async function chargerEpub(buffer, nom, taille) {
   const msg = $("message-chargement");
   msg.textContent = "Lecture du fichier…";
   try {
+    // Garde-fou : un EPUB est une archive ZIP → ses 2 premiers octets sont « PK »
+    // (0x50 0x4B). Sinon, inutile de solliciter epub.js (qui peut se bloquer sur un
+    // fichier invalide) : on signale tout de suite un fichier non valide (page web
+    // renommée, téléchargement échoué, format inattendu).
+    const sig = new Uint8Array(buffer.slice(0, 2));
+    if (sig[0] !== 0x50 || sig[1] !== 0x4B) {
+      const tete = new TextDecoder("latin1").decode(new Uint8Array(buffer.slice(0, 64))).trimStart().toLowerCase();
+      const estHtml = tete.startsWith("<!doctype html") || tete.startsWith("<html") || tete.startsWith("<?xml");
+      throw new Error(estHtml
+        ? "ce fichier est une page web, pas un EPUB (téléchargement probablement échoué)."
+        : "ce fichier n'est pas un EPUB valide (archive ZIP attendue).");
+    }
     const livre = ePub(buffer);
     // Garde-fou : certains EPUB bloquent epub.js indéfiniment à l'ouverture. On
     // abandonne au bout de 15 s avec un message clair plutôt que de geler l'appli.
@@ -1212,7 +1224,7 @@ async function fermerPalette() {
   if (diff) {
     const ov = etat.couleursPersonnages || {};
     const manuel = Object.keys(ov).some((k) => k !== "_tiersMlibre");
-    if (manuel && !(await confirmer("Les couleurs attribuées manuellement aux personnages seront remplacées.\nAppliquer la palette « " + palettePreview + " » ?"))) {
+    if (manuel && !(await confirmer("Les couleurs attribuées manuellement aux personnages seront remplacées.\n\nAppliquer la palette\n« " + palettePreview + " » ?"))) {
       $("panneau-palette").classList.add("cache"); return;   // annulé : on garde la palette actuelle
     }
     if (manuel) { etat.couleursPersonnages = {}; try { localStorage.setItem("bookreeder-perso-couleurs", "{}"); } catch (e) {} }
