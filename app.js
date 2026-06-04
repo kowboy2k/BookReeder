@@ -155,7 +155,7 @@ async function sauverPosition() {
 function estCleProfil(k) {
   return typeof k === "string" && k.indexOf("bookreeder-") === 0 &&
          k.indexOf("bookreeder-toc-") !== 0 && k !== "bookreeder-vue-version" &&
-         k !== "bookreeder-tri-biblio";
+         k !== "bookreeder-tri-biblio" && k !== "bookreeder-meta-biblio";
 }
 (function installerShimProfil() {
   const proto = Storage.prototype;
@@ -2510,6 +2510,23 @@ const fracLivre = (l) => l.progression != null ? l.progression : (l.total ? (l.i
 let triBiblio = "ajout";   // ajout | alpha | avancement
 try { triBiblio = localStorage.getItem("bookreeder-tri-biblio") || "ajout"; } catch (e) {}
 const LIBELLE_TRI_BIBLIO = { ajout: "par ordre d'ajout", alpha: "alphabétique", avancement: "avancement" };
+// Mode d'affichage de la 3ᵉ ligne des items (clic sur « Mes lectures ») :
+// 0 = date gauche + % droite ; 1 = % gauche + date droite ; 2 = date + % à la suite ;
+// 3 = % + date à la suite ; 4 = % seul.
+let metaBiblio = 0;
+try { metaBiblio = +(localStorage.getItem("bookreeder-meta-biblio") || 0) || 0; } catch (e) {}
+function metaBiblioHTML(pct, dateStr) {
+  const d = `<span class="item-date">ajouté ${dateStr}</span>`;
+  const p = `<span class="item-pct">${pct} %</span>`;
+  const sep = `<span class="item-sep">·</span>`;
+  switch (metaBiblio) {
+    case 1: return { cls: "meta-spread", html: p + d };          // % gauche, date droite
+    case 2: return { cls: "meta-suite", html: d + sep + p };     // date gauche, % à la suite
+    case 3: return { cls: "meta-suite", html: p + sep + d };     // % gauche, date à la suite
+    case 4: return { cls: "meta-suite", html: p };               // % seul
+    default: return { cls: "meta-spread", html: d + p };         // 0 : date gauche, % droite
+  }
+}
 // Efface le profil de lecture d'un livre (réglages + couleurs persos) en gardant
 // la progression et le livre dans la liste.
 async function proposerEffacerProfil(livre) {
@@ -2529,8 +2546,14 @@ async function afficherBibliotheque() {
   else livres.sort((a, b) => b.dateAjout - a.dateAjout);
   if (titre) {
     titre.style.display = livres.length ? "block" : "none";
-    // « Mes lectures : <mode> ⇅ » — la partie mode est cliquable (cycle le tri).
-    titre.innerHTML = "Mes lectures&nbsp;: <button id=\"tri-biblio\" class=\"tri-lien\"></button>";
+    // « Mes lectures : <mode> ⇅ » — « Mes lectures » cycle l'affichage de la 3ᵉ
+    // ligne des items ; la partie <mode> cycle le tri.
+    titre.innerHTML = "<button id=\"meta-biblio\" class=\"titre-lien\">Mes lectures</button>&nbsp;: <button id=\"tri-biblio\" class=\"tri-lien\"></button>";
+    $("meta-biblio").addEventListener("click", () => {
+      metaBiblio = (metaBiblio + 1) % 5;
+      try { localStorage.setItem("bookreeder-meta-biblio", metaBiblio); } catch (e) {}
+      afficherBibliotheque();
+    });
     const lien = $("tri-biblio");
     lien.textContent = LIBELLE_TRI_BIBLIO[triBiblio];
     lien.addEventListener("click", () => {
@@ -2549,7 +2572,7 @@ async function afficherBibliotheque() {
       `<div class="item-infos">` +
         `<span class="item-nom"></span>` +
         `<span class="item-auteur"></span>` +
-        `<span class="item-meta"><span class="item-date">Ajouté ${formatDate(livre.dateAjout)}</span><span class="item-pct">${pct} %</span></span>` +
+        `<span class="item-meta ${metaBiblioHTML(pct, formatDate(livre.dateAjout)).cls}">${metaBiblioHTML(pct, formatDate(livre.dateAjout)).html}</span>` +
       `</div>` +
       `<button class="item-suppr" title="Retirer">×</button>`;
     // Titre du livre (métadonnées) si dispo, sinon nom de fichier
