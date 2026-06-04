@@ -2549,7 +2549,7 @@ async function afficherBibliotheque() {
       `<div class="item-infos">` +
         `<span class="item-nom"></span>` +
         `<span class="item-auteur"></span>` +
-        `<span class="item-meta"><span class="item-pct">${pct} %</span><span class="item-date">ajouté le ${formatDate(livre.dateAjout)}</span></span>` +
+        `<span class="item-meta"><span class="item-date">Ajouté ${formatDate(livre.dateAjout)}</span><span class="item-pct">${pct} %</span></span>` +
       `</div>` +
       `<button class="item-suppr" title="Retirer">×</button>`;
     // Titre du livre (métadonnées) si dispo, sinon nom de fichier

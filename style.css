@@ -1116,7 +1116,7 @@ html, body {
   margin-top: 0.1rem;
 }
 .item-meta { font-size: 0.75rem; color: var(--gris); margin-top: 0.2rem; display: flex; justify-content: space-between; gap: 0.5rem; }
-.item-date { text-align: right; }
+.item-pct { text-align: right; }
 .item-suppr {
   background: none;
   border: none;
