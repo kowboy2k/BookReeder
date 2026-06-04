@@ -6,3 +6,5 @@ Thumbs.db
 # EPUB de test local
 test*.epub
 ebooks/
+# Journal personnel des instructions (ne pas committer)
+CLAUDE - instructions *.txt

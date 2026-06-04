@@ -562,6 +562,13 @@ function ouvrirFiche(fiche) {
   etat.persos = fiche.persos || null;      // personnages détectés (v2.96), scan mis en cache
   rechargerReglages();                      // applique les réglages du livre (sinon global)
   retokeniser();
+  // Reprise précise : on recule au DÉBUT de la phrase en cours (plutôt que de
+  // redémarrer pile sur le mot quitté, souvent au milieu d'une phrase), pour
+  // retrouver le fil sans relire. Uniquement à l'ouverture d'un livre.
+  if (etat.index > 0) {
+    etat.index = debutPhraseAvant(etat.index);
+    etat.progression = etat.index / Math.max(1, etat.mots.length - 1);
+  }
   remplirSelectChapitres();
   placerMarqueursChapitres();
   demarrerLecture();
