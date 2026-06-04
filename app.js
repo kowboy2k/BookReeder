@@ -2729,13 +2729,22 @@ function attribuerCouleurPerso(cle, hex) {
   if (!etat.couleursPersonnages) etat.couleursPersonnages = {};
   etat.couleursPersonnages[cle] = hex;
   sauverCouleursPersos();
-  if (!$("panneau-dialogues-dyn").classList.contains("cache")) renderListePersos();
+  // Aperçu de lecture mis à jour si l'effet multicolore est actif. On NE
+  // reconstruit PAS la liste : la pastille (= l'input) affiche déjà sa couleur,
+  // et re-générer la liste pendant l'usage referme/déstabilise le sélecteur.
+  if (typeof effetDialogue === "function" && effetDialogue("multicolore") &&
+      window.MoteurDialogues && etat.mots && etat.mots.length) {
+    window.MoteurDialogues.calculerLocuteurs();
+    if (!ecranLecture.classList.contains("cache")) afficherChunk();
+  }
 }
 function pastillePerso(cle, hexCourant) {
   const inp = document.createElement("input");
   inp.type = "color"; inp.className = "perso-pastille";
   inp.value = hexOk(hexCourant) ? hexCourant : "#888888";
-  inp.addEventListener("input", () => attribuerCouleurPerso(cle, inp.value));
+  // « change » (pas « input ») : la couleur n'est appliquée qu'au relâchement /
+  // à la fermeture du sélecteur natif, jamais en continu pendant la sélection.
+  inp.addEventListener("change", () => attribuerCouleurPerso(cle, inp.value));
   return inp;
 }
 let triPersos = "apparition";   // apparition | alpha | bavardage

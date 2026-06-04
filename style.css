@@ -1292,6 +1292,7 @@ body.roue-ouverte #panneau-dialogues-dyn { background: transparent; }
 #confirm-non { background: var(--fond); color: var(--texte); border: 1px solid var(--surface-bord); }
 .perso-ligne { display: flex; align-items: center; gap: 0.7rem; padding: 0.35rem 0.2rem; border-bottom: 1px solid var(--surface-bord); }
 .perso-couleur-zone { flex: 1 1 auto; display: flex; align-items: center; gap: 0.7rem; min-width: 0; cursor: pointer; }
+.espace-5 { margin-top: 5px; margin-bottom: 5px; }
 .perso-pastille {
   flex: none; width: 1.9rem; height: 1.9rem; padding: 0; cursor: pointer;
   border: 2px solid var(--surface-bord); border-radius: 50%;
