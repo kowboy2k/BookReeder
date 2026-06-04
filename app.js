@@ -487,7 +487,12 @@ async function chargerEpub(buffer, nom, taille) {
   msg.textContent = "Lecture du fichier…";
   try {
     const livre = ePub(buffer);
-    await livre.ready;
+    // Garde-fou : certains EPUB bloquent epub.js indéfiniment à l'ouverture. On
+    // abandonne au bout de 15 s avec un message clair plutôt que de geler l'appli.
+    await Promise.race([
+      livre.ready,
+      new Promise((_, rej) => setTimeout(() => rej(new Error("ouverture trop longue (fichier peut-être non standard ou abîmé)")), 15000)),
+    ]);
     // Lit le CSS du livre pour reproduire les transformations de casse
     // (titres en petites capitales / majuscules), fidèlement au rendu d'origine.
     Chargeur.reinitCasse();
@@ -2544,7 +2549,7 @@ async function afficherBibliotheque() {
       `<div class="item-infos">` +
         `<span class="item-nom"></span>` +
         `<span class="item-auteur"></span>` +
-        `<span class="item-meta">Ajouté le ${formatDate(livre.dateAjout)} · ${pct}%</span>` +
+        `<span class="item-meta"><span class="item-pct">${pct} %</span><span class="item-date">Ajouté le ${formatDate(livre.dateAjout)}</span></span>` +
       `</div>` +
       `<button class="item-suppr" title="Retirer">×</button>`;
     // Titre du livre (métadonnées) si dispo, sinon nom de fichier
@@ -2794,6 +2799,9 @@ function renderListePersos() {
     ligne.appendChild(zone);
     const et = etoilePoids(rangs[p.cle]);
     if (et) ligne.appendChild(et);
+    // Nombre d'occurrences (somme du bucket) — affiché UNIQUEMENT quand le
+    // masquage anti-spoil est décoché (le compte révèle l'importance du perso).
+    if (!cacher) { const cpt = document.createElement("span"); cpt.className = "perso-compte"; cpt.textContent = p.count; ligne.appendChild(cpt); }
     const xb = document.createElement("button"); xb.className = "perso-suppr"; xb.textContent = "✕"; xb.title = "Supprimer / fusionner ce personnage";
     xb.addEventListener("click", (e) => { e.stopPropagation(); ouvrirPersoAction(p.cle, masque ? "ce personnage" : p.nom); });
     ligne.appendChild(xb);
@@ -2893,7 +2901,10 @@ function renderBucket() {
     nom.addEventListener("click", () => { (etat.persosCuration = etat.persosCuration || {}).pref = etat.persosCuration.pref || {}; etat.persosCuration.pref[p.cle] = f.nom; appliquerCuration(); renderBucket(); });
     const x = document.createElement("button"); x.className = "bucket-x"; x.textContent = "✕"; x.title = "Retirer cette forme";
     x.addEventListener("click", (e) => { e.stopPropagation(); ouvrirBucketAction(f.cle, f.nom); });
-    ligne.appendChild(nom); ligne.appendChild(x);
+    ligne.appendChild(nom);
+    // Nombre d'occurrences de cette forme — masqué aussi si le perso est « à venir ».
+    if (!masque) { const cpt = document.createElement("span"); cpt.className = "bucket-compte"; cpt.textContent = f.count; ligne.appendChild(cpt); }
+    ligne.appendChild(x);
     cont.appendChild(ligne);
   });
 }
