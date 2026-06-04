@@ -2842,9 +2842,10 @@ function renderListePersos() {
     ligne.appendChild(zone);
     const et = etoilePoids(rangs[p.cle]);
     if (et) ligne.appendChild(et);
-    // Nombre d'occurrences (somme du bucket) — affiché UNIQUEMENT quand le
-    // masquage anti-spoil est décoché (le compte révèle l'importance du perso).
-    if (!cacher) { const cpt = document.createElement("span"); cpt.className = "perso-compte"; cpt.textContent = p.count; ligne.appendChild(cpt); }
+    // Nombre d'occurrences (somme du bucket) — affiché UNIQUEMENT quand le tri est
+    // « Par poids de bavardage » ET que le masquage anti-spoil est décoché (le compte
+    // révèle l'importance du personnage).
+    if (!cacher && triPersos === "bavardage") { const cpt = document.createElement("span"); cpt.className = "perso-compte"; cpt.textContent = p.count; ligne.appendChild(cpt); }
     const xb = document.createElement("button"); xb.className = "perso-suppr"; xb.textContent = "✕"; xb.title = "Supprimer / fusionner ce personnage";
     xb.addEventListener("click", (e) => { e.stopPropagation(); ouvrirPersoAction(p.cle, masque ? "ce personnage" : p.nom); });
     ligne.appendChild(xb);
