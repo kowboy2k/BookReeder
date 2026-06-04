@@ -1315,6 +1315,9 @@ function delaiChunk() {
     if (dansDialogue(debut + k)) { enDialogue = true; break; }
   }
   if (enDialogue && etat.coefPause > 0) mot = Math.max(mot, base * P.plancherDialogue);
+  // « Ralentissement des dialogues » (slider) : ralentit la durée de CHAQUE mot en
+  // dialogue (pas seulement les pauses), pour un effet réellement perceptible.
+  if (enDialogue) mot *= etat.coefDialogue;
 
   // Noms propres (majuscule en milieu de phrase) : 500 ms mini par nom propre.
   const planNom = plancherNomPropre(debut, fin);

@@ -1163,7 +1163,7 @@ html, body {
    pouvoir s'étendre uniquement vers le bas sans remonter. */
 #panneau-palette {
   position: fixed; inset: 0; z-index: 80;   /* au-dessus du panneau « Feuille de personnages » (60) */
-  background: rgba(0,0,0,0.6); display: flex; align-items: flex-start; justify-content: center;
+  background: rgba(0,0,0,0.6); display: flex; align-items: stretch; justify-content: center;
   /* Marge basse +10px pour dégager la barre iPhone */
   padding: max(7vh, env(safe-area-inset-top)) 0.8rem max(2dvh, calc(env(safe-area-inset-bottom) + 10px));
   box-sizing: border-box;
@@ -1172,8 +1172,10 @@ html, body {
 /* Roue chromatique ouverte : on n'assombrit pas l'arrière-plan (palette + réglages) */
 body.roue-ouverte #panneau-palette { background: transparent; }
 body.roue-ouverte #panneau-reglages .panneau-contenu { background: transparent; box-shadow: none; }
-/* La carte s'ajuste au contenu (pas de vide), avec défilement si trop haute */
-#panneau-palette .panneau-contenu { border-radius: 1rem; height: 92dvh; display: flex; flex-direction: column; }
+/* La carte remplit la hauteur DISPONIBLE (entre les paddings haut/bas de l'overlay,
+   safe-areas iPhone comprises) grâce à align-items:stretch — pas de hauteur fixe en
+   dvh qui déborderait sous l'encoche. La liste interne défile si besoin. */
+#panneau-palette .panneau-contenu { border-radius: 1rem; min-height: 0; display: flex; flex-direction: column; }
 /* Barre de navigation entre thèmes (‹ Nom du thème ›) */
 #palette-barre-theme { flex: none; display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.8rem; }
 #palette-barre-theme h3 { flex: 1 1 auto; text-align: center; margin: 0; }

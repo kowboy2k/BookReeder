@@ -591,7 +591,35 @@ function tokeniserChapitres(chapitresTexte, decouper) {
     });
   });
   if (chapitres.length === 0) chapitres.push({ titre: "Début", debut: 0 });
+  corrigerNomsColles(mots);
   return { mots, chapitres, debuts, refs };
+}
+
+// Corrige les noms propres COLLÉS par erreur dans l'EPUB (« SaintGermain ») quand
+// la forme correcte avec trait d'union (« Saint-Germain ») est attestée AILLEURS
+// dans le même livre. 100 % data-driven : on ne corrige que si la bonne forme existe,
+// donc « MacKenzie », « DuBois »… (jamais écrits « Mac-Kenzie ») ne sont pas touchés.
+function corrigerNomsColles(mots) {
+  const RE_PAIRE = /^(\p{Lu}[\p{Ll}]+)-(\p{Lu}[\p{L}]+)$/u;   // « Saint-Germain »
+  const RE_COLLE = /^(\p{Lu}[\p{Ll}]+)(\p{Lu}[\p{L}]+)$/u;     // « SaintGermain »
+  const noyau = (w) => {
+    const pre = (w.match(/^[^\p{L}]*/u) || [""])[0];
+    const suf = (w.match(/[^\p{L}]*$/u) || [""])[0];
+    return [pre, w.slice(pre.length, w.length - suf.length), suf];
+  };
+  const carte = Object.create(null);
+  for (const w of mots) {
+    const m = noyau(w)[1].match(RE_PAIRE);
+    if (m) { const k = (m[1] + m[2]).toLowerCase(); if (!carte[k]) carte[k] = m[1] + "-" + m[2]; }
+  }
+  if (!Object.keys(carte).length) return;
+  for (let i = 0; i < mots.length; i++) {
+    const [pre, core, suf] = noyau(mots[i]);
+    const m = core.match(RE_COLLE);
+    if (!m) continue;
+    const corr = carte[(m[1] + m[2]).toLowerCase()];
+    if (corr && corr !== core) mots[i] = pre + corr + suf;
+  }
 }
 
 // Échappe un id pour querySelector (CSS.escape si dispo)
@@ -749,11 +777,32 @@ function baliserNotes(doc, corps, notesArr, idMap, attente) {
       let tgt = null;
       try { tgt = corps.querySelector("#" + cssEchappe(fragId)); } catch (e) {}
       if (!tgt && doc.getElementById) tgt = doc.getElementById(fragId);
-      if (tgt) note.texte = nettoyerNote(texteNoteCible(tgt));
-      else attente.push({ noteId, fragId });
+      if (tgt) {
+        note.texte = nettoyerNote(texteNoteCible(tgt));
+        // Retire la DÉFINITION de la note du flux de lecture (sinon elle est lue
+        // en plein texte, ex. « En français dans le texte. (N.d.T.) » répété). On
+        // ne supprime que si le bloc EST essentiellement la note (pas un paragraphe
+        // de récit qui contiendrait une ancre).
+        const bloc = (tgt.closest && tgt.closest("li, aside, p, div, dd")) || tgt;
+        const txtBloc = (bloc.textContent || "").replace(/\s+/g, " ").trim();
+        if (bloc.parentNode && note.texte && txtBloc && txtBloc.length <= note.texte.length + 40) {
+          bloc.parentNode.removeChild(bloc);
+        }
+      } else attente.push({ noteId, fragId });
     }
     notesArr.push(note);
     cible.parentNode.replaceChild(doc.createTextNode(marqueNote(noteId)), cible);
+  });
+  // Ménage final : retire les blocs de DÉFINITION de notes (epub:type ou classe
+  // « footnote / endnote / rearnote ») restés dans le corps — sinon ils sont lus en
+  // plein texte (ex. « En français dans le texte. (N.d.T.) » répété). Leur contenu a
+  // déjà été capté dans les notes. Les liens bidirectionnels empêchent parfois leur
+  // retrait par id ; ce filtre structurel les attrape de façon fiable.
+  corps.querySelectorAll("aside, p, li, div, section").forEach((el) => {
+    let ty = (el.getAttribute("epub:type") || "");
+    try { ty += " " + (el.getAttributeNS("http://www.idpf.org/2007/ops", "type") || ""); } catch (e) {}
+    ty = (ty + " " + (typeof el.className === "string" ? el.className : "")).toLowerCase();
+    if (/(^|[\s_-])(foot|end|rear)note/.test(ty) && el.parentNode) el.parentNode.removeChild(el);
   });
 }
 
