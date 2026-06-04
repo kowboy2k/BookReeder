@@ -587,14 +587,21 @@ function ouvrirFiche(fiche) {
 }
 
 // Texte de démo (pour tester sans EPUB)
-const TEXTE_DEMO = `La réception avait eu lieu dans la demeure de Lucinda Joffrey. Sir Richard était absent. Un diplomate de sa stature n’aurait jamais toléré un amusement aussi frivole. Les soirées d’anguille électrique faisaient fureur à Londres depuis peu. Cependant, en raison de la rareté de ces créatures, les fêtes privées étaient rares. En général, elles se tenaient dans des théâtres où quelques heureux élus étaient sélectionnés pour monter sur scène et rencontrer l’anguille, être électrocutés et se convulser comme des pantins articulés pour le plus grand plaisir du public.
-— Le record est de quarante-deux personnes d’un coup! l’assura Caroline.
-Les yeux écarquillés et brillants, elle observait la créature dans l’aquarium.
-— Vraiment?
-C’était l’animal le plus singulier qu’il avait jamais vu, sans pour autant être saisissant. Mesurant près de trois pieds de long, avec de petits yeux ronds ternes, un corps trapu et une tête plate, il semblait avoir été modelé dans l’argile par un sculpteur débutant. Il n’avait rien de commun avec les petites anguilles souples et rapides que l’on trouvait sur les marchés. Quoi qu’il en soit, il ne semblait pas capable d’assommer quarante-deux personnes à la fois.
-Il n’avait aucune grâce, à part une mince nageoire qui courait tout le long de son ventre et ondulait comme un rideau de mousseline sous la brise. Lord John fit part de son observation à l’honorable Caroline, qui l’accusa d’être un poète.
-— Un poète? dit une voix amusée derrière eux. Les talents de notre galant major ne connaissent-ils donc aucune limite?
-Lord John se retourna en réprimant une grimace et en affichant un sourire courtois. Il s’inclina devant Edwin Nicholls.`;
+const TEXTE_DEMO = `La réception avait eu lieu dans la demeure de Lucinda Joffrey. Sir Richard était absent : un diplomate de sa stature n’aurait jamais toléré un amusement aussi frivole. Les soirées d’anguille électrique faisaient fureur à Londres depuis peu, mais, en raison de la rareté de ces créatures, les fêtes privées demeuraient exceptionnelles.
+— Le record est de quarante-deux personnes d’un seul coup ! lança Caroline, les yeux brillants.
+— Quarante-deux ? répéta Lord John, sceptique. Vous exagérez sûrement.
+— Pas le moins du monde. Approchez donc, major, et regardez-la de plus près.
+Il se pencha au-dessus de l’aquarium. La créature était l’animal le plus singulier qu’il eût jamais vu : près de trois pieds de long, de petits yeux ronds et ternes, un corps trapu, une tête plate.
+— On dirait qu’un sculpteur débutant l’a modelée dans l’argile, murmura-t-il.
+— Voyons, vous êtes injuste, protesta Caroline. Observez cette nageoire… elle ondule comme un rideau de mousseline sous la brise.
+— Un rideau de mousseline ! Vous parlez comme un poète, ma chère.
+— Un poète ? dit une voix amusée derrière eux. Les talents de notre galant major ne connaissent-ils donc aucune limite ?
+Lord John se retourna en réprimant une grimace, et s’inclina.
+— Monsieur Nicholls, fit-il avec une courtoisie glacée. Je ne vous savais pas amateur de poissons.
+— D’anguilles, major, corrigea Edwin Nicholls en souriant. Et de bonne compagnie. Dînerez-vous avec nous ?
+— Une autre fois, peut-être, répondit-il. Le devoir m’appelle.
+Caroline soupira tandis qu’il s’éloignait.
+— Toujours le devoir… Cet homme finira par s’ennuyer à mourir.`;
 
 // Chapitre 2 inventé, riche en dialogues (test chapitrage + annotations).
 const TEXTE_DEMO2 = `Le lendemain matin, une brume épaisse montait de la Tamise et noyait les quais d’un voile gris. Lord John remonta le col de son manteau et pressa le pas vers Whitehall.
@@ -3297,7 +3304,7 @@ $("couleur-police-perso").addEventListener("input", (e) => appliquerCouleurPolic
 function appliquerCoefPause(v) {
   etat.coefPause = v;
   $("reglage-pauses").value = v;
-  $("valeur-pauses").textContent = v.toFixed(1).replace(".", ",");
+  $("valeur-pauses").textContent = v <= 0 ? "aucune" : "x " + v.toFixed(1).replace(".", ",");
   try { localStorage.setItem("bookreeder-coef-pause", v); } catch (e) {}
 }
 $("reglage-pauses").addEventListener("input", (e) => appliquerCoefPause(+e.target.value));
@@ -3311,7 +3318,7 @@ $("reglage-pauses").addEventListener("input", (e) => appliquerCoefPause(+e.targe
 function appliquerCoefDialogue(v) {
   etat.coefDialogue = v;
   $("reglage-dialogue-lent").value = v;
-  $("valeur-dialogue-lent").textContent = v.toFixed(1).replace(".", ",");
+  $("valeur-dialogue-lent").textContent = v <= 1 ? "aucun" : "x " + v.toFixed(1).replace(".", ",");
   try { localStorage.setItem("bookreeder-coef-dialogue", v); } catch (e) {}
 }
 $("reglage-dialogue-lent").addEventListener("input", (e) => appliquerCoefDialogue(+e.target.value));
