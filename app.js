@@ -2634,6 +2634,11 @@ async function afficherBibliotheque() {
 }
 afficherBibliotheque();
 initialiserModeles();
+// Marque les lignes de réglage contenant un slider (pour l'espacement resserré CSS),
+// sans dépendre du sélecteur :has() (pas garanti sur tous les iPhone).
+document.querySelectorAll('#panneau-reglages input[type="range"]').forEach((inp) => {
+  const ligne = inp.closest(".reglage"); if (ligne) ligne.classList.add("ligne-slider");
+});
 
 // Numéro de version = compteur de déploiement (?v=N de app.js, N/100), bumpé une
 // fois par push. Affiché dans la signature et dans « Vérifier les mises à jour ».
