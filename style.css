@@ -1336,7 +1336,7 @@ body.roue-ouverte #panneau-dialogues-dyn { background: transparent; }
 #btn-fermer-palette {
   flex: none; width: 100%; padding: 0.9rem; background: var(--accent); color: #fff;
   border: none; border-radius: 0.6rem; font-size: 1rem; cursor: pointer;
-  margin-top: 10vh;   /* +10% d'espace entre les pastilles perso et OK */
+  margin-top: 1rem;   /* la liste (flex:1) prend l'espace dispo ; OK reste séparé sobrement */
 }
 #btn-fermer-accel {
   width: 100%;
@@ -1506,6 +1506,9 @@ body.roue-ouverte #panneau-dialogues-dyn { background: transparent; }
 /* 5px d'espacement supplémentaire sous « Cartouche ORP » (spécificité id+id pour
    battre « #panneau-reglages .reglage »). */
 #panneau-reglages #bloc-cartouche { margin-bottom: 15px; }
+/* +2px au-dessus et en-dessous des lignes « Couleur de police » et « Couleur d'accentuation »
+   (id+id pour battre « #panneau-reglages .reglage »). */
+#panneau-reglages #bloc-couleur-police, #panneau-reglages #bloc-orp-couleur { margin-top: 7px; margin-bottom: 7px; }
 .reglage select {
   width: 100%;
   padding: 0.5rem;
