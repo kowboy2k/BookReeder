@@ -2229,6 +2229,33 @@ function toastLoupe(msg) {
   t.textContent = msg; t.classList.remove("cache");
   clearTimeout(_toastTimer); _toastTimer = setTimeout(() => t.classList.add("cache"), 1000);
 }
+// Infobulle 1 s centrée sur l'écran principal (hors Mode Loupe).
+let _toastEcranTimer = null;
+function toastEcran(msg) {
+  const t = $("toast-ecran"); if (!t) return;
+  t.textContent = msg; t.classList.remove("cache");
+  clearTimeout(_toastEcranTimer); _toastEcranTimer = setTimeout(() => t.classList.add("cache"), 1000);
+}
+// Bascule vers un moteur de lecture (re-découpe le texte en conservant la position).
+function changerModele(id) {
+  activerModele(id);
+  if (etat.chapitresTexte) {
+    if (etat.mots && etat.mots.length) etat.progression = etat.index / etat.mots.length;
+    retokeniser();
+    remplirSelectChapitres();
+    placerMarqueursChapitres();
+  }
+  etat.elan = 1;
+  afficherChunk();
+  const sel = $("reglage-modele"); if (sel) sel.value = etat.modeleId;
+}
+// Appui long sur ✖ : fait défiler les moteurs (BookReeder → HotGato → Hybride → …).
+function cyclerMoteur() {
+  const ids = Object.keys(MODELES);
+  const suiv = ids[(ids.indexOf(etat.modeleId) + 1) % ids.length];
+  changerModele(suiv);
+  toastEcran("Moteur : " + (MODELES[suiv].nom));
+}
 // Associe à un bouton de la loupe : APPUI SIMPLE = action ; APPUI LONG = bascule.
 function ctxBoutonLongPress(id, actionCourte, actionLongue) {
   const btn = $(id); if (!btn) return;
@@ -2397,7 +2424,8 @@ async function garderArticleSiBesoin() {
   await sauverLivre(fiche);
   etat.idLivre = fiche.id;   // pour que la position se sauvegarde ensuite
 }
-$("btn-fermer").addEventListener("click", async () => {
+// ✖ : appui simple = changer de livre ; appui long = basculer de moteur de lecture.
+ctxBoutonLongPress("btn-fermer", async () => {
   pause();
   await garderArticleSiBesoin();
   await sauverPosition();
@@ -2407,7 +2435,7 @@ $("btn-fermer").addEventListener("click", async () => {
   $("message-chargement").textContent = "";
   afficherBibliotheque();
   if (typeof rafraichirBulleLireMoi === "function") rafraichirBulleLireMoi();
-});
+}, cyclerMoteur);
 
 // =========================================================
 //  Curseur déplaçable sur la barre (souris + tactile)
@@ -3159,18 +3187,7 @@ $("ri-couleurs")?.addEventListener("click", async () => {
 });
 $("ri-aleatoire")?.addEventListener("click", () => { fermerReinit(); genererCouleursPersos(); });
 
-$("reglage-modele")?.addEventListener("change", (e) => {
-  activerModele(e.target.value);
-  // Chaque modèle re-découpe le texte à sa façon (en conservant la position)
-  if (etat.chapitresTexte) {
-    if (etat.mots && etat.mots.length) etat.progression = etat.index / etat.mots.length;
-    retokeniser();
-    remplirSelectChapitres();
-    placerMarqueursChapitres();
-  }
-  etat.elan = 1;
-  afficherChunk();
-});
+$("reglage-modele")?.addEventListener("change", (e) => changerModele(e.target.value));
 $("reglage-nb-mots").addEventListener("input", (e) => {
   const v = +e.target.value;
   etat.modeStrict = (v === 0);            // « 1 (strict) » : 1 mot, sans groupage nom propre
