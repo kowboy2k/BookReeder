@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=372">
+  <link rel="stylesheet" href="style.css?v=373">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -223,7 +223,7 @@
       <div id="liste-persos"></div>
       <div id="dd-tiers"></div>
       <button id="btn-fermer-dialogues-dyn">OK</button>
-      <button id="btn-generer-couleurs" type="button" class="lien-texte">Générer des couleurs aléatoires</button>
+      <button id="btn-reinitialiser" type="button" class="lien-texte">Réinitialiser…</button>
     </div>
   </div>
 
@@ -282,6 +282,17 @@
       </div>
       <button id="pa-fusionner">Fusionner</button>
       <div id="pa-perso-liste" class="cache"></div>
+    </div>
+  </div>
+
+  <!-- Réinitialiser (Feuille de personnages) : 3 choix -->
+  <div id="panneau-reinit" class="cache">
+    <div class="panneau-contenu">
+      <h2>Réinitialiser</h2>
+      <button id="ri-persos">Réinitialiser les personnages</button>
+      <button id="ri-couleurs">Réinitialiser les couleurs</button>
+      <button id="ri-aleatoire">Générer des couleurs aléatoires</button>
+      <button id="ri-annuler" class="liste-annuler">Annuler</button>
     </div>
   </div>
 
@@ -460,6 +471,11 @@
       </div>
 
       <div class="reglage reglage-case">
+        <label for="reglage-pause-loupe">Pause à la sortie du Mode Loupe</label>
+        <input type="checkbox" id="reglage-pause-loupe">
+      </div>
+
+      <div class="reglage reglage-case">
         <label for="reglage-afficher-mots">Afficher le nombre de mots du chapitre</label>
         <input type="checkbox" id="reglage-afficher-mots">
       </div>
@@ -467,11 +483,6 @@
       <div class="reglage reglage-case">
         <label for="reglage-infos-minimal">Afficher les infos en Mode Minimaliste</label>
         <input type="checkbox" id="reglage-infos-minimal">
-      </div>
-
-      <div class="reglage reglage-case">
-        <label for="reglage-infos-loupe">Afficher les infos en Mode Loupe</label>
-        <input type="checkbox" id="reglage-infos-loupe">
       </div>
 
       </div><!-- /page 0 -->
@@ -545,6 +556,19 @@
 
       </div><!-- /page 1 -->
       <div class="reglages-page cache" data-page="2">
+
+      <div class="reglage reglage-inline">
+        <label for="reglage-ralenti-nom">Ralenti sur noms propres</label>
+        <select id="reglage-ralenti-nom">
+          <option value="off">Aucun</option>
+          <option value="2-once">2× — une seule fois</option>
+          <option value="2-tous">2× — à chaque fois</option>
+          <option value="3-once">3× — une seule fois</option>
+          <option value="3-tous">3× — à chaque fois</option>
+          <option value="4-once">4× — une seule fois</option>
+          <option value="4-tous">4× — à chaque fois</option>
+        </select>
+      </div>
 
       <div class="reglage reglage-inline">
         <label for="reglage-theme">Thème</label>
@@ -640,7 +664,7 @@
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="chargeur.js?v=372"></script>
-  <script src="app.js?v=372"></script>
+  <script src="chargeur.js?v=373"></script>
+  <script src="app.js?v=373"></script>
 </body>
 </html>

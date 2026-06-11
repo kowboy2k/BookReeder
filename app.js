@@ -214,12 +214,13 @@ function _rechargerReglages() {
   try { appliquerIntervalleAccel(num("bookreeder-accel-intervalle", 10)); } catch (e) {}
   try { appliquerTailleLoupe(num("bookreeder-taille-loupe", 100)); } catch (e) {}
   try { appliquerDimLoupe(num("bookreeder-dim-loupe", 50)); } catch (e) {}
+  try { appliquerRalentiNom(str("bookreeder-ralenti-nom", "off")); } catch (e) {}
   try { reglerVitesse(num("bookreeder-vitesse", 300)); } catch (e) {}
   try { etat.couleursPersonnages = JSON.parse(g("bookreeder-perso-couleurs") || "{}") || {}; } catch (e) { etat.couleursPersonnages = {}; }
   try { etat.persosCuration = JSON.parse(g("bookreeder-persos-curation") || "{}") || {}; } catch (e) { etat.persosCuration = {}; }
   { const cn = $("reglage-cacher-noms"); if (cn) cn.checked = (g("bookreeder-cacher-noms") !== "0"); }
   { const ib = $("reglage-indice-bavardage"); if (ib) ib.value = g("bookreeder-indice-bavardage") || "masque"; }
-  [["reglage-infos-minimal", "bookreeder-infos-minimal"], ["reglage-infos-loupe", "bookreeder-infos-loupe"]].forEach(([id, key]) => {
+  [["reglage-infos-minimal", "bookreeder-infos-minimal"], ["reglage-pause-loupe", "bookreeder-pause-loupe"]].forEach(([id, key]) => {
     const el = $(id); if (!el) return;
     el.checked = (g(key) === "1");
     el.dispatchEvent(new Event("change", { bubbles: true }));
@@ -1361,10 +1362,30 @@ function delaiChunk() {
     mot *= coefElo;
   }
 
+  // « Ralenti sur noms propres » (option) : multiplie la durée d'affichage par 2/3/4×
+  // quand le groupe contient un nom propre (majuscule hors début de phrase), pour
+  // laisser le temps d'imprégner le mot — soit à CHAQUE fois, soit seulement à sa
+  // 1ʳᵉ apparition (mémorisée dans etat.nomsRalentis).
+  let plafond = 2000;
+  if (etat.ralentiNomMult > 1) {
+    let cleProp = "";
+    for (let k = debut; k < fin; k++) {
+      if (!estDebutPhrase(k) && commenceMajuscule(etat.mots[k])) {
+        cleProp = (etat.mots[k] || "").toLowerCase().replace(/[^\p{L}]/gu, ""); break;
+      }
+    }
+    if (cleProp) {
+      if (!etat.nomsRalentis) etat.nomsRalentis = new Set();
+      const dejaVu = etat.nomsRalentis.has(cleProp);
+      if (etat.ralentiNomMode === "tous" || !dejaVu) { mot *= etat.ralentiNomMult; plafond = 4000; }
+      etat.nomsRalentis.add(cleProp);
+    }
+  }
+
   // Le temps de pause est modulé par le coefficient réglable (0,5–4).
   // Plancher absolu : aucun mot ne s'affiche moins de ~Nms (anti-télescopage).
-  // Plafond : un mot ne dépasse jamais 2 s, même cumul élocution + pause.
-  return Math.min(Math.max(mot + pause * etat.coefPause, P.affichageMin), 2000);
+  // Plafond : un mot ne dépasse jamais 2 s (4 s si ralenti nom propre actif).
+  return Math.min(Math.max(mot + pause * etat.coefPause, P.affichageMin), plafond);
 }
 
 // Le mot commence-t-il par une lettre MAJUSCULE (en ignorant tiret/guillemet) ?
@@ -2198,7 +2219,7 @@ function fermerLoupe(relancer) {
   btn.addEventListener("pointerup", () => clearTimeout(timer));
   btn.addEventListener("click", () => {
     if (long) { long = false; return; }   // c'était un appui long → lecture dans la loupe
-    fermerLoupe(true);                     // appui simple → ferme + reprend la lecture rapide
+    fermerLoupe(!etat.pauseLoupe);         // appui simple → ferme ; reprend la lecture sauf si « Pause à la sortie »
   });
 })();
 // Bouton loupe (droite) : ouvre la recherche dans le livre.
@@ -3069,7 +3090,6 @@ $("pa-fusionner")?.addEventListener("click", () => {           // Fusionner ce p
 // existantes (après confirmation).
 function genererCouleursPersos() {
   if (!etat.persos || !etat.persos.nommes || !etat.persos.nommes.length) return;
-  if (!confirm("Attention, cela remplacera les couleurs déjà attribuées.")) return;
   const hsls = [COUL_PRINCIPAL, COUL_SEC1, COUL_SEC2]
     .filter((c) => /^#/.test(c)).map((c) => { const [r, g, b] = hexVersRgb(c); return rgbVersHsl(r, g, b); });
   const moy = (i, def) => hsls.length ? hsls.reduce((s, a) => s + a[i], 0) / hsls.length : def;
@@ -3088,7 +3108,27 @@ function genererCouleursPersos() {
   renderListePersos();
   afficherChunk();
 }
-$("btn-generer-couleurs")?.addEventListener("click", genererCouleursPersos);
+// Réinitialiser (Feuille de personnages) : ouvre un menu à 3 choix.
+function ouvrirReinit() { $("panneau-reinit").classList.remove("cache"); }
+function fermerReinit() { $("panneau-reinit").classList.add("cache"); }
+$("btn-reinitialiser")?.addEventListener("click", ouvrirReinit);
+$("ri-annuler")?.addEventListener("click", fermerReinit);
+$("panneau-reinit")?.addEventListener("click", (e) => { if (e.target === $("panneau-reinit")) fermerReinit(); });
+// Réinitialiser les personnages : efface toute la curation (buckets fusionnés /
+// séparés / supprimés / noms préférés) → on repart de la détection automatique.
+$("ri-persos")?.addEventListener("click", async () => {
+  if (!(await confirmer("Réinitialiser les personnages ?\nLes fusions, séparations, suppressions et noms choisis seront effacés (détection automatique restaurée)."))) return;
+  etat.persosCuration = {}; sauverCuration(); fermerReinit(); appliquerCuration();
+});
+// Réinitialiser les couleurs : efface les couleurs attribuées (les personnages
+// reprennent les couleurs de base de la palette).
+$("ri-couleurs")?.addEventListener("click", async () => {
+  if (!(await confirmer("Réinitialiser les couleurs ?\nLes couleurs attribuées seront effacées (couleurs de base de la palette restaurées)."))) return;
+  etat.couleursPersonnages = {}; sauverCouleursPersos(); fermerReinit();
+  if (window.MoteurDialogues && etat.mots && etat.mots.length) window.MoteurDialogues.calculerLocuteurs();
+  renderListePersos(); afficherChunk();
+});
+$("ri-aleatoire")?.addEventListener("click", () => { fermerReinit(); genererCouleursPersos(); });
 
 $("reglage-modele")?.addEventListener("change", (e) => {
   activerModele(e.target.value);
@@ -3222,18 +3262,17 @@ $("reglage-infos-minimal").addEventListener("change", (e) => {
   etat.infosMinimal = on;
   ecranLecture.classList.toggle("infos-min", on);
 })();
-// Afficher les infos de lecture (position · chapitre · mots) en Mode Loupe
-$("reglage-infos-loupe").addEventListener("change", (e) => {
-  etat.infosLoupe = e.target.checked;
-  $("ecran-contexte").classList.toggle("infos-loupe", e.target.checked);
-  try { localStorage.setItem("bookreeder-infos-loupe", e.target.checked ? "1" : "0"); } catch (err) {}
+// Pause à la sortie du Mode Loupe : si activé, fermer la loupe (appui simple sur
+// play) NE relance PAS la lecture rapide (elle reste en pause).
+$("reglage-pause-loupe").addEventListener("change", (e) => {
+  etat.pauseLoupe = e.target.checked;
+  try { localStorage.setItem("bookreeder-pause-loupe", e.target.checked ? "1" : "0"); } catch (err) {}
 });
-(function initInfosLoupe() {
+(function initPauseLoupe() {
   let on = false;
-  try { on = localStorage.getItem("bookreeder-infos-loupe") === "1"; } catch (e) {}
-  $("reglage-infos-loupe").checked = on;
-  etat.infosLoupe = on;
-  $("ecran-contexte").classList.toggle("infos-loupe", on);
+  try { on = localStorage.getItem("bookreeder-pause-loupe") === "1"; } catch (e) {}
+  $("reglage-pause-loupe").checked = on;
+  etat.pauseLoupe = on;
 })();
 // Marqueur d'annotations en lecture rapide. Chaque entrée : caractère affiché +
 // `accent` (true → couleur d'accentuation en cours, sinon couleur de la police).
@@ -3604,6 +3643,22 @@ $("reglage-dim-loupe").addEventListener("input", (e) => appliquerDimLoupe(+e.tar
   try { const s = localStorage.getItem("bookreeder-dim-loupe"); if (s != null && s !== "") v = +s; } catch (e) {}
   if (!isFinite(v) || v < 0 || v > 100) v = 50;
   appliquerDimLoupe(v);
+})();
+// « Ralenti sur noms propres » : valeur « off » ou « <mult>-<mode> » (ex. « 3-once »,
+// « 2-tous »). mult = 2/3/4 ; mode = once (1ʳᵉ apparition) / tous (à chaque fois).
+function appliquerRalentiNom(v) {
+  const m = /^(\d)-(once|tous)$/.exec(v || "");
+  etat.ralentiNomMult = m ? +m[1] : 0;
+  etat.ralentiNomMode = m ? m[2] : "tous";
+  etat.nomsRalentis = new Set();                 // réinitialise les « déjà vus »
+  if ($("reglage-ralenti-nom")) $("reglage-ralenti-nom").value = (etat.ralentiNomMult > 1) ? v : "off";
+  try { localStorage.setItem("bookreeder-ralenti-nom", v || "off"); } catch (e) {}
+}
+$("reglage-ralenti-nom").addEventListener("change", (e) => appliquerRalentiNom(e.target.value));
+(function initRalentiNom() {
+  let v = "off";
+  try { const s = localStorage.getItem("bookreeder-ralenti-nom"); if (s) v = s; } catch (e) {}
+  appliquerRalentiNom(v);
 })();
 $("reglage-espace-lettres").addEventListener("input", (e) => {
   document.documentElement.style.setProperty("--espace-lettres", e.target.value + "px");

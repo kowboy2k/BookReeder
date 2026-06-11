@@ -1229,14 +1229,19 @@ body.roue-ouverte #panneau-reglages .panneau-contenu { background: transparent; 
 #garder-non { background: var(--fond); color: var(--texte); border: 1px solid var(--surface-bord); }
 
 /* --- Bucket d'un personnage (formes détectées) + action sur une forme --- */
-#panneau-bucket, #panneau-bucket-action, #panneau-perso-action {
+#panneau-bucket, #panneau-bucket-action, #panneau-perso-action, #panneau-reinit {
   position: fixed; inset: 0; z-index: 85; background: rgba(0,0,0,0.6);
   display: flex; align-items: center; justify-content: center; padding: 1rem;
 }
-#panneau-bucket.cache, #panneau-bucket-action.cache, #panneau-perso-action.cache { display: none; }
-#panneau-bucket .panneau-contenu, #panneau-bucket-action .panneau-contenu, #panneau-perso-action .panneau-contenu {
+#panneau-bucket.cache, #panneau-bucket-action.cache, #panneau-perso-action.cache, #panneau-reinit.cache { display: none; }
+#panneau-bucket .panneau-contenu, #panneau-bucket-action .panneau-contenu, #panneau-perso-action .panneau-contenu, #panneau-reinit .panneau-contenu {
   border-radius: 1rem; max-width: 420px; width: 100%; max-height: 85dvh; display: flex; flex-direction: column;
 }
+/* Panneau « Réinitialiser » : titre + 3 actions empilées + Annuler */
+#panneau-reinit h2 { margin: 0 0 1rem; font-size: 1.05rem; font-weight: 700; text-align: center; }
+#panneau-reinit button { display: block; width: 100%; margin-bottom: 0.5rem; padding: 0.8rem; border-radius: 0.6rem;
+  font-size: 1rem; cursor: pointer; font-family: sans-serif; background: var(--fond); color: var(--texte); border: 1px solid var(--surface-bord); }
+#panneau-reinit .liste-annuler { background: var(--accent); color: #fff; border: none; text-align: center; margin-top: 0.4rem; margin-bottom: 0; }
 #bucket-aide { font-size: 0.8rem; opacity: 0.6; margin: 0 0 0.8rem; font-family: sans-serif; }
 #bucket-liste { flex: 0 1 auto; min-height: 0; overflow-y: auto; }
 .bucket-ligne { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.2rem; border-bottom: 1px solid var(--surface-bord); }
@@ -1501,14 +1506,14 @@ body.roue-ouverte #panneau-dialogues-dyn { background: transparent; }
 .reglage input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
 /* Lignes contenant un SLIDER (classe posée par JS) : espacement resserré
    (1px au-dessus de la barre, 2px en-dessous). Ne touche pas select / cases. */
-#panneau-reglages .reglage.ligne-slider { margin-bottom: 16px; }
-#panneau-reglages .reglage.ligne-slider label { margin-bottom: 6px; }
+#panneau-reglages .reglage.ligne-slider { margin-bottom: 12px; }
+#panneau-reglages .reglage.ligne-slider label { margin-bottom: 4px; }
 /* 5px d'espacement supplémentaire sous « Cartouche ORP » (spécificité id+id pour
    battre « #panneau-reglages .reglage »). */
 #panneau-reglages #bloc-cartouche { margin-bottom: 15px; }
 /* +2px au-dessus et en-dessous des lignes « Couleur de police » et « Couleur d'accentuation »
    (id+id pour battre « #panneau-reglages .reglage »). */
-#panneau-reglages #bloc-couleur-police, #panneau-reglages #bloc-orp-couleur { margin-top: 7px; margin-bottom: 7px; }
+#panneau-reglages #bloc-couleur-police, #panneau-reglages #bloc-orp-couleur { margin-top: 9px; margin-bottom: 9px; }
 .reglage select {
   width: 100%;
   padding: 0.5rem;
