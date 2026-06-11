@@ -1984,7 +1984,7 @@ function marquerCourant(recentrer) {
     const s = ctxSpans.get(i);
     if (s) { s.classList.add("courant"); if (!prem) prem = s; }
   }
-  if (recentrer && prem) prem.scrollIntoView({ block: "center" });
+  if (recentrer && prem && !etat.loupeSansScroll) prem.scrollIntoView({ block: "center" });
   const ci = $("contexte-infos");
   if (ci) ci.innerHTML = infosLectureHtml();
 }
@@ -2222,10 +2222,34 @@ function fermerLoupe(relancer) {
     fermerLoupe(!etat.pauseLoupe);         // appui simple → ferme ; reprend la lecture sauf si « Pause à la sortie »
   });
 })();
-// Bouton loupe (droite) : ouvre la recherche dans le livre.
-$("ctx-recherche").addEventListener("click", ouvrirRecherche);
-// Bouton message (gauche) : liste toutes les annotations du chapitre.
-$("ctx-notes").addEventListener("click", ouvrirAnnotations);
+// Petite info-bulle au centre de l'écran (~1 s) pour signaler une bascule.
+let _toastTimer = null;
+function toastLoupe(msg) {
+  const t = $("loupe-toast"); if (!t) return;
+  t.textContent = msg; t.classList.remove("cache");
+  clearTimeout(_toastTimer); _toastTimer = setTimeout(() => t.classList.add("cache"), 1000);
+}
+// Associe à un bouton de la loupe : APPUI SIMPLE = action ; APPUI LONG = bascule.
+function ctxBoutonLongPress(id, actionCourte, actionLongue) {
+  const btn = $(id); if (!btn) return;
+  let timer = null, long = false;
+  btn.addEventListener("pointerdown", () => { long = false; timer = setTimeout(() => { long = true; actionLongue(); }, 500); });
+  ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => btn.addEventListener(ev, () => clearTimeout(timer)));
+  btn.addEventListener("click", () => { if (long) { long = false; return; } actionCourte(); });
+}
+// Bouton loupe (droite) : clic = recherche ; appui long = bascule « Texte uniforme »
+// (retire tous les effets sur le texte en Mode Loupe pour une lecture classique).
+ctxBoutonLongPress("ctx-recherche", ouvrirRecherche, () => {
+  etat.texteUniforme = !etat.texteUniforme;
+  $("ecran-contexte").classList.toggle("texte-uniforme", etat.texteUniforme);
+  toastLoupe(etat.texteUniforme ? "Texte uniforme activé" : "Texte uniforme désactivé");
+});
+// Bouton message (gauche) : clic = annotations ; appui long = bascule « Auto-scroll »
+// (le texte ne défile plus automatiquement en lecture auto Mode Loupe).
+ctxBoutonLongPress("ctx-notes", ouvrirAnnotations, () => {
+  etat.loupeSansScroll = !etat.loupeSansScroll;
+  toastLoupe(etat.loupeSansScroll ? "Auto-scroll désactivé" : "Auto-scroll activé");
+});
 
 // Panneau « Annotations » : recense les mots du chapitre courant porteurs d'une
 // note (exposant), avec le texte de la note. Clic = saut au mot (+ ouvre la bulle).
@@ -2464,6 +2488,7 @@ $("zone-navigation").addEventListener("click", ouvrirNavigation);
 // quitter la loupe (on y revient après le choix).
 let navDepuisLoupe = false;
 $("contexte-infos").addEventListener("click", () => {
+  pause();   // arrête aussi la lecture auto en Mode Loupe pendant la navigation
   navDepuisLoupe = true;
   $("nav-chapitre").value = etat.chapitres.indexOf(chapitreActuel());
   $("panneau-navigation").classList.remove("cache");
@@ -3633,6 +3658,10 @@ $("reglage-taille-loupe").addEventListener("input", (e) => appliquerTailleLoupe(
 // 100 % = invisible (opacité 0). Opacité = 1 − dim%/100. Défaut 50 %.
 function appliquerDimLoupe(v) {
   document.documentElement.style.setProperty("--dim-loupe", (1 - v / 100).toString());
+  // À 100 % (texte invisible), en lecture auto Loupe on garde la PHRASE en cours
+  // lisible (50 %) avec le mot courant en couleur d'accentuation — sinon il ne
+  // resterait que le mot et la phrase disparaîtrait.
+  $("ecran-contexte").classList.toggle("dim-max", +v >= 100);
   $("reglage-dim-loupe").value = v;
   $("valeur-dim-loupe").textContent = v;
   try { localStorage.setItem("bookreeder-dim-loupe", v); } catch (e) {}

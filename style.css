@@ -221,6 +221,25 @@ html, body {
    texte ; seul le mot lu passe en blanc (couleur du texte, pleine opacité). */
 #ecran-contexte.lecture-auto #contexte-texte span.phrase-courante { opacity: var(--dim-loupe, 0.5); }
 #ecran-contexte.lecture-auto #contexte-texte span.courant { color: var(--texte); opacity: 1; }
+/* Assombrissement à 100 % (texte invisible) + lecture auto : on garde la PHRASE
+   en cours lisible à 50 % et le mot courant en couleur d'accentuation, au lieu de
+   ne laisser que le mot. */
+#ecran-contexte.lecture-auto.dim-max #contexte-texte span.phrase-courante { opacity: 0.5; }
+#ecran-contexte.lecture-auto.dim-max #contexte-texte span.courant { color: var(--orp-couleur, var(--accent)); opacity: 1; }
+/* « Texte uniforme » (bascule appui long sur Rechercher) : aucun effet sur le
+   texte — tout en couleur de police, pleine opacité, pas de couleur de dialogue. */
+#ecran-contexte.texte-uniforme #contexte-texte span,
+#ecran-contexte.texte-uniforme #contexte-texte span[data-i],
+#ecran-contexte.texte-uniforme #contexte-texte span.phrase-courante,
+#ecran-contexte.texte-uniforme #contexte-texte span.ctx-dlg,
+#ecran-contexte.texte-uniforme #contexte-texte span.courant { color: var(--texte); opacity: 1; }
+/* Info-bulle centrale de bascule (~1 s) */
+#loupe-toast {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 40;
+  background: rgba(0,0,0,0.82); color: #fff; padding: 0.7rem 1.1rem; border-radius: 0.7rem;
+  font-family: sans-serif; font-size: 1rem; pointer-events: none; box-shadow: 0 4px 18px rgba(0,0,0,0.4);
+}
+#loupe-toast.cache { display: none; }
 /* Repère d'annotation en lecture rapide : petit caractère en exposant.
    Discret (couleur de la police) ou « accentué » (.accent → couleur
    d'accentuation en cours). Signale un contenu consultable en mode loupe. */

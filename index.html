@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=373">
+  <link rel="stylesheet" href="style.css?v=374">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -126,8 +126,9 @@
   </div>
 
   <!-- Mode contexte : aperçu du texte autour du mot en cours (appui long sur play) -->
-  <div id="ecran-contexte" class="cache">
+  <div id="ecran-contexte" class="cache infos-loupe">
     <div id="contexte-texte"></div>
+    <div id="loupe-toast" class="cache"></div>
     <div id="contexte-barre">
       <button id="ctx-notes" title="Annotations du chapitre" aria-label="Annotations">
         <svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -190,7 +191,6 @@
   <div id="panneau-dialogues-dyn" class="cache">
     <div class="panneau-contenu">
       <h2>Feuille de personnages</h2>
-      <p id="dd-aide">Appui prolongé sur le bouton Réglages pour personnaliser les dialogues.</p>
       <div class="reglage reglage-inline">
         <label for="reglage-dialogues">Effets</label>
         <select id="reglage-dialogues" class="dd-effet-select">
@@ -498,6 +498,18 @@
         <select id="reglage-variante"></select>
       </div>
 
+      <div class="reglage reglage-inline" id="bloc-bionic-couleur" style="display:none">
+        <label for="reglage-bionic-couleur">Couleur du début bionic</label>
+        <select id="reglage-bionic-couleur">
+          <option value="uniforme" selected>Uniforme (couleur du texte)</option>
+          <option value="#f4d03f">Jaune</option>
+          <option value="#9aa0a6">Grise</option>
+          <option value="#f39c12">Orange</option>
+          <option value="#f25c54">Rouge</option>
+          <option value="perso">Personnalisé…</option>
+        </select>
+      </div>
+
       <div class="reglage reglage-inline espace-5" id="bloc-couleur-police">
         <label>Couleur de police</label>
         <div id="couleurs-police" class="cases-couleur">
@@ -511,22 +523,10 @@
           </label>
         </div>
       </div>
-
+      
       <div class="reglage">
         <label for="reglage-dim-loupe">Assombrir le texte du Mode Loupe : <span id="valeur-dim-loupe">50</span> %</label>
         <input type="range" id="reglage-dim-loupe" min="0" max="100" step="5" value="50">
-      </div>
-
-      <div class="reglage reglage-inline" id="bloc-bionic-couleur" style="display:none">
-        <label for="reglage-bionic-couleur">Couleur du début bionic</label>
-        <select id="reglage-bionic-couleur">
-          <option value="uniforme" selected>Uniforme (couleur du texte)</option>
-          <option value="#f4d03f">Jaune</option>
-          <option value="#9aa0a6">Grise</option>
-          <option value="#f39c12">Orange</option>
-          <option value="#f25c54">Rouge</option>
-          <option value="perso">Personnalisé…</option>
-        </select>
       </div>
 
       <div class="reglage reglage-case" id="bloc-bionic-perso" style="display:none">
@@ -556,19 +556,6 @@
 
       </div><!-- /page 1 -->
       <div class="reglages-page cache" data-page="2">
-
-      <div class="reglage reglage-inline">
-        <label for="reglage-ralenti-nom">Ralenti sur noms propres</label>
-        <select id="reglage-ralenti-nom">
-          <option value="off">Aucun</option>
-          <option value="2-once">2× — une seule fois</option>
-          <option value="2-tous">2× — à chaque fois</option>
-          <option value="3-once">3× — une seule fois</option>
-          <option value="3-tous">3× — à chaque fois</option>
-          <option value="4-once">4× — une seule fois</option>
-          <option value="4-tous">4× — à chaque fois</option>
-        </select>
-      </div>
 
       <div class="reglage reglage-inline">
         <label for="reglage-theme">Thème</label>
@@ -611,6 +598,19 @@
             <option value="hashtag-acc" class="opt-accent">Hashtag ＃</option>
             <option value="point-acc" class="opt-accent">Pastille ●</option>
           </optgroup>
+        </select>
+      </div>
+
+<div class="reglage reglage-inline">
+        <label for="reglage-ralenti-nom">Ralenti sur noms propres</label>
+        <select id="reglage-ralenti-nom">
+          <option value="off">Aucun</option>
+          <option value="2-once">2× — une seule fois</option>
+          <option value="2-tous">2× — à chaque fois</option>
+          <option value="3-once">3× — une seule fois</option>
+          <option value="3-tous">3× — à chaque fois</option>
+          <option value="4-once">4× — une seule fois</option>
+          <option value="4-tous">4× — à chaque fois</option>
         </select>
       </div>
 
@@ -664,7 +664,7 @@
   <script src="lib/jszip.min.js"></script>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="chargeur.js?v=373"></script>
-  <script src="app.js?v=373"></script>
+  <script src="chargeur.js?v=374"></script>
+  <script src="app.js?v=374"></script>
 </body>
 </html>
