@@ -3142,8 +3142,12 @@ $("panneau-reinit")?.addEventListener("click", (e) => { if (e.target === $("pann
 // Réinitialiser les personnages : efface toute la curation (buckets fusionnés /
 // séparés / supprimés / noms préférés) → on repart de la détection automatique.
 $("ri-persos")?.addEventListener("click", async () => {
-  if (!(await confirmer("Réinitialiser les personnages ?\nLes fusions, séparations, suppressions et noms choisis seront effacés (détection automatique restaurée)."))) return;
-  etat.persosCuration = {}; sauverCuration(); fermerReinit(); appliquerCuration();
+  if (!(await confirmer("Réinitialiser les personnages ?\nLes fusions, séparations, suppressions et noms choisis seront effacés, et tous les noms du livre re-détectés (comme à la première ouverture)."))) return;
+  etat.persosCuration = {}; sauverCuration();
+  etat.persos = null;                       // force une re-détection COMPLÈTE du livre
+  fermerReinit();
+  appliquerCuration();                      // ré-analyse tout le livre + recalcule + rerender
+  if (typeof planifierSauvegardeProfil === "function") planifierSauvegardeProfil();  // persiste la liste fraîche (réouvertures)
 });
 // Réinitialiser les couleurs : efface les couleurs attribuées (les personnages
 // reprennent les couleurs de base de la palette).
