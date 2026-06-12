@@ -1431,6 +1431,16 @@ body.roue-ouverte #panneau-dialogues-dyn { background: transparent; }
 #reglages-pages {
   flex: none; height: 27rem; overflow: hidden;   /* hauteur fixe, AUCUN scroll */
 }
+/* Page 4/4 (facteurs de rythme) : 8 sliders compacts + petits intertitres. */
+#reglages-pages .reglages-page[data-page="3"] { overflow-y: auto; max-height: 27rem; }
+.reglages-section {
+  margin: 0.5rem 0 0.2rem; font-size: 0.8rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.03em; opacity: 0.55; color: var(--texte);
+}
+.reglages-section:first-child { margin-top: 0; }
+.reglage.reglage-compact { margin-bottom: 0.45rem; }
+.reglage.reglage-compact label { margin-bottom: 0.1rem; font-size: 0.95rem; }
+.reglage.reglage-compact input[type="range"] { margin: 0; }
 #reglages-pages::-webkit-scrollbar { width: 5px; }
 #reglages-pages::-webkit-scrollbar-track { background: transparent; }
 #reglages-pages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 3px; }

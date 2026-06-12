@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=385">
+  <link rel="stylesheet" href="style.css?v=386">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -659,6 +659,47 @@
       </div>
 
       </div><!-- /page 2 -->
+
+      <!-- Page 4/4 : réglage fin des facteurs de rythme du modèle BookReeder.
+           Tous × la durée d'un mot (0,0–3,0), multipliés ensuite par les coefs de
+           la page 1 (Longueur des pauses, Ralentissement des dialogues). -->
+      <div class="reglages-page cache" data-page="3">
+        <h3 class="reglages-section">Pauses (× durée d'un mot)</h3>
+        <div class="reglage reglage-compact">
+          <label for="fact-finphrase">Fin de phrase . ! ? … : <span id="val-finphrase">× 1,5</span></label>
+          <input type="range" id="fact-finphrase" min="0" max="3" step="0.1" value="1.5">
+        </div>
+        <div class="reglage reglage-compact">
+          <label for="fact-virgule">Virgule , ; : <span id="val-virgule">× 1,0</span></label>
+          <input type="range" id="fact-virgule" min="0" max="3" step="0.1" value="1">
+        </div>
+        <div class="reglage reglage-compact">
+          <label for="fact-paragraphe">Fin de paragraphe : <span id="val-paragraphe">× 1,5</span></label>
+          <input type="range" id="fact-paragraphe" min="0" max="3" step="0.1" value="1.5">
+        </div>
+        <div class="reglage reglage-compact">
+          <label for="fact-replique">Avant une réplique : <span id="val-replique">× 1,0</span></label>
+          <input type="range" id="fact-replique" min="0" max="3" step="0.1" value="1">
+        </div>
+        <h3 class="reglages-section">Durée mini d'un mot (× durée d'un mot)</h3>
+        <div class="reglage reglage-compact">
+          <label for="fact-plancher">Plancher général : <span id="val-plancher">× 0,6</span></label>
+          <input type="range" id="fact-plancher" min="0" max="3" step="0.1" value="0.6">
+        </div>
+        <div class="reglage reglage-compact">
+          <label for="fact-dialogue">En dialogue : <span id="val-dialogue">× 1,0</span></label>
+          <input type="range" id="fact-dialogue" min="0" max="3" step="0.1" value="1">
+        </div>
+        <div class="reglage reglage-compact">
+          <label for="fact-nompropre">Sur un nom propre : <span id="val-nompropre">× 2,5</span></label>
+          <input type="range" id="fact-nompropre" min="0" max="3" step="0.1" value="2.5">
+        </div>
+        <h3 class="reglages-section">Reprise</h3>
+        <div class="reglage reglage-compact">
+          <label for="fact-elan">Élan au départ : <span id="val-elan">× 0,65</span></label>
+          <input type="range" id="fact-elan" min="0" max="3" step="0.05" value="0.65">
+        </div>
+      </div><!-- /page 4 -->
       </div><!-- /reglages-pages -->
 
       <button id="btn-fermer-reglages">OK</button>
@@ -669,7 +710,7 @@
   <div id="toast-ecran" class="cache"></div>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="chargeur.js?v=385"></script>
-  <script src="app.js?v=385"></script>
+  <script src="chargeur.js?v=386"></script>
+  <script src="app.js?v=386"></script>
 </body>
 </html>

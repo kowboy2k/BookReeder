@@ -224,6 +224,7 @@ function _rechargerReglages() {
   try { appliquerDialogues(str("bookreeder-dialogues", "aucun")); } catch (e) {}
   try { appliquerPauseAuto(str("bookreeder-pause-auto", "fin")); } catch (e) {}
   try { appliquerMarqueurNote(str("bookreeder-marqueur-note", "etoile")); } catch (e) {}
+  try { if (typeof appliquerFacteursRythme === "function") appliquerFacteursRythme(); } catch (e) {}
   try { appliquerCoefPause(num("bookreeder-coef-pause", 2)); } catch (e) {}
   try { appliquerCoefDialogue(num("bookreeder-coef-dialogue", 1.3)); } catch (e) {}
   try { appliquerCoefElan(num("bookreeder-coef-elan", 1)); } catch (e) {}
@@ -1347,10 +1348,14 @@ function delaiChunk() {
   // dialogue (pas seulement les pauses), pour un effet réellement perceptible.
   if (enDialogue) mot *= etat.coefDialogue;
 
-  // Noms propres (majuscule en milieu de phrase) : 500 ms mini par nom propre.
+  // Noms propres (majuscule en milieu de phrase) : plancher par nom propre.
   const planNom = plancherNomPropre(debut, fin);
   if (planNom > 0) mot = Math.max(mot, planNom);
   const majuscule = planNom > 0;   // sert aussi à la reprise d'élan plus bas
+
+  // Plancher GÉNÉRAL : durée mini d'un mot (× base × nb mots). À 0,6 (défaut) il
+  // ne mord pas (mot = base×nb), mais permet d'imposer un minimum si on l'augmente.
+  if (P.motMin) mot = Math.max(mot, base * P.motMin * etat.nbCourant);
 
   // 3) Respirations : ponctuation de fin de groupe OU ouverture de réplique.
   //    On ne CUMULE pas fin de phrase + entrée en dialogue (sinon pause très
@@ -1363,7 +1368,7 @@ function delaiChunk() {
   const pauseRep = (suivant && DEBUT_REPLIQUE.test(suivant)) ? base * P.pauseReplique : 0; // échanges
   let pause = Math.max(pausePonct, pauseRep);
   // Respiration de fin de bloc/paragraphe (titre sans ponctuation, etc.)
-  if (pause === 0 && etat.debutsPhrase && etat.debutsPhrase.has(fin)) pause += base * P.pauseFinPhrase;
+  if (pause === 0 && etat.debutsPhrase && etat.debutsPhrase.has(fin)) pause += base * (P.pauseParagraphe ?? P.pauseFinPhrase);
   // Dans un dialogue, les pauses de ponctuation sont rallongées (slider, ×1,3 défaut).
   if (enDialogue) pause *= etat.coefDialogue;
 
@@ -1419,13 +1424,16 @@ function commenceMajuscule(mot) {
 // des pauses » (coefPause) avec 2,0× comme référence : 1,0×→250 ms, 2,0×→500 ms, 4,0×→1000 ms.
 // Cumulé si plusieurs noms consécutifs (John William Woodhouse → 3×).
 function plancherNomPropre(debut, fin) {
-  const unite = etat.modele.params.nomPropreMs;
-  if (!unite) return 0;
+  const P = etat.modele.params;
   let n = 0;
   for (let k = debut; k < fin; k++) {
     if (!estDebutPhrase(k) && commenceMajuscule(etat.mots[k])) n++;
   }
-  return n * unite * (etat.coefPause / 2);
+  if (!n) return 0;
+  // BookReeder : facteur × base (suit la vitesse) ; Hybride : ms absolu hérité.
+  if (typeof P.nomPropreFact === "number") return n * (60000 / vitesseEff()) * P.nomPropreFact;
+  if (P.nomPropreMs) return n * P.nomPropreMs * (etat.coefPause / 2);
+  return 0;
 }
 
 // =========================================================
@@ -1496,13 +1504,14 @@ const MODELES = {
     // Tout est ici : pour un nouveau modèle, copier ce bloc et l'ajuster.
     params: {
       charsParMot: 5.5,        // longueur moyenne d'un mot (durée ∝ caractères)
-      motMin: 0.6,             // plancher de durée d'un mot (× base × nb mots)
-      pauseFinPhrase: 1.5,     // pause après . ! ? … (× base)
-      pauseVirgule: 1,         // pause après , ; : (× base)
-      pauseReplique: 1,        // pause avant une réplique de dialogue (× base)
-      plancherDialogue: 1,     // pas de ralentissement de base en dialogue (= narration)
-      nomPropreMs: 500,        // 500 ms mini par nom propre @2,0× (cumulés si consécutifs)
-      elanGrossePause: 0.65,   // élan de départ à la reprise (Play / saut)
+      motMin: 0.6,             // plancher de durée d'un mot (× base × nb mots) — réglable (page 4/4)
+      pauseFinPhrase: 1.5,     // pause après . ! ? … (× base) — réglable
+      pauseVirgule: 1,         // pause après , ; : (× base) — réglable
+      pauseParagraphe: 1.5,    // pause en fin de bloc/paragraphe sans ponctuation (× base) — réglable
+      pauseReplique: 1,        // pause avant une réplique de dialogue (× base) — réglable
+      plancherDialogue: 1,     // plancher de durée d'un mot en dialogue (× base) — réglable
+      nomPropreFact: 2.5,      // plancher par nom propre (× base ; 2,5 ≈ 500 ms à 300 mots/min) — réglable
+      elanGrossePause: 0.65,   // élan de départ à la reprise (Play / saut) — réglable
       elanPauseMoyenne: 0.82,  // (inutilisé : l'élan ne sert plus qu'à la reprise)
       elanAccel: 0.0233,       // +0,0233/mot : reprise étalée sur ~15 mots (0,65 → 1)
       affichageMin: 90,        // durée mini absolue d'affichage (ms)
@@ -1700,9 +1709,11 @@ function dureeEstimeeMs(debut, fin) {
   for (let i = debut; i < fin; i++) {
     const w = etat.mots[i] || "";
     let mot = base;
-    if (P.nomPropreMs && !estDebutPhrase(i) && commenceMajuscule(w)) {
-      mot = Math.max(mot, P.nomPropreMs * coef / 2);   // plancher nom propre
+    if (!estDebutPhrase(i) && commenceMajuscule(w)) {                       // plancher nom propre
+      if (typeof P.nomPropreFact === "number") mot = Math.max(mot, base * P.nomPropreFact);
+      else if (P.nomPropreMs) mot = Math.max(mot, P.nomPropreMs * coef / 2);
     }
+    if (P.motMin) mot = Math.max(mot, base * P.motMin);                     // plancher général
     let pause = 0;
     if (rythmeHotgato) {
       // pause fixe dès qu'il y a un chiffre/ponctuation, sinon fin de bloc (cf. delaiHotGato)
@@ -2828,7 +2839,7 @@ $("bulle-liremoi").addEventListener("click", cacherBulleLireMoi);
 // ré-affiche le chunk pour appliquer proprement tous les réglages.
 // Réglages paginés (3 pages navigables ‹ ›), titre + OK toujours visibles.
 let reglagesPage = 0;
-const REGLAGES_NB_PAGES = 3;
+const REGLAGES_NB_PAGES = 4;
 function montrerReglagesPage(n) {
   reglagesPage = (n + REGLAGES_NB_PAGES) % REGLAGES_NB_PAGES;
   document.querySelectorAll("#reglages-pages .reglages-page").forEach((p) => {
@@ -3441,6 +3452,43 @@ document.querySelectorAll("#couleurs-police .case-couleur:not(.case-perso)").for
 $("couleur-police-perso").addEventListener("input", (e) => appliquerCouleurPolice(e.target.value));
 
 // --- Longueur des pauses (coefficient multiplicateur) ---
+// --- Page 4/4 : facteurs de rythme du modèle BookReeder (réglage fin) ---
+// Chaque facteur multiplie la durée d'un mot (× base). Persisté par livre (profil)
+// via les clés bookreeder-fact-*. Les coefs de la page 1 (coefPause, coefDialogue)
+// s'appliquent PAR-DESSUS ces valeurs de base.
+const FACTEURS_RYTHME = [
+  { id: "finphrase",  param: "pauseFinPhrase",   def: 1.5 },
+  { id: "virgule",    param: "pauseVirgule",     def: 1.0 },
+  { id: "paragraphe", param: "pauseParagraphe",  def: 1.5 },
+  { id: "replique",   param: "pauseReplique",    def: 1.0 },
+  { id: "plancher",   param: "motMin",           def: 0.6 },
+  { id: "dialogue",   param: "plancherDialogue", def: 1.0 },
+  { id: "nompropre",  param: "nomPropreFact",    def: 2.5 },
+  { id: "elan",       param: "elanGrossePause",  def: 0.65 },
+];
+function fmtFacteur(v) { let s = (+v).toFixed(2); if (s.endsWith("0")) s = s.slice(0, -1); return "× " + s.replace(".", ","); }
+function appliquerFacteursRythme() {
+  FACTEURS_RYTHME.forEach((f) => {
+    let v = f.def;
+    try { const s = localStorage.getItem("bookreeder-fact-" + f.id); if (s != null && isFinite(+s)) v = +s; } catch (e) {}
+    MODELES.default.params[f.param] = v;
+    const sl = $("fact-" + f.id); if (sl) sl.value = v;
+    const lab = $("val-" + f.id); if (lab) lab.textContent = fmtFacteur(v);
+  });
+}
+FACTEURS_RYTHME.forEach((f) => {
+  const sl = $("fact-" + f.id); if (!sl) return;
+  sl.addEventListener("input", (e) => {
+    const v = parseFloat(e.target.value);
+    MODELES.default.params[f.param] = v;
+    const lab = $("val-" + f.id); if (lab) lab.textContent = fmtFacteur(v);
+    try { localStorage.setItem("bookreeder-fact-" + f.id, String(v)); } catch (er) {}
+    majDureeChapitre();
+    if (!ecranLecture.classList.contains("cache")) afficherChunk();
+  });
+});
+appliquerFacteursRythme();
+
 function appliquerCoefPause(v) {
   etat.coefPause = v;
   $("reglage-pauses").value = v;
