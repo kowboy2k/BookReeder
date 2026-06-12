@@ -2417,9 +2417,8 @@ $("btn-plus").addEventListener("click", () => reglerVitesse(etat.vitesse + 20));
 $("ep-moins").addEventListener("click", () => reglerVitesse(etat.vitesse - 20));
 $("ep-plus").addEventListener("click", () => reglerVitesse(etat.vitesse + 20));
 
-// Retour / avance à la phrase précédente / suivante
-$("btn-recul").addEventListener("click", () => deplacer(phrasePrecedente() - etat.index, true));
-$("btn-avance").addEventListener("click", () => deplacer(phraseSuivante() - etat.index, true));
+// Retour / avance : appui court = mot par mot, appui long = phrase par phrase
+// (câblé plus bas via installerNavMotPhrase, pour btn-recul/avance et ep-recul/avance).
 // Chapitre précédent / suivant
 $("btn-chap-prec").addEventListener("click", () => allerChapitre(-1));
 $("btn-chap-suiv").addEventListener("click", () => allerChapitre(1));
@@ -2543,6 +2542,9 @@ function ouvrirNavigation() {
   majBarreLivre();
 }
 $("zone-navigation").addEventListener("click", ouvrirNavigation);
+// Mode Minimaliste (horizontal & vertical) : toucher la zone d'infos (chapitre en
+// cours) ouvre la Navigation (et met la lecture en pause via ouvrirNavigation).
+$("infos-minimal")?.addEventListener("click", ouvrirNavigation);
 // En Mode Loupe : toucher la ligne d'infos du chapitre ouvre la navigation SANS
 // quitter la loupe (on y revient après le choix).
 let navDepuisLoupe = false;
@@ -3787,9 +3789,10 @@ zoneMot.addEventListener("click", () => {
   afficherChunk(); // recentre l'ORP (largeur dispo modifiée)
 });
 
-// Boutons de la barre épurée : clic = navigation phrase ; appui long (≈0,5 s) =
-// déplace le groupe de boutons vers ce côté (utile en paysage, à une main).
-function installerFlecheEpure(id, action, cote) {
+// Boutons recul / avance (normal ET épuré) : appui COURT = un mot ; appui LONG
+// (≈0,5 s) = phrase par phrase (comme les anciens boutons de phrase). Après le
+// saut, on montre l'annotation du mot si on est en pause (cf. majAnnotationMinimal).
+function installerNavMotPhrase(id, sens) {
   const btn = $(id);
   if (!btn) return;
   let timer = null, long = false;
@@ -3797,19 +3800,22 @@ function installerFlecheEpure(id, action, cote) {
     long = false;
     timer = setTimeout(() => {
       long = true;
-      ecranLecture.classList.remove("nav-gauche", "nav-droite");
-      ecranLecture.classList.add(cote);
+      const cible = sens < 0 ? phrasePrecedente() : phraseSuivante();
+      deplacer(cible - etat.index, true);
+      majAnnotationMinimal();
     }, 500);
   });
-  ["pointerleave", "pointercancel"].forEach((ev) => btn.addEventListener(ev, () => clearTimeout(timer)));
-  btn.addEventListener("pointerup", () => clearTimeout(timer));
+  ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => btn.addEventListener(ev, () => clearTimeout(timer)));
   btn.addEventListener("click", () => {
-    if (long) { long = false; return; }   // c'était un appui long → pas de navigation
-    action();
+    if (long) { long = false; return; }   // l'appui long a déjà agi
+    deplacer(sens, true);                  // appui court = un mot
+    majAnnotationMinimal();
   });
 }
-installerFlecheEpure("ep-recul", () => deplacer(phrasePrecedente() - etat.index, true), "nav-gauche");
-installerFlecheEpure("ep-avance", () => deplacer(phraseSuivante() - etat.index, true), "nav-droite");
+installerNavMotPhrase("btn-recul", -1);
+installerNavMotPhrase("btn-avance", +1);
+installerNavMotPhrase("ep-recul", -1);
+installerNavMotPhrase("ep-avance", +1);
 installerPlayLong("ep-lecture");
 
 // --- Orientation paysage : autorisée seulement en Mode Loupe & Mode Minimaliste.
@@ -3854,7 +3860,11 @@ function majZonesTap() {
 function majAnnotationMinimal() {
   const el = $("note-min");
   if (!el) return;
-  const actif = modeMinimalActif() && !etat.enLecture
+  // Visible dans TOUS les modes de lecture (normal/minimaliste, portrait/paysage),
+  // sauf en Mode Loupe, quand on est EN PAUSE sur un mot porteur d'une note.
+  const actif = !ecranLecture.classList.contains("cache")
+    && $("ecran-contexte").classList.contains("cache")    // pas en Mode Loupe
+    && !etat.enLecture
     && etat.noteParMot && etat.noteParMot.has(etat.index);
   if (!actif) { el.classList.add("cache"); return; }
   const notes = etat.noteParMot.get(etat.index) || [];
@@ -3862,6 +3872,14 @@ function majAnnotationMinimal() {
     `<p><b>${echHtml(n.num)}.</b> ${n.texte ? echHtml(n.texte) : "<i>(annotation introuvable)</i>"}</p>`
   ).join("");
   el.classList.remove("cache");
+  // Positionne sous le cartouche du mot, recadré dans l'écran.
+  const z = $("zone-mot").getBoundingClientRect();
+  const bb = el.getBoundingClientRect();
+  let top = z.bottom + 12;
+  if (top + bb.height > window.innerHeight - 8) top = Math.max(8, z.top - 12 - bb.height);
+  el.style.top = top + "px";
+  el.style.left = "50%";
+  el.style.transform = "translateX(-50%)";
 }
 // Avance/recule d'UN mot (déjà en pause), puis montre la note du nouveau mot.
 function zoneMotMinimal(sens) {

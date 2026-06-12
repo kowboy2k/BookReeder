@@ -1022,6 +1022,8 @@ html, body {
   line-height: 1.4;
   color: var(--texte);
   opacity: 0.15;                /* même atténuation que les boutons / la vitesse */
+  cursor: pointer;              /* zone cliquable → ouvre la Navigation */
+  position: relative; z-index: 20;   /* au-dessus des zones tactiles (paysage) */
 }
 /* Infos de lecture en Mode Loupe : visibles seulement si l'option est active */
 #contexte-infos { display: none; }
