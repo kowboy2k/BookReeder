@@ -251,7 +251,7 @@ html, body {
 /* Annotation flottante (Mode Minimaliste) : sous le mot, comme la bulle en Loupe. */
 #note-min {
   position: fixed; left: 50%; transform: translateX(-50%); top: 60%; z-index: 30;
-  max-width: min(90%, 640px); background: rgba(0,0,0,0.88); color: var(--texte);
+  max-width: min(96%, 820px); width: max-content; background: rgba(0,0,0,0.88); color: var(--texte);
   border: 1px solid var(--surface-bord); border-radius: 0.6rem; padding: 0.55rem 0.9rem;
   font-family: sans-serif; font-size: 0.95rem; line-height: 1.35; pointer-events: none;
   box-shadow: 0 4px 18px rgba(0,0,0,0.45);

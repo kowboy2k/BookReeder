@@ -1829,22 +1829,36 @@ function majProgression() {
 
   // Infos de lecture du Mode Minimaliste (sous les boutons de vitesse)
   const im = $("infos-minimal");
-  if (im) im.innerHTML = infosLectureHtml(true);
+  if (im) {
+    // En Minimaliste HORIZONTAL uniquement : « • X min restant » en fin de ligne.
+    const horizontal = ecranLecture.classList.contains("epure") && mqPaysage.matches;
+    im.innerHTML = infosLectureHtml(true, horizontal ? dureeRestanteCourt() : "");
+  }
 
   if (!$("panneau-navigation").classList.contains("cache")) majBarreLivre();
 }
 
 // Ligne d'infos de lecture (position % · chapitre [· nb de mots]), partagée par
 // le Mode Minimaliste et le Mode Loupe.
-function infosLectureHtml(avecMots) {
+function infosLectureHtml(avecMots, restant) {
   const { debut, fin } = bornesChapitre();
   const lenChap = Math.max(1, fin - debut);
   const posChap = Math.min(lenChap, Math.max(0, etat.index - debut));
   const pctChap = (posChap / lenChap) * 100;
   const esc = (s) => (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   let html = pctChap.toFixed(1).replace(".", ",") + " % · " + esc(tronquerTitre(chapitreActuel().titre));
+  if (restant) html += " • " + restant;                                                     // durée restante
   if (avecMots && etat.afficherMots) html += "<br>" + posChap + " / " + lenChap + " mots";  // 2e ligne
   return html;
+}
+// Durée de lecture restante du chapitre courant, formatée court (« X min restant »).
+function dureeRestanteCourt() {
+  const { fin } = bornesChapitre();
+  const totalMin = dureeEstimeeMs(etat.index, fin) / 60000;
+  const h = Math.floor(totalMin / 60), m = Math.round(totalMin % 60);
+  if (h > 0) return `${h}h${String(m).padStart(2, "0")} restant`;
+  if (totalMin < 1) return "< 1 min restant";
+  return `${Math.max(1, m)} min restant`;
 }
 
 // Barre du livre entier (panneau de navigation)
@@ -3896,27 +3910,32 @@ function zonePhraseMinimal(sens) {
   deplacer(cible - etat.index, false);   // false = on reste en pause à la nouvelle position
   majAnnotationMinimal();
 }
-// Installe une zone tactile (g/c/d). Règle commune : le PREMIER appui (si on
-// lisait) met simplement en pause. Sinon : appui court = mot (g/d) ou reprise
-// (c) ; appui long sur g/d = phrase par phrase.
+// Installe une zone tactile (g/c/d).
+//  - Centre : bascule lecture / pause.
+//  - Côtés : chaque appui met en pause (si on lit) ET recule/avance d'UN mot —
+//    les appuis s'enchaînent ; appui LONG = phrase par phrase.
 function installerZoneMin(el, type) {
   if (!el) return;
-  let timer = null, longFait = false, pauseCetAppui = false;
+  if (type === "c") {                       // centre : play / pause
+    el.addEventListener("click", () => basculerLecture());
+    return;
+  }
+  const sens = type === "g" ? -1 : 1;
+  let timer = null, longFait = false;
   el.addEventListener("pointerdown", () => {
     longFait = false;
-    if (etat.enLecture) { pauseCetAppui = true; pause(); return; }  // 1er appui = pause seule
-    pauseCetAppui = false;
-    if (type !== "c") {
-      timer = setTimeout(() => { longFait = true; zonePhraseMinimal(type === "g" ? -1 : 1); }, 500);
-    }
+    timer = setTimeout(() => {
+      longFait = true;
+      if (etat.enLecture) pause();
+      zonePhraseMinimal(sens);              // appui long = phrase
+    }, 500);
   });
   ["pointerup", "pointerleave", "pointercancel"].forEach((ev) =>
     el.addEventListener(ev, () => clearTimeout(timer)));
   el.addEventListener("pointerup", () => {
-    if (pauseCetAppui) { pauseCetAppui = false; return; }   // c'était juste la mise en pause
-    if (longFait) { longFait = false; return; }             // l'appui long a déjà agi
-    if (type === "c") lecture();                            // centre : reprise
-    else zoneMotMinimal(type === "g" ? -1 : 1);             // côtés : un mot
+    if (longFait) { longFait = false; return; }   // l'appui long a déjà agi
+    if (etat.enLecture) pause();                   // 1er appui = met en pause ET…
+    zoneMotMinimal(sens);                          // …recule/avance d'un mot (chaînable)
   });
 }
 installerZoneMin($("tap-min-g"), "g");
