@@ -29,7 +29,24 @@ const etat = {
   couleurParMot: null, // Map index mot -> couleur (multicolore, calculée au chargement)
   modeleId: "default", // modèle de lecture actif (groupement + rythme + ORP + bionic)
   modele: null,        // objet modèle courant (défini au démarrage)
+  // « Afficher les signes de dialogues » (cadratins — et guillemets « » " " qui
+  // entourent les répliques). Mettre à FALSE pour les MASQUER quand l'effet
+  // « Couleurs » est actif (la couleur suffit alors à marquer le locuteur) ;
+  // s'applique en lecture rapide + minimaliste (vertical/horizontal), JAMAIS en
+  // Mode Loupe. C'est un réglage de code (à basculer ici).
+  afficherSignesDlg: true,
 };
+// Retire les signes de dialogue (cadratin de réplique en tête + guillemets) d'un
+// chunk pour l'AFFICHAGE seulement (les mots d'origine, navigation et durée, ne
+// changent pas). N'enlève jamais une apostrophe (l'argile).
+function masquerSignesDlg(t) {
+  const out = t
+    .replace(/^[\s ]*[—–―‒][\s ]*/u, "")            // cadratin de réplique en tête
+    .replace(/[\s ]*[«»“”‹›"″][\s ]*/gu, " ")       // guillemets (n'importe où)
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  return out || t;   // garde-fou : ne jamais renvoyer un chunk vide
+}
 // Un effet de dialogue est-il actif ?
 function effetDialogue(nom) { return (etat.dialoguesEffets || []).indexOf(nom) >= 0; }
 
@@ -841,9 +858,12 @@ function ajusterTaillePolice() {
 }
 
 function afficherChunk() {
-  const { texte, nb } = etat.modele.chunk(etat.index);
+  const { texte: brut, nb } = etat.modele.chunk(etat.index);
   etat.nbCourant = nb;
-  if (!texte) return;
+  if (!brut) return;
+  // Masquage optionnel des signes de dialogue (cadratins/guillemets) quand
+  // l'effet « Couleurs » est actif — la couleur marque déjà le locuteur.
+  const texte = (!etat.afficherSignesDlg && effetDialogue("multicolore")) ? masquerSignesDlg(brut) : brut;
 
   const idxOrp = etat.orpActif ? etat.modele.orp(texte) : -1;
   motAffiche.innerHTML = construireHtml(texte, idxOrp);
@@ -874,7 +894,6 @@ function appliquerEffetsDialogue() {
   const couleur = effetDialogue("multicolore") && etat.couleurParMot
     ? (etat.couleurParMot.get(etat.index) || "") : "";
   const enDial = !!couleur || dansDialogue(etat.index);
-  motAffiche.classList.toggle("dlg-italique", enDial && effetDialogue("italique"));
   motAffiche.style.setProperty("--couleur-dialogue", couleur || "");
   motAffiche.classList.toggle("dlg-couleur", !!couleur);
   // Fondu : la durée = temps d'affichage du mot, connu seulement dans tick().
@@ -1610,6 +1629,7 @@ function lecture() {
   clearInterval(etat.minuteurDuree);
   etat.minuteurDuree = setInterval(majDureeChapitre, 60000);
   activerVeille();          // garde l'écran allumé pendant la lecture
+  { const n = $("note-min"); if (n) n.classList.add("cache"); }  // annotation minimaliste masquée en lecture
   tick();
 }
 
@@ -1656,6 +1676,7 @@ function pause() {
   iconeLecture(false);
   majDureeChapitre();
   sauverPosition();
+  if (typeof majAnnotationMinimal === "function") majAnnotationMinimal();  // note visible à la pause (Minimaliste)
 }
 
 function basculerLecture() {
@@ -1671,6 +1692,10 @@ function dureeEstimeeMs(debut, fin) {
   const base = 60000 / Math.max(1, etat.vitesse);   // ms par mot (vitesse réglée)
   const P = etat.modele.params;
   const coef = etat.coefPause;
+  // Rythme « HotGato » (modèles HotGato & Hybride) : pas de pauseFinPhrase/
+  // pauseVirgule dans leurs params, mais une pause fixe ×pauseFactor sur la
+  // ponctuation/chiffre. Sans ce branchement, base×undefined = NaN (durée cassée).
+  const rythmeHotgato = typeof P.pauseFactor === "number";
   let total = 0;
   for (let i = debut; i < fin; i++) {
     const w = etat.mots[i] || "";
@@ -1679,9 +1704,15 @@ function dureeEstimeeMs(debut, fin) {
       mot = Math.max(mot, P.nomPropreMs * coef / 2);   // plancher nom propre
     }
     let pause = 0;
-    if (RE_FIN_PH.test(w)) pause = base * P.pauseFinPhrase;
-    else if (RE_VIRG_PH.test(w)) pause = base * P.pauseVirgule;
-    if (dansDialogue(i)) pause *= etat.coefDialogue; // pauses rallongées en dialogue
+    if (rythmeHotgato) {
+      // pause fixe dès qu'il y a un chiffre/ponctuation, sinon fin de bloc (cf. delaiHotGato)
+      if (/[\d.,!?;:'"`«»…]/.test(w) || (etat.debutsPhrase && etat.debutsPhrase.has(i + 1)))
+        pause = base * P.pauseFactor;
+    } else {
+      if (RE_FIN_PH.test(w)) pause = base * P.pauseFinPhrase;
+      else if (RE_VIRG_PH.test(w)) pause = base * P.pauseVirgule;
+      if (dansDialogue(i)) pause *= etat.coefDialogue; // pauses rallongées en dialogue
+    }
     total += mot + pause * coef;
   }
   return total;
@@ -3209,9 +3240,11 @@ function ajusterCadre() {
 }
 // Effets de dialogue (élocution / multicolore / italique / fondu), mémorisés.
 function appliquerDialogues(val) {
-  etat.dialoguesEffets = (val || "").split(",").map((s) => s.trim()).filter((s) => s && s !== "aucun");
-  document.querySelectorAll(".dd-effet-select").forEach((s) => { s.value = val || "aucun"; });   // synchro Feuille ⇄ Réglages
-  try { localStorage.setItem("bookreeder-dialogues", val || "aucun"); } catch (e) {}
+  // « italique » a été retiré des effets : on le filtre (anciennes valeurs enregistrées).
+  etat.dialoguesEffets = (val || "").split(",").map((s) => s.trim()).filter((s) => s && s !== "aucun" && s !== "italique");
+  const canon = etat.dialoguesEffets.length ? etat.dialoguesEffets.join(",") : "aucun";
+  document.querySelectorAll(".dd-effet-select").forEach((s) => { s.value = canon; });   // synchro Feuille ⇄ Réglages
+  try { localStorage.setItem("bookreeder-dialogues", canon); } catch (e) {}
   const rendre = () => { if (!ecranLecture.classList.contains("cache")) afficherChunk(); };
   if (besoinMoteurDialogues()) {
     // Multicolore/Élocution : charge le moteur (dialogues.js) au besoin, puis
@@ -3796,9 +3829,52 @@ function gererOrientation() {
     epureForceePaysage = false;
     afficherChunk();
   }
+  majZonesTap();
 }
 mqPaysage.addEventListener("change", gererOrientation);
 gererOrientation();
+
+// --- Mode Minimaliste paysage : contrôle tactile par zones gauche/droite ---
+// Le mode est actif uniquement en Minimaliste (epure) + paysage + hors Loupe.
+function modeMinimalActif() {
+  return ecranLecture.classList.contains("epure") && mqPaysage.matches
+    && !ecranLecture.classList.contains("cache")
+    && $("ecran-contexte").classList.contains("cache");
+}
+// Affiche/masque les deux zones tactiles selon le mode.
+function majZonesTap() {
+  const z = $("zones-tap-min");
+  if (!z) return;
+  const actif = modeMinimalActif();
+  z.classList.toggle("cache", !actif);
+  if (!actif) { const n = $("note-min"); if (n) n.classList.add("cache"); }
+}
+// Annotation flottante : visible seulement à la PAUSE, en Minimaliste, si le mot
+// courant porte une note (exposant). Masquée dès la reprise de lecture.
+function majAnnotationMinimal() {
+  const el = $("note-min");
+  if (!el) return;
+  const actif = modeMinimalActif() && !etat.enLecture
+    && etat.noteParMot && etat.noteParMot.has(etat.index);
+  if (!actif) { el.classList.add("cache"); return; }
+  const notes = etat.noteParMot.get(etat.index) || [];
+  el.innerHTML = notes.map((n) =>
+    `<p><b>${echHtml(n.num)}.</b> ${n.texte ? echHtml(n.texte) : "<i>(annotation introuvable)</i>"}</p>`
+  ).join("");
+  el.classList.remove("cache");
+}
+// Appui sur une zone : met en pause et recule/avance d'UN mot, puis montre la
+// note du nouveau mot s'il en porte une.
+function pasMotMinimal(sens) {
+  if (!etat.mots.length) return;
+  pause();
+  etat.index = Math.min(etat.mots.length - 1, Math.max(0, etat.index + sens));
+  afficherChunk();
+  sauverPosition();
+  majAnnotationMinimal();
+}
+$("tap-min-g")?.addEventListener("click", () => pasMotMinimal(-1));
+$("tap-min-d")?.addEventListener("click", () => pasMotMinimal(1));
 
 // PWA : enregistrement du service worker (hors-ligne + mise à jour auto)
 let swRegistration = null;

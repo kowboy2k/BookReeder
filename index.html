@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=377">
+  <link rel="stylesheet" href="style.css?v=378">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -123,6 +123,14 @@
     </div>
     <!-- Infos de lecture (Mode Minimaliste) : position · chapitre · mots -->
     <div id="infos-minimal"></div>
+    <!-- Mode Minimaliste paysage : 2 zones tactiles invisibles (gauche = mot
+         précédent, droite = mot suivant ; chaque appui met en pause). -->
+    <div id="zones-tap-min" class="cache">
+      <button id="tap-min-g" type="button" aria-label="Mot précédent"></button>
+      <button id="tap-min-d" type="button" aria-label="Mot suivant"></button>
+    </div>
+    <!-- Annotation flottante (note en exposant) affichée à la pause, masquée à la reprise. -->
+    <div id="note-min" class="cache"></div>
   </div>
 
   <!-- Mode contexte : aperçu du texte autour du mot en cours (appui long sur play) -->
@@ -196,15 +204,12 @@
         <select id="reglage-dialogues" class="dd-effet-select">
           <option value="aucun">Désactivé</option>
           <option value="elocution">Élocution</option>
-          <option value="multicolore">Multicolore</option>
-          <option value="italique">Italique</option>
+          <option value="multicolore">Couleurs</option>
           <option value="fondu">Fondu</option>
-          <option value="elocution,multicolore">Élocution + Multicolore</option>
-          <option value="elocution,italique">Élocution + Italique</option>
-          <option value="multicolore,italique">Multicolore + Italique</option>
-          <option value="elocution,multicolore,fondu">Élocution + Multicolore + Fondu</option>
-          <option value="elocution,multicolore,italique">Élocution + Multicolore + Italique</option>
-          <option value="elocution,multicolore,italique,fondu">Tous les effets</option>
+          <option value="elocution,multicolore">Élocution + Couleurs</option>
+          <option value="elocution,fondu">Élocution + Fondu</option>
+          <option value="multicolore,fondu">Couleurs + Fondu</option>
+          <option value="elocution,multicolore,fondu">Tous les effets</option>
         </select>
       </div>
       <div class="reglage reglage-inline">
@@ -619,15 +624,12 @@
         <select id="reglage-dialogues-r3" class="dd-effet-select">
           <option value="aucun">Désactivé</option>
           <option value="elocution">Élocution</option>
-          <option value="multicolore">Multicolore</option>
-          <option value="italique">Italique</option>
+          <option value="multicolore">Couleurs</option>
           <option value="fondu">Fondu</option>
-          <option value="elocution,multicolore">Élocution + Multicolore</option>
-          <option value="elocution,italique">Élocution + Italique</option>
-          <option value="multicolore,italique">Multicolore + Italique</option>
-          <option value="elocution,multicolore,fondu">Élocution + Multicolore + Fondu</option>
-          <option value="elocution,multicolore,italique">Élocution + Multicolore + Italique</option>
-          <option value="elocution,multicolore,italique,fondu">Tous les effets</option>
+          <option value="elocution,multicolore">Élocution + Couleurs</option>
+          <option value="elocution,fondu">Élocution + Fondu</option>
+          <option value="multicolore,fondu">Couleurs + Fondu</option>
+          <option value="elocution,multicolore,fondu">Tous les effets</option>
         </select>
       </div>
 
@@ -665,7 +667,7 @@
   <div id="toast-ecran" class="cache"></div>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="chargeur.js?v=377"></script>
-  <script src="app.js?v=377"></script>
+  <script src="chargeur.js?v=378"></script>
+  <script src="app.js?v=378"></script>
 </body>
 </html>

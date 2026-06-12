@@ -240,6 +240,24 @@ html, body {
   font-family: sans-serif; font-size: 1rem; pointer-events: none; box-shadow: 0 4px 18px rgba(0,0,0,0.4);
 }
 #loupe-toast.cache, #toast-ecran.cache { display: none; }
+/* Mode Minimaliste paysage : 2 zones tactiles invisibles (gauche/droite) qui
+   couvrent la zone de lecture sans masquer les contrôles du bas. */
+#zones-tap-min { position: absolute; left: 0; right: 0; top: 0; bottom: 22%; display: flex; z-index: 15; }
+#zones-tap-min.cache { display: none; }
+#zones-tap-min > button {
+  flex: 1; background: none; border: none; padding: 0; margin: 0; cursor: pointer;
+  -webkit-tap-highlight-color: transparent; outline: none;
+}
+/* Annotation flottante (Mode Minimaliste) : sous le mot, comme la bulle en Loupe. */
+#note-min {
+  position: fixed; left: 50%; transform: translateX(-50%); top: 60%; z-index: 30;
+  max-width: min(90%, 640px); background: rgba(0,0,0,0.88); color: var(--texte);
+  border: 1px solid var(--surface-bord); border-radius: 0.6rem; padding: 0.55rem 0.9rem;
+  font-family: sans-serif; font-size: 0.95rem; line-height: 1.35; pointer-events: none;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.45);
+}
+#note-min.cache { display: none; }
+#note-min p { margin: 0.15rem 0; }
 /* Repère d'annotation en lecture rapide : petit caractère en exposant.
    Discret (couleur de la police) ou « accentué » (.accent → couleur
    d'accentuation en cours). Signale un contenu consultable en mode loupe. */
@@ -1596,6 +1614,9 @@ body.roue-ouverte #panneau-dialogues-dyn { background: transparent; }
 }
 .reglage-inline label { margin-bottom: 0; flex: none; }
 .reglage-inline select { flex: 1; min-width: 0; }
+/* Bouton « Palette des dialogues » (page Réglages) : aligné à droite comme les
+   autres dropdowns (le panneau Feuille utilise déjà space-between). */
+#panneau-reglages .reglage-inline .dd-palette-btn { margin-left: auto; }
 /* Roue de couleur sur une ligne inline (ex. « Couleur personnalisée ») : poussée à droite */
 .reglage-inline input[type="color"] {
   margin-left: auto; flex: none; width: 2.6rem; height: 2rem; padding: 0;
