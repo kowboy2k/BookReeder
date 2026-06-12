@@ -30,11 +30,11 @@ const etat = {
   modeleId: "default", // modèle de lecture actif (groupement + rythme + ORP + bionic)
   modele: null,        // objet modèle courant (défini au démarrage)
   // « Afficher les signes de dialogues » (cadratins — et guillemets « » " " qui
-  // entourent les répliques). Mettre à FALSE pour les MASQUER quand l'effet
-  // « Couleurs » est actif (la couleur suffit alors à marquer le locuteur) ;
-  // s'applique en lecture rapide + minimaliste (vertical/horizontal), JAMAIS en
-  // Mode Loupe. C'est un réglage de code (à basculer ici).
-  afficherSignesDlg: true,
+  // entourent les répliques). À FALSE (défaut) : MASQUÉS quand l'effet « Couleurs »
+  // est actif (la couleur suffit alors à marquer le locuteur) ; s'applique en
+  // lecture rapide + minimaliste (vertical/horizontal), JAMAIS en Mode Loupe.
+  // Mettre à TRUE pour toujours afficher les signes. C'est un réglage de code.
+  afficherSignesDlg: false,
 };
 // Retire les signes de dialogue (cadratin de réplique en tête + guillemets) d'un
 // chunk pour l'AFFICHAGE seulement (les mots d'origine, navigation et durée, ne
@@ -1498,7 +1498,7 @@ const MODELES = {
       charsParMot: 5.5,        // longueur moyenne d'un mot (durée ∝ caractères)
       motMin: 0.6,             // plancher de durée d'un mot (× base × nb mots)
       pauseFinPhrase: 2,       // pause après . ! ? … (× base)
-      pauseVirgule: 1,         // pause après , ; : (× base)
+      pauseVirgule: 0.5,       // pause après , ; : (× base) — allégée (était 1)
       pauseReplique: 1,        // pause avant une réplique de dialogue (× base)
       plancherDialogue: 1,     // pas de ralentissement de base en dialogue (= narration)
       nomPropreMs: 500,        // 500 ms mini par nom propre @2,0× (cumulés si consécutifs)
