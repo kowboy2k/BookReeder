@@ -3863,18 +3863,47 @@ function majAnnotationMinimal() {
   ).join("");
   el.classList.remove("cache");
 }
-// Appui sur une zone : met en pause et recule/avance d'UN mot, puis montre la
-// note du nouveau mot s'il en porte une.
-function pasMotMinimal(sens) {
+// Avance/recule d'UN mot (déjà en pause), puis montre la note du nouveau mot.
+function zoneMotMinimal(sens) {
   if (!etat.mots.length) return;
-  pause();
   etat.index = Math.min(etat.mots.length - 1, Math.max(0, etat.index + sens));
   afficherChunk();
   sauverPosition();
   majAnnotationMinimal();
 }
-$("tap-min-g")?.addEventListener("click", () => pasMotMinimal(-1));
-$("tap-min-d")?.addEventListener("click", () => pasMotMinimal(1));
+// Appui long sur une zone latérale : navigation phrase par phrase (déjà en pause).
+function zonePhraseMinimal(sens) {
+  if (!etat.mots.length) return;
+  const cible = sens < 0 ? phrasePrecedente() : phraseSuivante();
+  deplacer(cible - etat.index, false);   // false = on reste en pause à la nouvelle position
+  majAnnotationMinimal();
+}
+// Installe une zone tactile (g/c/d). Règle commune : le PREMIER appui (si on
+// lisait) met simplement en pause. Sinon : appui court = mot (g/d) ou reprise
+// (c) ; appui long sur g/d = phrase par phrase.
+function installerZoneMin(el, type) {
+  if (!el) return;
+  let timer = null, longFait = false, pauseCetAppui = false;
+  el.addEventListener("pointerdown", () => {
+    longFait = false;
+    if (etat.enLecture) { pauseCetAppui = true; pause(); return; }  // 1er appui = pause seule
+    pauseCetAppui = false;
+    if (type !== "c") {
+      timer = setTimeout(() => { longFait = true; zonePhraseMinimal(type === "g" ? -1 : 1); }, 500);
+    }
+  });
+  ["pointerup", "pointerleave", "pointercancel"].forEach((ev) =>
+    el.addEventListener(ev, () => clearTimeout(timer)));
+  el.addEventListener("pointerup", () => {
+    if (pauseCetAppui) { pauseCetAppui = false; return; }   // c'était juste la mise en pause
+    if (longFait) { longFait = false; return; }             // l'appui long a déjà agi
+    if (type === "c") lecture();                            // centre : reprise
+    else zoneMotMinimal(type === "g" ? -1 : 1);             // côtés : un mot
+  });
+}
+installerZoneMin($("tap-min-g"), "g");
+installerZoneMin($("tap-min-c"), "c");
+installerZoneMin($("tap-min-d"), "d");
 
 // PWA : enregistrement du service worker (hors-ligne + mise à jour auto)
 let swRegistration = null;

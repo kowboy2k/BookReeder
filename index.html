@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=378">
+  <link rel="stylesheet" href="style.css?v=379">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -123,11 +123,13 @@
     </div>
     <!-- Infos de lecture (Mode Minimaliste) : position · chapitre · mots -->
     <div id="infos-minimal"></div>
-    <!-- Mode Minimaliste paysage : 2 zones tactiles invisibles (gauche = mot
-         précédent, droite = mot suivant ; chaque appui met en pause). -->
+    <!-- Mode Minimaliste paysage : 3 zones tactiles invisibles. 1er appui = pause.
+         Gauche/Droite = mot précédent/suivant (appui long = phrase par phrase),
+         Centre = reprise de lecture. -->
     <div id="zones-tap-min" class="cache">
-      <button id="tap-min-g" type="button" aria-label="Mot précédent"></button>
-      <button id="tap-min-d" type="button" aria-label="Mot suivant"></button>
+      <button id="tap-min-g" type="button" aria-label="Mot / phrase précédent"></button>
+      <button id="tap-min-c" type="button" aria-label="Lecture / Pause"></button>
+      <button id="tap-min-d" type="button" aria-label="Mot / phrase suivant"></button>
     </div>
     <!-- Annotation flottante (note en exposant) affichée à la pause, masquée à la reprise. -->
     <div id="note-min" class="cache"></div>
@@ -345,7 +347,7 @@
         <li><b>Feuille de personnages</b> — appui prolongé sur le bouton Réglages pour personnaliser les dialogues de personnages.</li>
         <li><b>Mode Minimaliste</b> — touchez la <b>zone de lecture</b> pour masquer l'interface (lecture sans distraction) ; touchez à nouveau pour revenir.</li>
         <li><b>Mode loupe</b> — appui prolongé sur le bouton lecture/pause pour afficher la lecture contextuelle + annotations. Appui prolongé en Mode Loupe permet de faire défiler le texte automatiquement.</li>
-        <li><b>Lecture horizontale</b> — basculez la position des boutons en restant appuyé sur les flèches gauche/droite.</li>
+        <li><b>Lecture horizontale</b> — appui central pour pause/lecture, appui sur les côtés pour avancer ou reculer d'un mot, appui prolongé de phrase en phrase.</li>
         <li><b>Naviguer</b> — touchez les <b>infos de lecture</b> pour ouvrir la navigation et aller à un chapitre ou se déplacer dans le livre.</li>
         <li><b>Chapitres</b> — les boutons ⏮ / ⏭ sautent au chapitre précédent / suivant ; les flèches reculent / avancent d'une phrase.</li>
         <li><b>Vitesse</b> — les boutons − et + ajustent la vitesse de lecture.</li>
@@ -667,7 +669,7 @@
   <div id="toast-ecran" class="cache"></div>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="chargeur.js?v=378"></script>
-  <script src="app.js?v=378"></script>
+  <script src="chargeur.js?v=379"></script>
+  <script src="app.js?v=379"></script>
 </body>
 </html>

@@ -240,9 +240,9 @@ html, body {
   font-family: sans-serif; font-size: 1rem; pointer-events: none; box-shadow: 0 4px 18px rgba(0,0,0,0.4);
 }
 #loupe-toast.cache, #toast-ecran.cache { display: none; }
-/* Mode Minimaliste paysage : 2 zones tactiles invisibles (gauche/droite) qui
-   couvrent la zone de lecture sans masquer les contrôles du bas. */
-#zones-tap-min { position: absolute; left: 0; right: 0; top: 0; bottom: 22%; display: flex; z-index: 15; }
+/* Mode Minimaliste paysage : 3 zones tactiles invisibles ÉGALES (gauche/centre/
+   droite). On laisse libre le bas de l'écran pour le contrôle de la vitesse. */
+#zones-tap-min { position: absolute; left: 0; right: 0; top: 0; bottom: 30%; display: flex; z-index: 15; }
 #zones-tap-min.cache { display: none; }
 #zones-tap-min > button {
   flex: 1; background: none; border: none; padding: 0; margin: 0; cursor: pointer;
@@ -1091,6 +1091,11 @@ html, body {
   #ecran-lecture.epure.nav-droite #barre-epure {
     grid-column: 3; justify-self: end; padding-left: 0; padding-right: 10vw;
   }
+  /* Contrôle tactile par zones : les 3 boutons (recul/lecture/avance) sont
+     remplacés par les zones invisibles → on les masque ; la vitesse reste,
+     surélevée au-dessus des zones pour rester accessible. */
+  #ecran-lecture.epure #barre-epure { display: none; }
+  #ecran-lecture.epure #barre-epure-vitesse { position: relative; z-index: 20; }
 }
 
 /* --- Bibliothèque (écran d'accueil) --- */
