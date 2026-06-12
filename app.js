@@ -1497,8 +1497,8 @@ const MODELES = {
     params: {
       charsParMot: 5.5,        // longueur moyenne d'un mot (durée ∝ caractères)
       motMin: 0.6,             // plancher de durée d'un mot (× base × nb mots)
-      pauseFinPhrase: 2,       // pause après . ! ? … (× base)
-      pauseVirgule: 0.5,       // pause après , ; : (× base) — allégée (était 1)
+      pauseFinPhrase: 1.5,     // pause après . ! ? … (× base)
+      pauseVirgule: 1,         // pause après , ; : (× base)
       pauseReplique: 1,        // pause avant une réplique de dialogue (× base)
       plancherDialogue: 1,     // pas de ralentissement de base en dialogue (= narration)
       nomPropreMs: 500,        // 500 ms mini par nom propre @2,0× (cumulés si consécutifs)
@@ -1847,7 +1847,7 @@ function infosLectureHtml(avecMots, restant) {
   const pctChap = (posChap / lenChap) * 100;
   const esc = (s) => (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   let html = pctChap.toFixed(1).replace(".", ",") + " % · " + esc(tronquerTitre(chapitreActuel().titre));
-  if (restant) html += " • " + restant;                                                     // durée restante
+  if (restant) html += " · " + restant;                                                     // durée restante (même séparateur que le titre)
   if (avecMots && etat.afficherMots) html += "<br>" + posChap + " / " + lenChap + " mots";  // 2e ligne
   return html;
 }
