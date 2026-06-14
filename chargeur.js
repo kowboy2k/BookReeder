@@ -260,6 +260,11 @@ function redecouperParTitresVisuels(chapitres) {
     }
   }
   pousser();
+  // Garde-fou : la reconstruction doit AJOUTER des divisions, jamais détruire un
+  // chapitrage existant. Si elle effondre beaucoup de sections en très peu (ex.
+  // un ePUB dont le ncx pointe vers des fichiers absents, et dont le texte n'a
+  // aucun « Chapitre N » → tout fusionné en 2), on garde les sections d'origine.
+  if (out.length < 5 && chapitres.length >= 10 && out.length < chapitres.length) return chapitres;
   return out;
 }
 
