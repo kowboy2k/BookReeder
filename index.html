@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=390">
+  <link rel="stylesheet" href="style.css?v=391">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -399,7 +399,7 @@
 
       <button id="btn-fermer-navigation">Go</button>
 
-      <button type="button" id="lien-reconstruire-toc" class="lien-texte">Reconstruire la table des matières</button>
+      <button type="button" id="lien-reconstruire-toc" class="lien-texte">Optimiser la table des matières</button>
     </div>
   </div>
 
@@ -409,11 +409,11 @@
       <h2>Quelle table des matières&nbsp;?</h2>
       <div id="toc-boutons">
         <button type="button" id="toc-existante">
-          <span class="toc-l1">Originale</span> <span class="toc-l2">(existante)</span>
+          <span class="toc-l1">Originale</span> <span class="toc-l2" id="toc-cnt-existante"></span>
           <span class="toc-apercu" id="toc-apercu-existante"></span>
         </button>
         <button type="button" id="toc-optimisee">
-          <span class="toc-l1">Reconstruite</span> <span class="toc-l2">(optimisée)</span>
+          <span class="toc-l1">Optimisée</span> <span class="toc-l2" id="toc-cnt-optimisee"></span>
           <span class="toc-apercu" id="toc-apercu-optimisee"></span>
         </button>
       </div>
@@ -735,7 +735,7 @@
   <div id="toast-ecran" class="cache"></div>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="chargeur.js?v=390"></script>
-  <script src="app.js?v=390"></script>
+  <script src="chargeur.js?v=391"></script>
+  <script src="app.js?v=391"></script>
 </body>
 </html>

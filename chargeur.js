@@ -59,10 +59,23 @@
     return gen < chaps.length * 0.5;
   }
 
+  // Regroupe une liste trop longue en paquets de 10 (« Partie 1 – 10 », « Partie
+  // 11 – 20 »…), pour les livres au découpage excessif (un « chapitre » toutes les
+  // 2 pages). Chaque paquet pointe sur le début de son 1er chapitre.
+  const SEUIL_GROUPE = 30;
+  function grouperParPaquets(liste) {
+    if (!liste || liste.length <= SEUIL_GROUPE) return liste;
+    const T = 10, out = [];
+    for (let i = 0; i < liste.length; i += T) {
+      const a = i + 1, b = Math.min(i + T, liste.length);
+      out.push({ titre: "Partie " + a + " – " + b, debut: liste[i].debut });
+    }
+    return out;
+  }
   // Construit la liste affichée selon le mode :
   //  - "existante" : TOC d'origine nettoyée (couvertures coupées, numéros corrigés).
   //  - "optimisee" : Avant-propos · (préface/prologue/intro gardés) · chapitres ·
-  //                  (épilogue gardé) · Annexes.
+  //                  (épilogue gardé) · Annexes ; et si trop long, paquets de 10.
   function construireTOC(brut, mode) {
     if (!brut || !brut.length) return brut || [];
     let chaps = nettoyer(brut).filter((c) => categorie(c.titre) !== "couv");
@@ -74,13 +87,13 @@
     const estFin = (i) => cat[i] === "chapitre" || cat[i] === "epilogue";
     let i0 = -1; for (let i = 0; i < chaps.length; i++) if (estDebut(i)) { i0 = i; break; }
     let i1 = -1; for (let i = chaps.length - 1; i >= 0; i--) if (estFin(i)) { i1 = i; break; }
-    if (i0 < 0) return chaps;   // aucun contenu identifié → on ne touche pas
+    if (i0 < 0) return grouperParPaquets(chaps);   // aucun contenu identifié → on ne touche pas (mais on peut regrouper)
 
     const out = [];
     if (i0 > 0) out.push({ titre: "Avant-propos", debut: chaps[0].debut });   // tout avant le 1er contenu
     for (let i = i0; i <= i1; i++) out.push({ titre: chaps[i].titre, debut: chaps[i].debut });
     if (i1 < chaps.length - 1) out.push({ titre: "Annexes", debut: chaps[i1 + 1].debut });
-    return out;
+    return grouperParPaquets(out);
   }
 
 
