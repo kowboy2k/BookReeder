@@ -1939,18 +1939,24 @@ function listeTOC(mode) {
   return (window.Chargeur ? window.Chargeur.construireTOC(brut, mode) : brut) || [];
 }
 function apercuTOC(liste) {
-  if (!liste.length) return "(aucun chapitre)";
-  const li = (c) => (c.titre || "—");
-  if (liste.length <= 10) return liste.map(li).join("\n");
+  if (!liste.length) return ["(aucun chapitre)"];
+  const t = liste.map((c) => c.titre || "—");
+  if (t.length <= 10) return t;
   // Trop long : 6 premiers + « [ … ] » + 3 derniers.
-  return liste.slice(0, 6).map(li).concat("[ … ]", liste.slice(-3).map(li)).join("\n");
+  return t.slice(0, 6).concat("[ … ]", t.slice(-3));
+}
+// Remplit un aperçu : un titre par ligne, jamais sur 2 lignes (coupe « … »).
+function remplirApercu(el, liste) {
+  if (!el) return;
+  const esc = (s) => (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  el.innerHTML = apercuTOC(liste).map((l) => '<div class="toc-l">' + esc(l) + "</div>").join("");
 }
 function ouvrirChoixTOC() {
   const exi = listeTOC("existante"), opt = listeTOC("optimisee");
   const ce = $("toc-cnt-existante"); if (ce) ce.textContent = "(" + exi.length + " chapitres)";
   const co = $("toc-cnt-optimisee"); if (co) co.textContent = "(" + opt.length + " chapitres)";
-  const ae = $("toc-apercu-existante"); if (ae) ae.textContent = apercuTOC(exi);
-  const ao = $("toc-apercu-optimisee"); if (ao) ao.textContent = apercuTOC(opt);
+  remplirApercu($("toc-apercu-existante"), exi);
+  remplirApercu($("toc-apercu-optimisee"), opt);
   const p = $("panneau-toc"); if (p) p.classList.remove("cache");
 }
 function remplirSelectChapitres() {
