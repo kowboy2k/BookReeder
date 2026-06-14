@@ -1942,8 +1942,8 @@ function apercuTOC(liste) {
   if (!liste.length) return "(aucun chapitre)";
   const li = (c) => (c.titre || "—");
   if (liste.length <= 10) return liste.map(li).join("\n");
-  // Trop long : 7 premiers + « [ … ] » + 3 derniers.
-  return liste.slice(0, 7).map(li).concat("[ … ]", liste.slice(-3).map(li)).join("\n");
+  // Trop long : 6 premiers + « [ … ] » + 3 derniers.
+  return liste.slice(0, 6).map(li).concat("[ … ]", liste.slice(-3).map(li)).join("\n");
 }
 function ouvrirChoixTOC() {
   const exi = listeTOC("existante"), opt = listeTOC("optimisee");
