@@ -225,6 +225,7 @@ function _rechargerReglages() {
   try { appliquerPauseAuto(str("bookreeder-pause-auto", "fin")); } catch (e) {}
   try { appliquerMarqueurNote(str("bookreeder-marqueur-note", "etoile")); } catch (e) {}
   try { if (typeof appliquerFacteursRythme === "function") appliquerFacteursRythme(); } catch (e) {}
+  try { if (typeof appliquerLoupeTexte === "function") appliquerLoupeTexte(str("bookreeder-loupe-texte", "defaut")); } catch (e) {}
   try { appliquerCoefPause(num("bookreeder-coef-pause", 2)); } catch (e) {}
   try { appliquerCoefDialogue(num("bookreeder-coef-dialogue", 1.3)); } catch (e) {}
   try { appliquerCoefElan(num("bookreeder-coef-elan", 1)); } catch (e) {}
@@ -1363,10 +1364,13 @@ function delaiChunk() {
   const dernier = groupe[groupe.length - 1] || "";
   let pausePonct = 0;
   if (/[.!?…]["»”'’)\]]*$/.test(dernier)) pausePonct = base * P.pauseFinPhrase;  // fin de phrase
-  else if (/[,;:]["»”'’)\]]*$/.test(dernier)) pausePonct = base * P.pauseVirgule; // virgule, etc.
+  else if (/[,;:)\]]["»”'’]*$/.test(dernier)) pausePonct = base * P.pauseVirgule; // , ; : ) ] (fin de groupe)
   const suivant = etat.mots[fin];
   const pauseRep = (suivant && DEBUT_REPLIQUE.test(suivant)) ? base * P.pauseReplique : 0; // échanges
-  let pause = Math.max(pausePonct, pauseRep);
+  // Ouverture d'une parenthèse / d'un crochet au mot suivant : petite respiration
+  // (le même facteur que la virgule) — l'œil a besoin d'un instant de plus.
+  const pauseParen = (suivant && /^["«“'‘\s]*[(\[]/.test(suivant)) ? base * P.pauseVirgule : 0;
+  let pause = Math.max(pausePonct, pauseRep, pauseParen);
   // Respiration de fin de bloc/paragraphe (titre sans ponctuation, etc.)
   if (pause === 0 && etat.debutsPhrase && etat.debutsPhrase.has(fin)) pause += base * (P.pauseParagraphe ?? P.pauseFinPhrase);
   // Dans un dialogue, les pauses de ponctuation sont rallongées (slider, ×1,3 défaut).
@@ -1696,7 +1700,7 @@ function basculerLecture() {
 // base par mot + plancher des noms propres + pauses de ponctuation (× coef de
 // pause, ×1,5 en dialogue). On NE tient PAS compte de l'élan de reprise.
 const RE_FIN_PH = /[.!?…]["»”'’)\]]*$/;
-const RE_VIRG_PH = /[,;:]["»”'’)\]]*$/;
+const RE_VIRG_PH = /[,;:)\]]["»”'’]*$/;
 function dureeEstimeeMs(debut, fin) {
   const base = 60000 / Math.max(1, etat.vitesse);   // ms par mot (vitesse réglée)
   const P = etat.modele.params;
@@ -3488,6 +3492,31 @@ FACTEURS_RYTHME.forEach((f) => {
   });
 });
 appliquerFacteursRythme();
+
+// --- Répartition du texte en Mode Loupe (dropdown Réglages 1/4) ---
+const LOUPE_TEXTE = {
+  "defaut":           ["txt-gauche"],
+  "cesure-lettres":   ["txt-cesures", "txt-lettres"],
+  "cesure-mots":      ["txt-cesures", "txt-mots"],
+  "nocesure-lettres": ["txt-lettres"],
+  "nocesure-mots":    ["txt-mots"],
+};
+function appliquerLoupeTexte(v) {
+  if (!(v in LOUPE_TEXTE)) v = "defaut";
+  const el = $("contexte-texte");
+  if (el) {
+    el.classList.remove("txt-gauche", "txt-cesures", "txt-mots", "txt-lettres");
+    LOUPE_TEXTE[v].forEach((c) => el.classList.add(c));
+  }
+  const sel = $("reglage-loupe-texte"); if (sel) sel.value = v;
+  try { localStorage.setItem("bookreeder-loupe-texte", v); } catch (e) {}
+}
+$("reglage-loupe-texte")?.addEventListener("change", (e) => appliquerLoupeTexte(e.target.value));
+(function initLoupeTexte() {
+  let v = "defaut";
+  try { v = localStorage.getItem("bookreeder-loupe-texte") || "defaut"; } catch (e) {}
+  appliquerLoupeTexte(v);
+})();
 
 function appliquerCoefPause(v) {
   etat.coefPause = v;

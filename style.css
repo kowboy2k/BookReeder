@@ -203,6 +203,12 @@ html, body {
   user-select: text;
   -webkit-touch-callout: default;
 }
+/* Répartition du texte en Mode Loupe (dropdown Réglages 1/4) : césures + mode de
+   justification (par les espaces de mots OU par l'espacement des lettres). */
+#contexte-texte.txt-gauche { text-align: left; }
+#contexte-texte.txt-cesures { -webkit-hyphens: auto; hyphens: auto; }
+#contexte-texte.txt-mots { text-align: justify; text-justify: inter-word; }
+#contexte-texte.txt-lettres { text-align: justify; text-justify: inter-character; }
 #contexte-texte::-webkit-scrollbar { width: 5px; }
 #contexte-texte::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 3px; }
 #contexte-texte .ctx-bloc { margin: 0 0 0.9em; }      /* saut de ligne entre paragraphes */
