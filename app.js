@@ -1857,8 +1857,8 @@ function infosLectureHtml(avecMots, restant) {
   const posChap = Math.min(lenChap, Math.max(0, etat.index - debut));
   const pctChap = (posChap / lenChap) * 100;
   const esc = (s) => (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  let html = pctChap.toFixed(1).replace(".", ",") + " % · " + esc(tronquerTitre(chapitreActuel().titre));
-  if (restant) html += " · " + restant;                                                     // durée restante (même séparateur que le titre)
+  let html = pctChap.toFixed(1).replace(".", ",") + " % • " + esc(tronquerTitre(chapitreActuel().titre));
+  if (restant) html += " • " + restant;                                                     // durée restante (même séparateur que le titre)
   if (avecMots && etat.afficherMots) html += "<br>" + posChap + " / " + lenChap + " mots";  // 2e ligne
   return html;
 }
