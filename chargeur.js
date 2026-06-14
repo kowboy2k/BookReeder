@@ -59,41 +59,50 @@
     return gen < chaps.length * 0.5;
   }
 
-  // Regroupe une liste trop longue en paquets de 10 (« Partie 1 – 10 », « Partie
-  // 11 – 20 »…), pour les livres au découpage excessif (un « chapitre » toutes les
-  // 2 pages). Chaque paquet pointe sur le début de son 1er chapitre.
+  // Un « micro-chapitre » = un chapitre numéroté SANS nom (« 2 », « IV »,
+  // « Chapitre 7 », « Section 5 »). Les vrais chapitres nommés (« Serment »,
+  // « Première partie. Patagonie », « Note de l'auteur ») n'en sont pas.
+  function estMicroChap(t) {
+    t = (t || "").trim();
+    return estNumeroChap(t) || /^section\s+\d+$/i.test(t);
+  }
+  function premierNombre(t) { const m = String(t || "").match(/\d+/); return m ? m[0] : null; }
+  // Regroupe UNIQUEMENT les suites de micro-chapitres en paquets de 10
+  // (« Chapitres 2 – 11 »…), en laissant intacts les vrais chapitres, où qu'ils
+  // soient (début, milieu ou fin du livre). Actif seulement si le livre est très
+  // découpé (> SEUIL_GROUPE entrées au total).
   const SEUIL_GROUPE = 30;
-  function grouperParPaquets(liste) {
+  function grouperMicro(liste) {
     if (!liste || liste.length <= SEUIL_GROUPE) return liste;
-    const T = 10, out = [];
-    for (let i = 0; i < liste.length; i += T) {
-      const a = i + 1, b = Math.min(i + T, liste.length);
-      out.push({ titre: "Partie " + a + " – " + b, debut: liste[i].debut });
+    const out = [];
+    let run = [];
+    const vider = () => {
+      while (run.length) {
+        const pack = run.splice(0, 10);
+        if (pack.length === 1) { out.push(pack[0]); continue; }
+        const a = premierNombre(pack[0].titre), b = premierNombre(pack[pack.length - 1].titre);
+        const lbl = (a && b) ? ("Chapitres " + a + " – " + b)
+                             : ((pack[0].titre || "—") + " – " + (pack[pack.length - 1].titre || "—"));
+        out.push({ titre: lbl, debut: pack[0].debut });
+      }
+    };
+    for (const c of liste) {
+      if (estMicroChap(c.titre)) run.push(c);
+      else { vider(); out.push(c); }
     }
+    vider();
     return out;
   }
   // Construit la liste affichée selon le mode :
   //  - "existante" : TOC d'origine nettoyée (couvertures coupées, numéros corrigés).
-  //  - "optimisee" : Avant-propos · (préface/prologue/intro gardés) · chapitres ·
-  //                  (épilogue gardé) · Annexes ; et si trop long, paquets de 10.
+  //  - "optimisee" : vrais chapitres conservés, suites de micro-chapitres regroupées
+  //                  en paquets de 10 (pour les livres au découpage excessif).
   function construireTOC(brut, mode) {
     if (!brut || !brut.length) return brut || [];
     let chaps = nettoyer(brut).filter((c) => categorie(c.titre) !== "couv");
     if (!chaps.length) chaps = [{ titre: "Début", debut: 0 }];
     if (mode !== "optimisee") return chaps;
-
-    const cat = chaps.map((c) => categorie(c.titre));
-    const estDebut = (i) => cat[i] === "ouverture" || cat[i] === "chapitre";
-    const estFin = (i) => cat[i] === "chapitre" || cat[i] === "epilogue";
-    let i0 = -1; for (let i = 0; i < chaps.length; i++) if (estDebut(i)) { i0 = i; break; }
-    let i1 = -1; for (let i = chaps.length - 1; i >= 0; i--) if (estFin(i)) { i1 = i; break; }
-    if (i0 < 0) return grouperParPaquets(chaps);   // aucun contenu identifié → on ne touche pas (mais on peut regrouper)
-
-    const out = [];
-    if (i0 > 0) out.push({ titre: "Avant-propos", debut: chaps[0].debut });   // tout avant le 1er contenu
-    for (let i = i0; i <= i1; i++) out.push({ titre: chaps[i].titre, debut: chaps[i].debut });
-    if (i1 < chaps.length - 1) out.push({ titre: "Annexes", debut: chaps[i1 + 1].debut });
-    return grouperParPaquets(out);
+    return grouperMicro(chaps);
   }
 
 
