@@ -1940,7 +1940,9 @@ function listeTOC(mode) {
 }
 function apercuTOC(liste) {
   if (!liste.length) return ["(aucun chapitre)"];
-  const t = liste.map((c) => c.titre || "—");
+  // Titre sur une seule ligne : coupé après 20 lettres avec « … ».
+  const court = (s) => { s = (s || "—").trim(); return s.length > 20 ? s.slice(0, 20).trimEnd() + "…" : s; };
+  const t = liste.map((c) => court(c.titre));
   if (t.length <= 10) return t;
   // Trop long : 6 premiers + « [ … ] » + 3 derniers.
   return t.slice(0, 6).concat("[ … ]", t.slice(-3));
