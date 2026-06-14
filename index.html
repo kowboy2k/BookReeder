@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=388">
+  <link rel="stylesheet" href="style.css?v=389">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -408,10 +408,24 @@
     <div class="panneau-contenu">
       <h2>Quelle table des matières&nbsp;?</h2>
       <div id="toc-boutons">
-        <button type="button" id="toc-existante"><span class="toc-l1">Originale</span> <span class="toc-l2">(existante)</span></button>
-        <button type="button" id="toc-optimisee"><span class="toc-l1">Optimisée</span> <span class="toc-l2">(reconstruite)</span></button>
+        <button type="button" id="toc-existante">
+          <span class="toc-l1">Originale</span> <span class="toc-l2">(existante)</span>
+          <span class="toc-apercu" id="toc-apercu-existante"></span>
+        </button>
+        <button type="button" id="toc-optimisee">
+          <span class="toc-l1">Reconstruite</span> <span class="toc-l2">(optimisée)</span>
+          <span class="toc-apercu" id="toc-apercu-optimisee"></span>
+        </button>
       </div>
       <button type="button" id="toc-annuler">Annuler</button>
+    </div>
+  </div>
+
+  <!-- Dialogue générique à 2–3 boutons (suppression de profil, etc.) -->
+  <div id="panneau-choix" class="cache">
+    <div class="panneau-contenu">
+      <h2 id="choix-titre">?</h2>
+      <div id="choix-boutons"></div>
     </div>
   </div>
 
@@ -721,7 +735,7 @@
   <div id="toast-ecran" class="cache"></div>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="chargeur.js?v=388"></script>
-  <script src="app.js?v=388"></script>
+  <script src="chargeur.js?v=389"></script>
+  <script src="app.js?v=389"></script>
 </body>
 </html>

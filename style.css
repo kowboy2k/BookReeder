@@ -1502,6 +1502,29 @@ body.roue-ouverte #panneau-dialogues-dyn { background: transparent; }
 }
 #toc-boutons .toc-l1 { display: block; width: 100%; }
 #toc-boutons .toc-l2 { display: block; width: 100%; font-size: 0.85rem; opacity: 0.6; }
+/* Aperçu des premiers titres de chaque version (pour comparer avant de choisir) */
+#toc-boutons .toc-apercu {
+  display: block; width: 100%; margin-top: 0.5rem; padding-top: 0.45rem;
+  border-top: 1px solid var(--surface-bord); text-align: left;
+  font-size: 0.72rem; line-height: 1.35; opacity: 0.7; font-family: sans-serif;
+  white-space: pre-line; max-height: 8.5em; overflow: hidden;
+}
+/* Panneau de choix générique (2–3 boutons) */
+#panneau-choix {
+  position: fixed; inset: 0; z-index: 90;
+  background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center;
+  padding: 1rem; box-sizing: border-box;
+}
+#panneau-choix.cache { display: none; }
+#panneau-choix .panneau-contenu { border-radius: 1rem; max-width: 380px; width: 100%; text-align: center; }
+#panneau-choix h2 { white-space: pre-line; margin-bottom: 1.4rem; }
+#choix-boutons { display: flex; flex-direction: column; gap: 0.7rem; }
+#choix-boutons button {
+  width: 100%; padding: 0.85rem; border: none; border-radius: 0.6rem; cursor: pointer;
+  font-size: 1rem; font-family: sans-serif; background: var(--fond); color: var(--texte);
+}
+#choix-boutons button.choix-danger { background: var(--accent); color: #fff; }
+#choix-boutons button.choix-annuler { opacity: 0.6; }
 /* Annuler : couleur du bouton « Go » (accent) */
 #toc-annuler {
   width: 100%; padding: 0.9rem; border: none; border-radius: 0.6rem; cursor: pointer;

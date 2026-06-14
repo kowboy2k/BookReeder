@@ -1932,8 +1932,19 @@ function choisirModeTOC(mode) {
   placerMarqueursChapitres();
   const p = $("panneau-toc"); if (p) p.classList.add("cache");
 }
-// Ouvre le popup de choix de table (1ʳᵉ ouverture, ou « Reconstruire »).
+// Ouvre le popup de choix de table (1ʳᵉ ouverture, ou « Reconstruire »), avec un
+// aperçu des premiers titres de chaque version pour comparer avant de choisir.
+function apercuTOC(mode) {
+  const brut = etat.chapitresBrut || etat.chapitres || [];
+  const liste = window.Chargeur ? window.Chargeur.construireTOC(brut, mode) : brut;
+  if (!liste || !liste.length) return "(aucun chapitre)";
+  const n = liste.length;
+  const t = liste.slice(0, 6).map((c) => "• " + (c.titre || "—")).join("\n");
+  return t + (n > 6 ? "\n… (" + n + " entrées)" : "\n(" + n + " entrées)");
+}
 function ouvrirChoixTOC() {
+  const ae = $("toc-apercu-existante"); if (ae) ae.textContent = apercuTOC("existante");
+  const ao = $("toc-apercu-optimisee"); if (ao) ao.textContent = apercuTOC("optimisee");
   const p = $("panneau-toc"); if (p) p.classList.remove("cache");
 }
 function remplirSelectChapitres() {
@@ -2697,10 +2708,28 @@ function metaBiblioHTML(pct, dateStr) {
 // Efface le profil de lecture d'un livre (réglages + couleurs persos) en gardant
 // la progression et le livre dans la liste.
 async function proposerEffacerProfil(livre) {
-  if (!(await confirmer("Effacer le profil de lecture de « " + (livre.titre || livre.nom) + " » ?\nLes réglages personnalisés et les couleurs des personnages seront remis par défaut. La progression et le livre sont conservés."))) return;
+  const r = await choix(
+    "Effacer les données de « " + (livre.titre || livre.nom) + " » ?\nRéglages, couleurs des personnages et choix de table des matières seront remis à zéro.",
+    [
+      { label: "Tout effacer (avec la progression)", val: "tout", classe: "choix-danger" },
+      { label: "Garder la progression", val: "garder" },
+      { label: "Annuler", val: null, classe: "choix-annuler" },
+    ]
+  );
+  if (!r) return;
   const f = await lireLivre(livre.id);
-  if (f) { f.profil = {}; await sauverLivre(f); }
-  if (etat.idLivre === livre.id) etat.profil = {};
+  if (f) {
+    f.profil = {};                       // réglages par livre → défaut
+    delete f.persos;                     // cache des personnages → re-détection
+    if (r === "tout") { f.progression = 0; f.total = f.total || 0; }  // remet au début
+    await sauverLivre(f);
+  }
+  try { localStorage.removeItem("bookreeder-toc-" + livre.id); } catch (e) {}  // choix TOC → re-demandé
+  if (etat.idLivre === livre.id) {
+    etat.profil = {};
+    if (r === "tout") { etat.index = 0; }
+  }
+  afficherBibliotheque();
 }
 async function afficherBibliotheque() {
   const conteneur = $("bibliotheque");
@@ -2763,6 +2792,7 @@ async function afficherBibliotheque() {
     item.querySelector(".item-suppr").addEventListener("click", async (e) => {
       e.stopPropagation();
       await supprimerLivre(livre.id);
+      try { localStorage.removeItem("bookreeder-toc-" + livre.id); } catch (er) {}  // re-demande la TOC au prochain chargement
       afficherBibliotheque();
     });
     conteneur.appendChild(item);
@@ -3078,6 +3108,27 @@ function confirmer(message) {
     const fin = (v) => { p.classList.add("cache"); oui.removeEventListener("click", onO); non.removeEventListener("click", onN); resolve(v); };
     const onO = () => fin(true), onN = () => fin(false);
     oui.addEventListener("click", onO); non.addEventListener("click", onN);
+    p.classList.remove("cache");
+  });
+}
+// Dialogue à 2–3 boutons. options = [{ label, val, classe }]. Résout avec la val
+// du bouton cliqué, ou null si on touche le fond.
+function choix(message, options) {
+  return new Promise((resolve) => {
+    const p = $("panneau-choix");
+    if (!p) { resolve(null); return; }
+    $("choix-titre").textContent = message;
+    const cont = $("choix-boutons"); cont.innerHTML = "";
+    const fin = (v) => { p.classList.add("cache"); p.removeEventListener("click", onFond); resolve(v); };
+    options.forEach((o) => {
+      const b = document.createElement("button");
+      b.textContent = o.label;
+      if (o.classe) b.className = o.classe;
+      b.addEventListener("click", () => fin(o.val));
+      cont.appendChild(b);
+    });
+    const onFond = (e) => { if (e.target === p) fin(null); };
+    p.addEventListener("click", onFond);
     p.classList.remove("cache");
   });
 }
