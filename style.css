@@ -1505,7 +1505,7 @@ body.roue-ouverte #panneau-dialogues-dyn { background: transparent; }
 /* Aperçu des premiers titres de chaque version (pour comparer avant de choisir) */
 #toc-boutons .toc-apercu {
   display: block; width: 100%; margin-top: 0.5rem; padding-top: 0.45rem;
-  border-top: 1px solid var(--surface-bord); text-align: left;
+  border-top: 1px solid var(--surface-bord); text-align: center;
   font-size: 0.72rem; line-height: 1.35; opacity: 0.7; font-family: sans-serif;
   white-space: pre-line; max-height: 14em; overflow: hidden;
 }
