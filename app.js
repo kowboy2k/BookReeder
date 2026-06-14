@@ -1940,8 +1940,10 @@ function listeTOC(mode) {
 }
 function apercuTOC(liste) {
   if (!liste.length) return "(aucun chapitre)";
-  const t = liste.slice(0, 10).map((c) => "• " + (c.titre || "—")).join("\n");
-  return liste.length > 10 ? t + "\n…" : t;
+  const li = (c) => "• " + (c.titre || "—");
+  if (liste.length <= 10) return liste.map(li).join("\n");
+  // Trop long : 7 premiers + « [ … ] » + 3 derniers.
+  return liste.slice(0, 7).map(li).concat("[ … ]", liste.slice(-3).map(li)).join("\n");
 }
 function ouvrirChoixTOC() {
   const exi = listeTOC("existante"), opt = listeTOC("optimisee");
