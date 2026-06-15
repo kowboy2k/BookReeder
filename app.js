@@ -225,7 +225,7 @@ function _rechargerReglages() {
   try { appliquerPauseAuto(str("bookreeder-pause-auto", "fin")); } catch (e) {}
   try { appliquerMarqueurNote(str("bookreeder-marqueur-note", "etoile")); } catch (e) {}
   try { if (typeof appliquerFacteursRythme === "function") appliquerFacteursRythme(); } catch (e) {}
-  try { if (typeof appliquerLoupeTexte === "function") appliquerLoupeTexte(str("bookreeder-loupe-texte", "defaut")); } catch (e) {}
+  try { if (typeof appliquerLoupeTexte === "function") appliquerLoupeTexte(str("bookreeder-loupe-texte", "j")); } catch (e) {}
   try { appliquerCoefPause(num("bookreeder-coef-pause", 2)); } catch (e) {}
   try { appliquerCoefDialogue(num("bookreeder-coef-dialogue", 1.3)); } catch (e) {}
   try { appliquerCoefElan(num("bookreeder-coef-elan", 1)); } catch (e) {}
@@ -3559,18 +3559,23 @@ FACTEURS_RYTHME.forEach((f) => {
 appliquerFacteursRythme();
 
 // --- Répartition du texte en Mode Loupe (dropdown Réglages 1/4) ---
+// Répartition du texte en Mode Loupe. « justifié » = justification normale (les
+// ESPACES entre mots s'écartent) ; « espaces fixes » = text-justify inter-character
+// (les espaces restent fixes, les LETTRES s'écartent pour combler la ligne — non
+// géré par Safari/iOS, qui retombe alors sur la justification normale).
 const LOUPE_TEXTE = {
-  "defaut":           ["txt-gauche"],
-  "cesure-lettres":   ["txt-cesures", "txt-lettres"],
-  "cesure-mots":      ["txt-cesures", "txt-mots"],
-  "nocesure-lettres": ["txt-lettres"],
-  "nocesure-mots":    ["txt-mots"],
+  "j":   [],                              // sans césure, justifié (défaut)
+  "jf":  ["txt-lettres"],                 // sans césure, justifié, espaces fixes
+  "g":   ["txt-gauche"],                  // sans césure, aligné à gauche
+  "cj":  ["txt-cesures"],                 // avec césure, justifié
+  "cjf": ["txt-cesures", "txt-lettres"],  // avec césure, justifié, espaces fixes
+  "cg":  ["txt-cesures", "txt-gauche"],   // avec césure, aligné à gauche
 };
 function appliquerLoupeTexte(v) {
-  if (!(v in LOUPE_TEXTE)) v = "defaut";
+  if (!(v in LOUPE_TEXTE)) v = "j";
   const el = $("contexte-texte");
   if (el) {
-    el.classList.remove("txt-gauche", "txt-cesures", "txt-mots", "txt-lettres");
+    el.classList.remove("txt-gauche", "txt-cesures", "txt-lettres");
     LOUPE_TEXTE[v].forEach((c) => el.classList.add(c));
   }
   const sel = $("reglage-loupe-texte"); if (sel) sel.value = v;
@@ -3578,8 +3583,8 @@ function appliquerLoupeTexte(v) {
 }
 $("reglage-loupe-texte")?.addEventListener("change", (e) => appliquerLoupeTexte(e.target.value));
 (function initLoupeTexte() {
-  let v = "defaut";
-  try { v = localStorage.getItem("bookreeder-loupe-texte") || "defaut"; } catch (e) {}
+  let v = "j";
+  try { v = localStorage.getItem("bookreeder-loupe-texte") || "j"; } catch (e) {}
   appliquerLoupeTexte(v);
 })();
 

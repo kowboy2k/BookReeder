@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=399">
+  <link rel="stylesheet" href="style.css?v=400">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -509,11 +509,12 @@
       <div class="reglage reglage-inline">
         <label for="reglage-loupe-texte">Texte en Mode Loupe</label>
         <select id="reglage-loupe-texte">
-          <option value="defaut">Par défaut (aligné à gauche)</option>
-          <option value="cesure-lettres">Césures · mots fixes, lettres variables</option>
-          <option value="cesure-mots">Césures · mots variables, lettres fixes</option>
-          <option value="nocesure-lettres">Sans césure · mots fixes, lettres variables</option>
-          <option value="nocesure-mots">Sans césure · mots variables, lettres fixes</option>
+          <option value="j">Sans césure, justifié</option>
+          <option value="jf">Sans césure, justifié, espaces fixes</option>
+          <option value="g">Sans césure, aligné à gauche</option>
+          <option value="cj">Avec césure, justifié</option>
+          <option value="cjf">Avec césure, justifié, espaces fixes</option>
+          <option value="cg">Avec césure, aligné à gauche</option>
         </select>
       </div>
 
@@ -735,7 +736,7 @@
   <div id="toast-ecran" class="cache"></div>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="chargeur.js?v=399"></script>
-  <script src="app.js?v=399"></script>
+  <script src="chargeur.js?v=400"></script>
+  <script src="app.js?v=400"></script>
 </body>
 </html>
