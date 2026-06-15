@@ -2725,7 +2725,7 @@ async function proposerEffacerProfil(livre) {
   const r = await choix(
     "Effacer les données de « " + (livre.titre || livre.nom) + " » ?\nRéglages, couleurs des personnages et choix de table des matières seront remis à zéro.",
     [
-      { label: "Tout effacer (avec la progression)", val: "tout", classe: "choix-danger" },
+      { label: "Tout effacer", val: "tout", classe: "choix-danger" },
       { label: "Garder la progression", val: "garder" },
       { label: "Annuler", val: null, classe: "choix-annuler" },
     ]
