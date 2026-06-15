@@ -838,10 +838,19 @@ function texteAvecSeparateurs(el) {
   retirerAppelsNote(clone);              // enlève les appels de note (exposants 13, liens…)
   clone.querySelectorAll("br").forEach((b) => b.replaceWith(" "));
   appliquerCasse(clone);                 // reproduit les capitales/petites capitales
+  const SEP = "";                  // marqueur de FIN DE BLOC (vrai paragraphe)
   clone.querySelectorAll(
     "p, div, h1, h2, h3, h4, h5, h6, li, blockquote, tr, section, article, figcaption"
-  ).forEach((b) => b.append("\n"));
-  return clone.textContent;
+  ).forEach((b) => b.append(SEP));
+  // Le HTML est souvent indenté ligne par ligne : à l'intérieur d'un paragraphe,
+  // le texte contient des retours à la ligne + espaces de MISE EN FORME. On écrase
+  // tous ces blancs en espaces simples, et on ne garde comme séparateur de
+  // paragraphe que le marqueur de fin de bloc (sinon : coupures en pleine phrase).
+  return clone.textContent
+    .split(SEP)
+    .map((s) => s.replace(/\s+/g, " ").trim())
+    .filter((s) => s.length)
+    .join("\n");
 }
   // État de casse (text-transform / petites capitales) lu dans le CSS de l'EPUB.
   function preparerCasse(cssText) { carteCasse = construireCarteCasse(cssText); }
