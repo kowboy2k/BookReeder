@@ -2901,6 +2901,7 @@ $("reglages-suiv").addEventListener("click", () => montrerReglagesPage(reglagesP
 function ouvrirReglages() {
   pause();
   ecranLecture.classList.add("apercu");
+  if (typeof majLabelsFacteurs === "function") majLabelsFacteurs();   // ms selon la vitesse actuelle
   montrerReglagesPage(0);
   $("panneau-reglages").classList.remove("cache");
   afficherChunk();
@@ -3530,19 +3531,37 @@ const FACTEURS_RYTHME = [
   { id: "virgule",    param: "pauseVirgule",     def: 1.0 },
   { id: "paragraphe", param: "pauseParagraphe",  def: 1.5 },
   { id: "replique",   param: "pauseReplique",    def: 1.0 },
-  { id: "plancher",   param: "motMin",           def: 0.6 },
-  { id: "dialogue",   param: "plancherDialogue", def: 1.0 },
-  { id: "nompropre",  param: "nomPropreFact",    def: 2.5 },
+  // « Durée mini d'un mot » : affichées en ms (selon la vitesse + modificateurs).
+  { id: "plancher",   param: "motMin",           def: 0.6, ms: true },
+  { id: "dialogue",   param: "plancherDialogue", def: 1.0, ms: true, dlg: true },
+  { id: "nompropre",  param: "nomPropreFact",    def: 2.5, ms: true },
   { id: "elan",       param: "elanGrossePause",  def: 0.65 },
 ];
-function fmtFacteur(v) { let s = (+v).toFixed(2); if (s.endsWith("0")) s = s.slice(0, -1); return "× " + s.replace(".", ","); }
+// Libellé d'un facteur : « × X,X » pour les pauses ; « N ms » pour les durées mini
+// (facteur × durée d'un mot à la vitesse actuelle, × coef dialogue le cas échéant).
+function valFacteur(f, v) {
+  if (f.ms) {
+    const base = 60000 / Math.max(1, etat.vitesse || 300);
+    const ms = v * base * (f.dlg ? (etat.coefDialogue || 1) : 1);
+    return Math.round(ms) + " ms";
+  }
+  let s = (+v).toFixed(2); if (s.endsWith("0")) s = s.slice(0, -1);
+  return "× " + s.replace(".", ",");
+}
 function appliquerFacteursRythme() {
   FACTEURS_RYTHME.forEach((f) => {
     let v = f.def;
     try { const s = localStorage.getItem("bookreeder-fact-" + f.id); if (s != null && isFinite(+s)) v = +s; } catch (e) {}
     MODELES.default.params[f.param] = v;
     const sl = $("fact-" + f.id); if (sl) sl.value = v;
-    const lab = $("val-" + f.id); if (lab) lab.textContent = fmtFacteur(v);
+    const lab = $("val-" + f.id); if (lab) lab.textContent = valFacteur(f, v);
+  });
+}
+// Rafraîchit les libellés en ms (dépendent de la vitesse) — à l'ouverture des Réglages.
+function majLabelsFacteurs() {
+  FACTEURS_RYTHME.forEach((f) => {
+    const sl = $("fact-" + f.id), lab = $("val-" + f.id);
+    if (sl && lab) lab.textContent = valFacteur(f, parseFloat(sl.value));
   });
 }
 FACTEURS_RYTHME.forEach((f) => {
@@ -3550,7 +3569,7 @@ FACTEURS_RYTHME.forEach((f) => {
   sl.addEventListener("input", (e) => {
     const v = parseFloat(e.target.value);
     MODELES.default.params[f.param] = v;
-    const lab = $("val-" + f.id); if (lab) lab.textContent = fmtFacteur(v);
+    const lab = $("val-" + f.id); if (lab) lab.textContent = valFacteur(f, v);
     try { localStorage.setItem("bookreeder-fact-" + f.id, String(v)); } catch (er) {}
     majDureeChapitre();
     if (!ecranLecture.classList.contains("cache")) afficherChunk();
