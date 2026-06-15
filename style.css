@@ -239,6 +239,9 @@ html, body {
 #ecran-contexte.texte-uniforme #contexte-texte span.phrase-courante,
 #ecran-contexte.texte-uniforme #contexte-texte span.ctx-dlg,
 #ecran-contexte.texte-uniforme #contexte-texte span.courant { color: var(--texte); opacity: 1; }
+/* Exception : en LECTURE AUTO + texte uniforme, le mot en cours reprend la
+   couleur d'accentuation (sinon il serait blanc, indistinct). */
+#ecran-contexte.texte-uniforme.lecture-auto #contexte-texte span.courant { color: var(--orp-couleur, var(--accent)); opacity: 1; }
 /* Info-bulle centrale de bascule (~1 s) */
 #loupe-toast, #toast-ecran {
   position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 90;
