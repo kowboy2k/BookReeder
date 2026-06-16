@@ -1453,7 +1453,15 @@ body.roue-ouverte #panneau-dialogues-dyn { background: transparent; }
 #reglages-pages::-webkit-scrollbar { width: 5px; }
 #reglages-pages::-webkit-scrollbar-track { background: transparent; }
 #reglages-pages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 3px; }
-#panneau-reglages #btn-fermer-reglages { flex: none; margin-top: 1rem; }
+#panneau-reglages #reglages-bas { flex: none; margin-top: 1rem; display: flex; gap: 0.6rem; align-items: stretch; }
+#panneau-reglages #reglages-bas #btn-fermer-reglages { margin-top: 0; flex: 1 1 auto; }
+/* Icône disquette : ouvre le menu des profils de réglages */
+#btn-profils {
+  flex: none; width: 3.2rem; display: flex; align-items: center; justify-content: center;
+  background: var(--fond); color: var(--texte); border: 1px solid var(--surface-bord);
+  border-radius: 0.6rem; cursor: pointer;
+}
+#btn-profils:active { transform: scale(0.94); }
 /* Pendant les réglages, la zone de lecture (cartouche d'aperçu) reste visible en
    haut, au-dessus du panneau (70dvh). Hauteur calée sur l'espace libre. */
 #ecran-lecture.apercu #zone-mot {

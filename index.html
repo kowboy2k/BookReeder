@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BookReeder">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="style.css?v=405">
+  <link rel="stylesheet" href="style.css?v=406">
 </head>
 <body>
   <!-- Écran d'accueil : choix du fichier -->
@@ -728,7 +728,16 @@
       </div><!-- /page 4 -->
       </div><!-- /reglages-pages -->
 
-      <button id="btn-fermer-reglages">OK</button>
+      <div id="reglages-bas">
+        <button id="btn-fermer-reglages">OK</button>
+        <button id="btn-profils" type="button" title="Profils de réglages" aria-label="Profils de réglages">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 3h11l3 3v15a0 0 0 0 1 0 0H5a0 0 0 0 1 0 0V3z"></path>
+            <path d="M8 3v6h7V3"></path>
+            <rect x="8" y="13" width="8" height="6"></rect>
+          </svg>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -736,7 +745,7 @@
   <div id="toast-ecran" class="cache"></div>
   <script src="lib/epub.min.js"></script>
   <script src="lib/pdf.min.js"></script>
-  <script src="chargeur.js?v=405"></script>
-  <script src="app.js?v=405"></script>
+  <script src="chargeur.js?v=406"></script>
+  <script src="app.js?v=406"></script>
 </body>
 </html>

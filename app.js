@@ -2927,14 +2927,9 @@ function fermerReglages() {
   afficherChunk();        // re-rendu complet avec les réglages finaux
   majDureeChapitre();     // s'assure que vitesse/rythme sont bien pris en compte à la reprise
 }
-// Bouton « OK » : appui simple = valider/appliquer ; appui long = menu des profils.
-(function brancherFermerReglages() {
-  const b = $("btn-fermer-reglages"); if (!b) return;
-  let timer = null, long = false;
-  b.addEventListener("pointerdown", () => { long = false; timer = setTimeout(() => { long = true; menuProfils(); }, 500); });
-  ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => b.addEventListener(ev, () => clearTimeout(timer)));
-  b.addEventListener("click", () => { if (long) { long = false; return; } fermerReglages(); });
-})();
+// Bouton « OK » = valider/appliquer ; icône disquette = menu des profils.
+$("btn-fermer-reglages")?.addEventListener("click", fermerReglages);
+$("btn-profils")?.addEventListener("click", menuProfils);
 $("panneau-reglages").addEventListener("click", (e) => {
   if (e.target === $("panneau-reglages")) fermerReglages();
 });
