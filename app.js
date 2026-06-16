@@ -3624,11 +3624,12 @@ const FACTEURS_RYTHME = [
   { id: "plancher",   param: "motMin",           def: 0.6, ms: true },
   { id: "dialogue",   param: "plancherDialogue", def: 1.0, ms: true, dlg: true },
   { id: "nompropre",  param: "nomPropreFact",    def: 2.5, ms: true },
-  { id: "elan",       param: "elanGrossePause",  def: 0.65 },
+  { id: "elan",       param: "elanGrossePause",  def: 0.65, elan: true },
 ];
 // Libellé d'un facteur : « × X,X » pour les pauses ; « N ms » pour les durées mini
 // (facteur × durée d'un mot à la vitesse actuelle, × coef dialogue le cas échéant).
 function valFacteur(f, v) {
+  if (f.elan && v >= 1) return "aucun";    // × 1 = pas d'élan
   if (f.ms) {
     const base = 60000 / Math.max(1, etat.vitesse || 300);
     const ms = v * base * (f.dlg ? (etat.coefDialogue || 1) : 1);
