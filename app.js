@@ -172,7 +172,8 @@ async function sauverPosition() {
 function estCleProfil(k) {
   return typeof k === "string" && k.indexOf("bookreeder-") === 0 &&
          k.indexOf("bookreeder-toc-") !== 0 && k !== "bookreeder-vue-version" &&
-         k !== "bookreeder-tri-biblio" && k !== "bookreeder-meta-biblio";
+         k !== "bookreeder-tri-biblio" && k !== "bookreeder-meta-biblio" &&
+         k !== "bookreeder-profils" && k !== "bookreeder-profil-actuel";
 }
 (function installerShimProfil() {
   const proto = Storage.prototype;
@@ -2923,13 +2924,106 @@ $("btn-ouvrir-dialogues-dyn")?.addEventListener("click", () => { fermerReglages(
 function fermerReglages() {
   $("panneau-reglages").classList.add("cache");
   ecranLecture.classList.remove("apercu");
-  afficherChunk(); // re-rendu complet avec les réglages finaux
+  afficherChunk();        // re-rendu complet avec les réglages finaux
+  majDureeChapitre();     // s'assure que vitesse/rythme sont bien pris en compte à la reprise
 }
-// Bouton « OK » + toucher la zone au-dessus du panneau (hors carte) : valide et referme.
-$("btn-fermer-reglages")?.addEventListener("click", fermerReglages);
+// Bouton « OK » : appui simple = valider/appliquer ; appui long = menu des profils.
+(function brancherFermerReglages() {
+  const b = $("btn-fermer-reglages"); if (!b) return;
+  let timer = null, long = false;
+  b.addEventListener("pointerdown", () => { long = false; timer = setTimeout(() => { long = true; menuProfils(); }, 500); });
+  ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => b.addEventListener(ev, () => clearTimeout(timer)));
+  b.addEventListener("click", () => { if (long) { long = false; return; } fermerReglages(); });
+})();
 $("panneau-reglages").addEventListener("click", (e) => {
   if (e.target === $("panneau-reglages")) fermerReglages();
 });
+
+// =========================================================
+//  Profils de réglages APPLICATIFS (indépendants du livre)
+// =========================================================
+// Un profil = un instantané nommé de TOUS les réglages de lecture. Stocké au
+// niveau de l'app (clés bookreeder-profils / -profil-actuel, hors shim par livre).
+function lireProfils() { try { return JSON.parse(localStorage.getItem("bookreeder-profils") || "{}") || {}; } catch (e) { return {}; } }
+function ecrireProfils(o) { try { localStorage.setItem("bookreeder-profils", JSON.stringify(o)); } catch (e) {} }
+function profilActuel() { try { return localStorage.getItem("bookreeder-profil-actuel") || ""; } catch (e) { return ""; } }
+function setProfilActuel(n) { try { n ? localStorage.setItem("bookreeder-profil-actuel", n) : localStorage.removeItem("bookreeder-profil-actuel"); } catch (e) {} }
+// Clés de réglage GLOBALES présentes dans localStorage.
+function clesReglagesGlobales() {
+  const out = [];
+  for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (estCleProfil(k)) out.push(k); }
+  return out;
+}
+// Instantané des réglages EFFECTIFS actuels (profil du livre courant compris).
+function snapshotReglages() {
+  const s = new Set(clesReglagesGlobales());
+  if (etat.profil) Object.keys(etat.profil).forEach((k) => { if (estCleProfil(k)) s.add(k); });
+  const o = {};
+  s.forEach((k) => { const v = localStorage.getItem(k); if (v != null) o[k] = v; });
+  return o;
+}
+// Repart d'une base vierge (profil livre courant + global), puis applique le snap.
+function appliquerReglages(snap) {
+  if (etat.idLivre) etat.profil = {};                 // vide le profil du livre courant
+  clesReglagesGlobales().forEach((k) => localStorage.removeItem(k));   // removeItem non shimmé → global
+  if (snap) Object.keys(snap).forEach((k) => { try { localStorage.setItem(k, String(snap[k])); } catch (e) {} });
+  rechargerReglages();                                // ré-applique tout à l'UI/état
+  if (!ecranLecture.classList.contains("cache")) afficherChunk();
+  majDureeChapitre();
+}
+async function menuProfils() {
+  const a = profilActuel();
+  const r = await choix("Profils de réglages" + (a ? "\nActuel : « " + a + " »" : ""), [
+    { label: "Sauvegarder sur le profil actuel", val: "save" },
+    { label: "Créer un nouveau profil", val: "new" },
+    { label: "Charger un profil", val: "load" },
+    { label: "Tout remettre par défaut", val: "reset", classe: "choix-danger" },
+    { label: "Annuler", val: null, classe: "choix-annuler" },
+  ]);
+  if (r === "save") sauverProfilActuel();
+  else if (r === "new") creerProfil();
+  else if (r === "load") chargerProfilMenu();
+  else if (r === "reset") resetReglagesDefaut();
+}
+function sauverProfilActuel() {
+  const a = profilActuel();
+  if (!a) { creerProfil(); return; }                  // pas de profil courant → on en crée un
+  const p = lireProfils(); p[a] = snapshotReglages(); ecrireProfils(p);
+  toastEcran("Profil « " + a + " » sauvegardé");
+}
+function creerProfil() {
+  const nom = (window.prompt("Nom du nouveau profil :") || "").trim();
+  if (!nom) return;
+  const p = lireProfils(); p[nom] = snapshotReglages(); ecrireProfils(p); setProfilActuel(nom);
+  toastEcran("Profil « " + nom + " » créé");
+}
+async function chargerProfilMenu() {
+  const p = lireProfils(); const noms = Object.keys(p);
+  if (!noms.length) { await choix("Aucun profil enregistré.", [{ label: "OK", val: null }]); return; }
+  const opts = noms.map((n) => ({ label: n, val: n }));
+  opts.push({ label: "Annuler", val: null, classe: "choix-annuler" });
+  const n = await choix("Charger un profil", opts);
+  if (!n) return;
+  const act = await choix("« " + n + " »", [
+    { label: "Charger", val: "load" },
+    { label: "Renommer", val: "rename" },
+    { label: "Supprimer", val: "del", classe: "choix-danger" },
+    { label: "Annuler", val: null, classe: "choix-annuler" },
+  ]);
+  if (act === "load") { appliquerReglages(p[n]); setProfilActuel(n); toastEcran("Profil « " + n + " » chargé"); }
+  else if (act === "rename") {
+    const nn = (window.prompt("Renommer le profil :", n) || "").trim();
+    if (nn && nn !== n) { p[nn] = p[n]; delete p[n]; ecrireProfils(p); if (profilActuel() === n) setProfilActuel(nn); toastEcran("Profil renommé"); }
+  } else if (act === "del") {
+    if (await confirmer("Supprimer le profil « " + n + " » ?")) { delete p[n]; ecrireProfils(p); if (profilActuel() === n) setProfilActuel(""); toastEcran("Profil supprimé"); }
+  }
+}
+async function resetReglagesDefaut() {
+  if (!(await confirmer("Remettre tous les réglages par défaut ?"))) return;
+  appliquerReglages(null);
+  setProfilActuel("");
+  toastEcran("Réglages remis par défaut");
+}
 
 // =========================================================
 //  Panneau « Dialogues dynamiques » : attribution des couleurs par personnage
