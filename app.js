@@ -3803,6 +3803,11 @@ const FAMILLE_CSS = {
   noto:     '"Noto Sans", sans-serif',
   dejavu:   '"DejaVu Sans", sans-serif',
   dys:      '"OpenDyslexic", sans-serif',
+  // Polices SYSTÈME (non embarquées) : rendues si l'OS les possède, sinon repli.
+  bookman:  '"Bookman Old Style", Bookman, "URW Bookman L", Georgia, serif',
+  bookerly: 'Bookerly, Georgia, "Times New Roman", serif',
+  cambria:  'Cambria, Georgia, "Times New Roman", serif',
+  century:  '"Century Gothic", "Apple SD Gothic Neo", "URW Gothic", "Trebuchet MS", sans-serif',
 };
 // Familles proposées + leurs variantes (poids, ou police de base pour Bionic)
 const POIDS = [{ id: "300", nom: "Léger" }, { id: "400", nom: "Normal" },
@@ -3816,6 +3821,10 @@ const FAMILLES = [
   { id: "literata", nom: "Literata",      variantes: wn },
   { id: "noto",     nom: "Noto Sans",     variantes: wn },
   { id: "dejavu",   nom: "DejaVu Sans",   variantes: wn },
+  { id: "bookman",  nom: "Bookman Old Style", variantes: wn },
+  { id: "bookerly", nom: "Bookerly",      variantes: wn },
+  { id: "cambria",  nom: "Cambria",       variantes: wn },
+  { id: "century",  nom: "Century Gothic", variantes: wn },
   { id: "dys",      nom: "Open Dyslexic", variantes: wn },
   { id: "bionic",   nom: "Bionic",        variantes: [
       { id: "georgia", nom: "Georgia" }, { id: "roboto", nom: "Roboto" }] },
